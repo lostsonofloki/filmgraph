@@ -1,0 +1,277 @@
+.actor-page {
+  min-height: 100vh;
+  background: #0a0a0a;
+  padding-bottom: 60px;
+}
+
+/* Loading & Error States */
+.loading-state,
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 20px;
+  gap: 20px;
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid #1a1a1a;
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-state p,
+.error-state p {
+  font-size: 16px;
+  color: #888888;
+  margin: 0;
+}
+
+.error-state h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.back-btn {
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  background: #2a2a2a;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+  background: #3a3a3a;
+}
+
+/* Actor Header */
+.actor-header {
+  background: linear-gradient(to bottom, #1a1a1a 0%, #0a0a0a 100%);
+  padding: 60px 0;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.actor-header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+}
+
+.actor-profile-image {
+  width: 300px;
+  height: 450px;
+  object-fit: cover;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
+}
+
+.actor-profile-placeholder {
+  width: 300px;
+  height: 450px;
+  background: #1a1a1a;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.actor-profile-placeholder svg {
+  width: 80px;
+  height: 80px;
+  color: #444444;
+}
+
+.actor-info {
+  flex: 1;
+  padding-top: 20px;
+}
+
+.actor-info h1 {
+  font-size: 42px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 16px 0;
+  line-height: 1.1;
+}
+
+.actor-meta {
+  font-size: 14px;
+  color: #888888;
+  margin: 0 0 24px 0;
+}
+
+.actor-bio {
+  margin-bottom: 24px;
+}
+
+.actor-bio h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 12px 0;
+}
+
+.actor-bio p {
+  font-size: 15px;
+  line-height: 1.7;
+  color: #cccccc;
+  margin: 0;
+  white-space: pre-line;
+}
+
+.actor-department {
+  font-size: 14px;
+  color: #888888;
+  margin: 0;
+}
+
+/* Filmography Section */
+.actor-filmography {
+  padding: 60px 0;
+}
+
+.section-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.actor-filmography h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+}
+
+.filmography-subtitle {
+  font-size: 14px;
+  color: #888888;
+  margin: 0 0 32px 0;
+}
+
+.movies-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 24px;
+}
+
+.movie-card {
+  background: #121212;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.2s ease;
+  cursor: pointer;
+}
+
+.movie-card:hover {
+  transform: scale(1.05);
+}
+
+.movie-card-poster {
+  position: relative;
+  padding-top: 150%;
+  background: #1a1a1a;
+}
+
+.movie-card-poster img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.movie-card-info {
+  padding: 16px;
+}
+
+.movie-card-info h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 4px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.movie-year {
+  font-size: 13px;
+  color: #888888;
+  margin: 0 0 6px 0;
+}
+
+.movie-character {
+  font-size: 12px;
+  color: #666666;
+  margin: 0;
+  font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .actor-header-content {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .actor-profile-image,
+  .actor-profile-placeholder {
+    width: 240px;
+    height: 360px;
+  }
+
+  .actor-info h1 {
+    font-size: 32px;
+  }
+
+  .movies-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .actor-header {
+    padding: 40px 0;
+  }
+
+  .actor-profile-image,
+  .actor-profile-placeholder {
+    width: 200px;
+    height: 300px;
+  }
+
+  .actor-info h1 {
+    font-size: 28px;
+  }
+
+  .movies-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

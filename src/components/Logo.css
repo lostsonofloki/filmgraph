@@ -1,0 +1,105 @@
+.logo-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-svg {
+  flex-shrink: 0;
+}
+
+/* Film Frame - Deep Charcoal */
+.logo-frame {
+  fill: #333333;
+}
+
+/* Sprocket Holes - Same as frame for seamless look */
+.logo-sprocket {
+  fill: #333333;
+}
+
+/* Bar Chart - Soft Teal */
+.logo-bar {
+  fill: #2D5A61;
+  transition: fill 0.3s ease;
+}
+
+.logo-container:hover .logo-bar {
+  fill: #3D6A71;
+}
+
+/* Bar heights are defined in the SVG, but we can add animations */
+.logo-bar-small {
+  animation: barGrowSmall 2s ease-in-out infinite;
+}
+
+.logo-bar-medium {
+  animation: barGrowMedium 2s ease-in-out infinite;
+  animation-delay: 0.2s;
+}
+
+.logo-bar-large {
+  animation: barGrowLarge 2s ease-in-out infinite;
+  animation-delay: 0.4s;
+}
+
+@keyframes barGrowSmall {
+  0%, 100% {
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+  50% {
+    transform: scaleY(1.08);
+    transform-origin: bottom;
+  }
+}
+
+@keyframes barGrowMedium {
+  0%, 100% {
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+  50% {
+    transform: scaleY(1.05);
+    transform-origin: bottom;
+  }
+}
+
+@keyframes barGrowLarge {
+  0%, 100% {
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+  50% {
+    transform: scaleY(1.03);
+    transform-origin: bottom;
+  }
+}
+
+/* Logo Text */
+.logo-text {
+  font-size: calc(var(--logo-size) * 0.5);
+  font-weight: 700;
+  color: #333333;
+  letter-spacing: -0.5px;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .logo-frame,
+  .logo-sprocket {
+    fill: #f1f5f9;
+  }
+
+  .logo-bar {
+    fill: #5FA38E;
+  }
+
+  .logo-container:hover .logo-bar {
+    fill: #7BC4A8;
+  }
+
+  .logo-text {
+    color: #f1f5f9;
+  }
+}

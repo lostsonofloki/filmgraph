@@ -1,0 +1,16 @@
+{
+  "short_name": "Ignes",
+  "name": "Ignes - Movie Logging & Visualization",
+  "icons": [
+    {
+      "src": "/resources/IgnesMain.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#991b1b",
+  "background_color": "#991b1b",
+  "description": "Your Personal Movie Logging & Visualization Platform"
+}

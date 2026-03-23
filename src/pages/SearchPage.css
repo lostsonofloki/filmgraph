@@ -1,0 +1,179 @@
+.search-page {
+  min-height: 100vh;
+  padding: 40px 0;
+  background: #0a0a0a;
+}
+
+.search-page-header {
+  text-align: center;
+  margin-bottom: 40px;
+  padding: 0 16px;
+}
+
+.page-title {
+  font-size: 42px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 12px 0;
+}
+
+.page-subtitle {
+  font-size: 18px;
+  color: #666666;
+  margin: 0;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.search-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  gap: 16px;
+}
+
+.loading-spinner-large {
+  width: 48px;
+  height: 48px;
+  border: 3px solid #1a1a1a;
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.search-loading p {
+  font-size: 16px;
+  color: #666666;
+  margin: 0;
+}
+
+.no-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  gap: 12px;
+  text-align: center;
+}
+
+.no-results svg {
+  width: 64px;
+  height: 64px;
+  color: #333333;
+}
+
+.no-results h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #666666;
+  margin: 0;
+}
+
+.no-results p {
+  font-size: 14px;
+  color: #555555;
+  margin: 0;
+}
+
+/* Power Filter Bar */
+.power-filter-bar {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  max-width: 1400px;
+  margin: 0 auto 24px;
+  padding: 0 24px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-group label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #888888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-select {
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #ffffff;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 160px;
+}
+
+.filter-select:hover {
+  border-color: #3a3a3a;
+}
+
+.filter-select:focus {
+  border-color: #444444;
+  background: #222222;
+}
+
+.filter-select option {
+  background: #1a1a1a;
+  color: #ffffff;
+}
+
+.clear-filters-btn {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #ef4444;
+  background: transparent;
+  border: 1px solid #3a2a2a;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  align-self: flex-end;
+  height: 40px;
+}
+
+.clear-filters-btn:hover {
+  background: #3a2a2a;
+  border-color: #ef4444;
+}
+
+@media (max-width: 640px) {
+  .page-title {
+    font-size: 32px;
+  }
+
+  .page-subtitle {
+    font-size: 16px;
+  }
+
+  .search-page {
+    padding: 24px 0;
+  }
+
+  .power-filter-bar {
+    padding: 0 16px;
+  }
+
+  .filter-select {
+    min-width: 140px;
+  }
+}

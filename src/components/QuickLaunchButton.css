@@ -1,0 +1,189 @@
+/* QuickLaunch Button Base Styles */
+.quick-launch-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-weight: 600;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.quick-launch-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Icon Styles */
+.quick-launch-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* Size Variants */
+.quick-launch-small {
+  padding: 8px 16px;
+  font-size: 13px;
+  border-radius: 8px;
+}
+
+.quick-launch-small .quick-launch-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.quick-launch-medium {
+  padding: 12px 24px;
+  font-size: 15px;
+  border-radius: 12px;
+}
+
+.quick-launch-medium .quick-launch-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.quick-launch-large {
+  padding: 16px 32px;
+  font-size: 17px;
+  border-radius: 14px;
+}
+
+.quick-launch-large .quick-launch-icon {
+  width: 24px;
+  height: 24px;
+}
+
+/* Primary Variant - Gradient */
+.quick-launch-primary {
+  color: #ffffff;
+  background: linear-gradient(135deg, #2D5A61 0%, #3D6A71 100%);
+  box-shadow: 0 4px 14px rgba(45, 90, 97, 0.3);
+}
+
+.quick-launch-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(45, 90, 97, 0.4);
+  background: linear-gradient(135deg, #3D6A71 0%, #4D7A81 100%);
+}
+
+.quick-launch-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Secondary Variant - Outline */
+.quick-launch-secondary {
+  color: #2D5A61;
+  background: transparent;
+  border: 2px solid #2D5A61;
+}
+
+.quick-launch-secondary:hover:not(:disabled) {
+  background: #2D5A61;
+  color: #ffffff;
+}
+
+/* Ghost Variant - Minimal */
+.quick-launch-ghost {
+  color: #666666;
+  background: transparent;
+}
+
+.quick-launch-ghost:hover:not(:disabled) {
+  background: #f0f0f0;
+  color: #333333;
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .quick-launch-ghost {
+    color: #9a9a9a;
+  }
+
+  .quick-launch-ghost:hover:not(:disabled) {
+    background: #2a2a2a;
+    color: #c4c4c4;
+  }
+
+  .quick-launch-secondary {
+    color: #5FA38E;
+    border-color: #5FA38E;
+  }
+
+  .quick-launch-secondary:hover:not(:disabled) {
+    background: #5FA38E;
+    color: #1a1a1a;
+  }
+}
+
+/* Floating Action Button Style (Optional) */
+.quick-launch-float {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  border-radius: 50%;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  box-shadow: 0 8px 30px rgba(45, 90, 97, 0.4);
+  z-index: 1000;
+}
+
+.quick-launch-float .quick-launch-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.quick-launch-float:hover:not(:disabled) {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 12px 40px rgba(45, 90, 97, 0.5);
+}
+
+/* Animation for initial load */
+@keyframes buttonPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.quick-launch-btn {
+  animation: buttonPop 0.3s ease-out;
+}
+
+/* Ripple Effect */
+.quick-launch-btn::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, transparent 70%);
+  transform: scale(0);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.quick-launch-btn:active::after {
+  animation: ripple 0.4s ease-out;
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
