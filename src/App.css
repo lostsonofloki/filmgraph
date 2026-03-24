@@ -25,22 +25,24 @@ body {
 
 /* Header Styles - Three Section Layout */
 .app-header {
-  background: #121212;
-  border-bottom: 1px solid #1a1a1a;
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  background: #121212 !important;
+  border-bottom: 1px solid #1a1a1a !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1000 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  display: block !important;
+  visibility: visible !important;
 }
 
 .header-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 14px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
+  max-width: 1400px !important;
+  margin: 0 auto !important;
+  padding: 14px 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 24px !important;
 }
 
 /* Left Section - Logo */
