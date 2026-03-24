@@ -1,61 +1,43 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getSupabase } from '../supabaseClient';
+import IgnesLogo from '../components/IgnesLogo';
 import './UpdatePasswordPage.css';
 
 /**
- * Update Password Page - For resetting password after email reset link
+ * Update Password Page - Handle Supabase password resets
  */
 function UpdatePasswordPage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Check if user is in reset password flow
-    const checkSession = async () => {
-      try {
-        const supabase = getSupabase();
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        // If no session, user might not have come from reset email
-        if (!session) {
-          setError('Please request a password reset email first.');
-        }
-      } catch (err) {
-        console.error('Error checking session:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkSession();
-  }, []);
-
-  const handleUpdatePassword = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
-    setIsSubmitting(true);
+    setMessage('');
+    setLoading(true);
+
+    // Validate passwords match
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
+    // Validate password length
+    if (newPassword.length < 6) {
+      setError('Password must be at least 6 characters');
+      setLoading(false);
+      return;
+    }
 
     try {
-      if (!newPassword || !confirmPassword) {
-        throw new Error('Please fill in all fields');
-      }
-
-      if (newPassword.length < 6) {
-        throw new Error('Password must be at least 6 characters');
-      }
-
-      if (newPassword !== confirmPassword) {
-        throw new Error('Passwords do not match');
-      }
-
       const supabase = getSupabase();
       const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword,
@@ -63,50 +45,41 @@ function UpdatePasswordPage() {
 
       if (updateError) throw updateError;
 
-      setSuccess('Password updated successfully! Redirecting to login...');
-      
-      // Clear form
-      setNewPassword('');
-      setConfirmPassword('');
-
-      // Redirect to login after 2 seconds
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+      setSuccess(true);
+      setMessage('Password updated successfully!');
     } catch (err) {
-      setError(err.message || 'Failed to update password. Please try again.');
+      setError(err.message || 'Failed to update password');
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="update-password-page">
-        <div className="update-password-container">
-          <div className="loading-state">
-            <div className="loading-spinner"></div>
-            <p>Checking session...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="update-password-page">
-      <div className="update-password-container">
-        <div className="update-password-card">
-          <div className="update-password-header">
-            <h1 className="update-password-title">Reset your password</h1>
-            <p className="update-password-subtitle">
-              Enter your new password below
-            </p>
-          </div>
+    <div className="auth-container">
+      <div className="auth-card">
+        <div className="auth-header">
+          <IgnesLogo size={50} showText={true} />
+          <h1>Forge New Password</h1>
+          <p>Enter your new password below</p>
+        </div>
 
-          <form className="update-password-form" onSubmit={handleUpdatePassword}>
+        {success ? (
+          <div className="auth-success">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+            <p>{message}</p>
+            <button
+              className="auth-submit-btn"
+              onClick={() => navigate('/login')}
+            >
+              Return to Login
+            </button>
+          </div>
+        ) : (
+          <form className="auth-form" onSubmit={handleSubmit}>
             {error && (
-              <div className="error-message">
+              <div className="auth-error">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="12" cy="12" r="10" />
                   <line x1="12" y1="8" x2="12" y2="12" />
@@ -116,76 +89,45 @@ function UpdatePasswordPage() {
               </div>
             )}
 
-            {success && (
-              <div className="success-message">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
-                <span>{success}</span>
-              </div>
-            )}
-
-            <div className="form-group">
-              <label htmlFor="new-password" className="form-label">
-                New Password
-              </label>
+            <div className="input-group">
+              <label htmlFor="new-password">New Password</label>
               <input
                 id="new-password"
                 type="password"
-                className="form-input"
+                className="auth-input"
                 placeholder="Enter new password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                disabled={isSubmitting || success}
+                disabled={loading}
                 autoComplete="new-password"
+                required
               />
             </div>
 
-            <div className="form-group">
-              <label htmlFor="confirm-password" className="form-label">
-                Confirm Password
-              </label>
+            <div className="input-group">
+              <label htmlFor="confirm-password">Confirm Password</label>
               <input
                 id="confirm-password"
                 type="password"
-                className="form-input"
+                className="auth-input"
                 placeholder="Confirm new password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                disabled={isSubmitting || success}
+                disabled={loading}
                 autoComplete="new-password"
+                required
               />
             </div>
 
             <button
               type="submit"
-              className="update-password-button"
-              disabled={isSubmitting || success}
+              className="auth-submit-btn"
+              disabled={loading}
             >
-              {isSubmitting ? (
-                <span className="button-loading">
-                  <span className="loading-dot"></span>
-                  <span className="loading-dot"></span>
-                  <span className="loading-dot"></span>
-                </span>
-              ) : success ? (
-                'Password Updated!'
-              ) : (
-                'Update Password'
-              )}
+              {loading ? 'Updating...' : 'Update Password'}
             </button>
           </form>
-
-          <p className="update-password-footer">
-            Remember your password?{' '}
-            <button
-              className="update-password-link"
-              onClick={() => navigate('/login')}
-            >
-              Back to Login
-            </button>
-          </p>
-        </div>
+        )}
       </div>
     </div>
   );

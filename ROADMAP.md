@@ -265,7 +265,9 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 **Phase**: Phase 5 Complete ✅ | Phase 6: Future Enhancements (Planned)
 
 **Completed Features**:
-- ✅ **Three-Section Navbar** - Logo (left), Global Search (center), Navigation (right)
+- ✅ **Mobile-First Responsive Navbar** - Hamburger menu (mobile) / Inline nav links (desktop 768px+)
+  - Desktop: Logo | Trending, My Library, History | Search Bar
+  - Mobile: Logo + Hamburger → Dropdown with search at top
 - ✅ **Minimalist Dark Theme** - #0a0a0a background, clean typography
 - ✅ **TMDB/OMDb Dual-API** - Trending movies, search, details, RT scores
 - ✅ **Movie Detail Pages** - High-res backdrops, cast, recommendations, TMDB + RT scores
@@ -275,6 +277,7 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 - ✅ **Edit Movie Logs** - "Edit Log" button on MovieDetail opens modal pre-filled with your data
 - ✅ **Supabase Backend** - Auth, PostgreSQL, RLS policies configured (includes genres column)
 - ✅ **User Authentication** - Sign up, login, logout with Supabase Auth
+- ✅ **Forgot Password Flow** - Email-based password reset with Supabase Auth
 - ✅ **RatingSlider** - StoryGraph-style 0.0-5.0 with 0.1 increments, gradient fill
 - ✅ **Mood Palette** - 22 moods across 3 color-coded categories:
   - **Emotional** (Warm/Red): Bittersweet, Heartwarming, Tear-jerker, Uplifting, Bleak

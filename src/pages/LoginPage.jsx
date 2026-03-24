@@ -148,16 +148,6 @@ function LoginPage() {
                     'Sign In'
                   )}
                 </button>
-
-                <div className="forgot-password-row">
-                  <button
-                    type="button"
-                    className="forgot-password-btn"
-                    onClick={() => setShowResetForm(true)}
-                  >
-                    Forgot Password?
-                  </button>
-                </div>
               </>
             ) : (
               <>
@@ -210,6 +200,16 @@ function LoginPage() {
               </>
             )}
           </form>
+
+          <div className="forgot-password-link-row">
+            <button
+              type="button"
+              className="forgot-password-text-btn"
+              onClick={() => setShowResetForm(true)}
+            >
+              Forgot Password?
+            </button>
+          </div>
 
           <p className="login-footer">
             Don't have an account?{' '}

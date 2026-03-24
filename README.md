@@ -24,6 +24,9 @@ Ignes is a React-based web application that lets you log, track, and visualize y
 - **Stats Dashboard**: Visualize your watching habits with Top Genres, Mood Breakdown, and Ratings Distribution charts
 
 ### Advanced Features
+- **Mobile-First Responsive Navbar**: Hamburger menu (mobile) / Inline nav links (desktop 768px+)
+  - **Desktop View**: Logo | Trending, My Library, History | Search Bar
+  - **Mobile View**: Logo + Hamburger → Dropdown with search at top
 - **Stats Dashboard**: Visualize your watching habits with charts (most-watched moods, genres, years)
   - **Smart Data Filtering**: Analytics automatically exclude watchlist items to provide an accurate "Watched" history
 - **Up Next Queue**: Maintain a curated shelf of your next 5 movies to watch
@@ -31,6 +34,7 @@ Ignes is a React-based web application that lets you log, track, and visualize y
 - **Watch History Timeline**: Vertical timeline of watched movies grouped by month
 - **Smart Recommendations**: Discover new movies based on your viewing history and preferences
 - **User Authentication**: Secure login/signup with Supabase Auth
+- **Forgot Password Flow**: Email-based password reset with Supabase Auth
 - **Editable Profiles**: Customizable display names and bios with avatar upload
 - **Row Level Security**: Secure data policies protecting user movie logs
 
