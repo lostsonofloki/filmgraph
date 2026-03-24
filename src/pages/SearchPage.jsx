@@ -43,7 +43,8 @@ function SearchPage() {
   const [movies, setMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-  const [searchMode, setSearchMode] = useState('search'); // 'search' or 'discover'
+  const [searchMode, setSearchMode] = useState('search');
+  const [lastQuery, setLastQuery] = useState('');
 
   // Filter states
   const [selectedGenre, setSelectedGenre] = useState('');
@@ -52,12 +53,13 @@ function SearchPage() {
 
   const initialQuery = searchParams.get('q') || '';
 
-  // Handle initial search from URL
+  // Handle search when URL query changes
   useEffect(() => {
-    if (initialQuery && movies.length === 0 && !hasSearched) {
+    if (initialQuery && initialQuery !== lastQuery) {
+      setLastQuery(initialQuery);
       handleSearch(initialQuery);
     }
-  }, []);
+  }, [initialQuery]);
 
   // Handle discover mode when filters change
   useEffect(() => {

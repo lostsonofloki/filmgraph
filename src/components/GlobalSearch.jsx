@@ -11,8 +11,10 @@ function GlobalSearch() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (query.trim()) {
-      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+    const searchQuery = query.trim();
+    if (searchQuery) {
+      // Force navigation even if already on search page
+      navigate(`/search?q=${encodeURIComponent(searchQuery)}`, { replace: true });
       setQuery('');
     }
   };

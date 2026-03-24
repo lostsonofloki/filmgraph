@@ -35,7 +35,7 @@ export const GENRES = {
  */
 export const discoverMovies = async (genreId = '', sortBy = 'popularity.desc', year = '', withOriginalLanguage = '') => {
   try {
-    let url = `${BASE_URL}/discover/movie?api_key=${API_KEY}&sort_by=${sortBy}`;
+    let url = `${BASE_URL}/discover/movie?api_key=${API_KEY}&sort_by=${sortBy}&include_adult=false`;
 
     if (genreId) {
       url += `&with_genres=${genreId}`;
@@ -80,10 +80,10 @@ export const discoverAnime = async (sortBy = 'popularity.desc', year = '') => {
 export const getTrendingMovies = async (timeWindow = 'week') => {
   try {
     const response = await fetch(
-      `${BASE_URL}/trending/movie/${timeWindow}?api_key=${API_KEY}`
+      `${BASE_URL}/trending/movie/${timeWindow}?api_key=${API_KEY}&include_adult=false`
     );
     const data = await response.json();
-    
+
     if (data.results) {
       return data.results;
     }
@@ -120,10 +120,10 @@ export const getMovieDetails = async (tmdbId) => {
 export const searchMovies = async (query) => {
   try {
     const response = await fetch(
-      `${BASE_URL}/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}`
+      `${BASE_URL}/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}&include_adult=false`
     );
     const data = await response.json();
-    
+
     if (data.results) {
       return data.results;
     }
@@ -142,10 +142,10 @@ export const searchMovies = async (query) => {
 export const getRecommendations = async (tmdbId) => {
   try {
     const response = await fetch(
-      `${BASE_URL}/movie/${tmdbId}/recommendations?api_key=${API_KEY}`
+      `${BASE_URL}/movie/${tmdbId}/recommendations?api_key=${API_KEY}&include_adult=false`
     );
     const data = await response.json();
-    
+
     if (data.results) {
       return data.results;
     }

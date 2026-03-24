@@ -235,7 +235,7 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 |---|------|-------------|--------|
 | 6.1 | **Social Sharing** | Share movie logs to social media platforms | ⬜ |
 | 6.2 | **Watch History Calendar** | Visual calendar view of watched movies | ⬜ |
-| 6.3 | **Smart Recommendations V2** | Enhanced AI suggestions based on deep mood pattern analysis | ⬜ |
+| 6.3 | **Smart Recommendations V2** | Enhanced AI with cross-user patterns & seasonal picks | ⬜ |
 | 6.4 | **Letterboxd Import** | Migrate existing data from Letterboxd | ⬜ |
 | 6.5 | **Mobile App** | React Native version for iOS/Android | ⬜ |
 | 6.6 | **Light Mode** | Theme toggle (currently dark mode only) | ⬜ |
@@ -243,6 +243,7 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 | 6.8 | **Year in Review** | Annual wrapped-style statistics summary | ⬜ |
 | 6.9 | **Custom Lists** | User-created movie collections | ⬜ |
 | 6.10 | **Advanced Search** | Multi-criteria search with filters | ⬜ |
+| 6.11 | **The Archive Importer** | Mass import tool for migrating movie lists | ⬜ |
 
 ### Deliverables
 - Social media integration for sharing logs
@@ -250,13 +251,48 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 - Cross-platform mobile application
 - Theme customization (dark/light mode)
 - Data import tools from competing platforms
+- **The Archive Importer**: AI-powered mass import with text/file upload
+
+---
+
+## Phase 6.11: The Archive Importer (Mass Import Tool) 📥
+
+**Goal**: Allow users to instantly migrate their old movie lists into Ignes without typing them one by one.
+
+### How It Will Work
+
+| Step | Description | Tech |
+|------|-------------|------|
+| **UI** | Text area for pasting lists + drag-and-drop zone for .txt files | React FileReader API |
+| **AI Parser** | Send raw text to Gemini API, extract titles/years as JSON | Google Gemini AI |
+| **Data Pipeline** | Loop through JSON, hit TMDB API for IDs/posters, batch upsert to Supabase | TMDB API + Supabase |
+| **UX** | Progress bar with Deep Ember styling during AI parsing | CSS animations |
+
+### User Flow
+1. User navigates to "Import Archive" page
+2. Pastes text list OR drags .txt file into drop zone
+3. Clicks "Parse with AI" button
+4. Gemini extracts movie titles and years
+5. TMDB verification fetches official IDs and posters
+6. User reviews parsed list
+7. Clicks "Import All" → Batch upsert to Supabase
+8. Success message with count of imported movies
+
+### Technical Requirements
+- React state for file/text input
+- Gemini API prompt engineering for clean JSON output
+- TMDB batch verification (rate limit handling)
+- Supabase batch insert with error handling
+- Progress bar component with Deep Ember (#991b1b) theme
+- Error states for failed parses/imports
 
 ### Success Criteria
-- [ ] Users can share logs to Twitter, Instagram, etc.
-- [ ] Calendar view shows watching patterns visually
-- [ ] Mobile app available on iOS and Android
-- [ ] Users can switch between dark and light themes
-- [ ] Letterboxd users can import their entire library
+- [ ] Users can paste a text list and get parsed results
+- [ ] Users can drag-and-drop .txt files
+- [ ] AI correctly extracts 90%+ of movie titles
+- [ ] TMDB verification fetches correct posters
+- [ ] Batch import completes without duplicates
+- [ ] Progress bar shows real-time import status
 
 ---
 
