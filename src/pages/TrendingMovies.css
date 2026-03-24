@@ -1,17 +1,7 @@
 .trending-page {
   min-height: 100vh;
-  padding: 40px 0;
+  padding: 20px 0;
   background: #0a0a0a;
-}
-
-/* Search Bar Wrapper - Ensure visibility */
-.search-bar-wrapper {
-  width: 100%;
-  max-width: 700px;
-  margin: 0 auto 24px;
-  padding: 0 24px;
-  position: relative;
-  z-index: 10;
 }
 
 .trending-header {

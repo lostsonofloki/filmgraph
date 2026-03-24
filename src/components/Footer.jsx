@@ -14,8 +14,7 @@ function Footer() {
       <div className="footer-content">
         <p className="footer-dedication">
           Developed by Josh Jenkins. Dedicated to{' '}
-          <span className="footer-highlight-name">Rachel Banks (Racheepi)</span> on our{' '}
-          <span className="footer-highlight-anniversary">7th Anniversary</span> — March 2026. Thanks for surviving seven years of nightmares and adventures with me.
+          <span className="footer-highlight-name">Rachel Banks</span>.
         </p>
         <div className="footer-attribution-row">
           <img
