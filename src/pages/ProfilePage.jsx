@@ -4,7 +4,6 @@ import { getSupabase } from '../supabaseClient';
 import { getMovieRecommendations, analyzeMoodPatterns, verifyRecommendation } from '../utils/gemini';
 import { useNavigate } from 'react-router-dom';
 import LogMovieModal from '../components/LogMovieModal';
-import SearchBar from '../components/SearchBar';
 import {
   BarChart,
   Bar,
@@ -721,6 +720,14 @@ function ProfilePage() {
     setSuccess('');
   };
 
+  const handleProfileSearch = (e) => {
+    e.preventDefault();
+    const query = e.target.search.value.trim();
+    if (query) {
+      navigate(`/search?q=${encodeURIComponent(query)}`);
+    }
+  };
+
   if (!user) {
     return null;
   }
@@ -887,14 +894,53 @@ function ProfilePage() {
             Your data is never used for training.
           </p>
           
-          {/* Search Bar */}
-          <div className="search-bar-wrapper">
-            <SearchBar
-              onSearch={(query) => {
-                navigate(`/search?q=${encodeURIComponent(query)}`);
-              }}
-              isLoading={isGettingRecs}
-            />
+          {/* HARD-CODED SEARCH BAR - FORCE VISIBLE */}
+          <div style={{ position: 'relative', zIndex: 9999, padding: '20px', maxWidth: '700px', margin: '20px auto' }}>
+            {console.log('--- SEARCH BAR RENDERED IN PROFILE ---')}
+            <form onSubmit={handleProfileSearch} style={{ display: 'flex', gap: '12px' }}>
+              <div style={{ position: 'relative', flex: 1 }}>
+                <svg
+                  style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', width: '20px', height: '20px', color: '#666', pointerEvents: 'none' }}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="M21 21l-4.35-4.35" />
+                </svg>
+                <input
+                  type="text"
+                  name="search"
+                  placeholder="Seek the Archive..."
+                  style={{
+                    width: '100%',
+                    padding: '14px 44px 14px 48px',
+                    fontSize: '16px',
+                    border: '2px solid #991b1b',
+                    borderRadius: '12px',
+                    background: '#121212',
+                    color: '#ffffff',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+              <button
+                type="submit"
+                style={{
+                  padding: '14px 28px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  color: '#ffffff',
+                  background: 'linear-gradient(135deg, #7e22ce 0%, #6b21a8 100%)',
+                  border: 'none',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                }}
+              >
+                Search
+              </button>
+            </form>
           </div>
           
           {aiEnabled ? (
