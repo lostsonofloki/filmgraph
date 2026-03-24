@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
 import ReportBugButton from '../components/ReportBugButton';
+import { APP_VERSION } from '../constants';
 import './AboutPage.css';
 
-const VERSION = '1.1.0';
+const VERSION = APP_VERSION;
 
 /**
  * AboutPage - Ignes Hub with About, Changelog, and Roadmap

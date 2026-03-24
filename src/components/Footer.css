@@ -130,6 +130,18 @@
   gap: 20px;
   justify-content: center;
   align-items: center;
+  flex-wrap: wrap;
+}
+
+.footer-version {
+  font-size: 12px;
+  color: #71717a;
+  font-weight: 500;
+  padding: 4px 10px;
+  background: rgba(249, 168, 75, 0.05);
+  border: 1px solid rgba(249, 168, 75, 0.2);
+  border-radius: 6px;
+  white-space: nowrap;
 }
 
 .footer-link {

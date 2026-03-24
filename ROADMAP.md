@@ -242,9 +242,11 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 | 6.7 | **Social Features** | Friends, following, and activity feeds | ⬜ |
 | 6.8 | **Year in Review** | Annual wrapped-style statistics summary | ⬜ |
 | 6.9 | **Custom Lists** | User-created movie collections | ✅ |
-| 6.10 | **Advanced Search** | Multi-criteria search with filters | ⬜ |
+| 6.10 | **Advanced Search** | Multi-criteria search (Mood, Genre, Rating) | ⬜ |
 | 6.11 | **The Archive Importer** | Mass import tool for migrating movie lists | ⬜ |
 | 6.12 | **Bug Report System** | In-app bug reporting with admin dashboard | ✅ |
+| 6.13 | **The Oracle** | Conversational AI Librarian using personal logs | ⬜ |
+| 6.14 | **The Matchmaker** | Compare watch-lists & mood overlaps with friends | ⬜ |
 
 ### Deliverables
 - Social media integration for sharing logs
@@ -301,7 +303,7 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 
 **Phase**: Phase 5 Complete ✅ | Phase 6: Future Enhancements (In Progress)
 
-**Current Version**: v1.2.0 - Bug Reports & About Page Release
+**Current Version**: v1.3.0 - Cinematic UI Overhaul & AI Personality
 
 **Completed Features**:
 - ✅ **Mobile-First Responsive Navbar** - Hamburger menu (mobile) / Inline nav links (desktop 768px+)
@@ -343,6 +345,8 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 - ✅ **Tailwind CSS** (v1.2.0) - Full utility-first CSS framework with Deep Ember theme
 - ✅ **About/Roadmap Page** (v1.2.0) - Ignes Hub with changelog and roadmap
 - ✅ **Bug Report System** (v1.2.0) - In-app bug reporting with admin dashboard
+- ✅ **Cinematic MovieCard** (v1.3.0) - StoryGraph-inspired clean bookshelf design with hover overlays
+- ✅ **Version Management** (v1.3.0) - Centralized constants with auto-version in bug reports
 
 **Phase 5 Complete - AI Integration**:
 - ✅ **Gemini AI** - Google AI integration for personalized recommendations
@@ -354,6 +358,91 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 - ✅ **Library Integration** - Add to Watchlist / Mark as Watched buttons on recommendations
 - ✅ **LogMovieModal Integration** - Click "Watched" to open rating modal pre-filled
 - ✅ **Database Schema** - recommendation_feedback table with RLS policies
+
+**Phase 6 Planned - AI Personality & Social**:
+- ⬜ **The Oracle** (v1.3.0) - Conversational AI Librarian with personality
+- ⬜ **The Matchmaker** (v1.3.0) - Social compatibility with mood overlaps
+
+---
+
+## Phase 6.13: The Oracle (Conversational AI Librarian) 🧙
+
+**Goal**: Transform the AI from a recommendation engine into a conversational librarian with personality, wit, and deep knowledge of your viewing habits.
+
+### Features
+
+| Feature | Description | Example |
+|---------|-------------|---------|
+| **Conversational UI** | Chat interface with natural language | "What should I watch tonight?" |
+| **Personality Modes** | Choose your librarian's vibe | Snarky, Supportive, Academic, Hype |
+| **Context Awareness** | Remembers past conversations | "Last time you loved that zombie film..." |
+| **Mood-Based Queries** | Ask by feeling, not genre | "I want something dark and twisted" |
+| **Deep Catalog Knowledge** | References your entire library | "You haven't watched horror in 3 months" |
+| **Curator's Notes** | Witty commentary on picks | "This director hates happy endings, just like you" |
+
+### How It Works
+
+1. **User Opens Chat** - Floating Oracle widget in corner
+2. **Select Personality** - Snarky / Supportive / Academic / Hype
+3. **Ask Naturally** - "I'm feeling nostalgic for 90s sci-fi"
+4. **Oracle Responds** - Pulls from your logs + TMDB + AI personality
+5. **Quick Actions** - "Add to Watchlist" / "Mark as Watched" buttons
+
+### Technical Requirements
+
+- Gemini API with conversation memory (store last 10 messages)
+- Personality prompt engineering (4 distinct personas)
+- Supabase `oracle_sessions` table for chat history
+- Quick action buttons integrated with library functions
+
+### Success Criteria
+
+- [ ] Users can have multi-turn conversations
+- [ ] Personality modes change tone and word choice
+- [ ] Oracle references user's watch history accurately
+- [ ] Quick actions work without leaving chat
+- [ ] Chat sessions persist across page reloads
+
+---
+
+## Phase 6.14: The Matchmaker (Social Compatibility) 👥
+
+**Goal**: Help users find friends with compatible taste and discover movies through social overlap analysis.
+
+### Features
+
+| Feature | Description | Example |
+|---------|-------------|---------|
+| **Friend System** | Add/connect with other Ignes users | Friend requests, follow system |
+| **Taste Overlap Score** | % of movies you both love | "87% Compatible" badge |
+| **Mood Compatibility** | Compare mood profiles | "You both love dark, atmospheric films" |
+| **Conflict Finder** | Find disagreements | "You hated what they loved" |
+| **Blind Recommendations** | Friend suggests without revealing | "A friend thinks you'll love this" |
+| **Watch Party Sync** | Coordinate viewing with friends | "3 friends are watching Dune this week" |
+
+### How It Works
+
+1. **Add Friends** - Search by username or share invite link
+2. **View Compatibility** - See overlap score and mood alignment
+3. **Explore Differences** - Find movies to debate or discuss
+4. **Blind Suggestions** - Get recommendations from friends' taste
+5. **Sync Activity** - See what friends are watching now
+
+### Technical Requirements
+
+- Supabase `friendships` table (user_id, friend_id, status)
+- Compatibility algorithm (Jaccard similarity for libraries)
+- Mood profile comparison (cosine similarity for mood vectors)
+- Privacy controls (opt-in for visibility)
+- Activity feed (optional sharing)
+
+### Success Criteria
+
+- [ ] Users can add/remove friends
+- [ ] Compatibility scores calculate accurately
+- [ ] Mood overlap visualizations display clearly
+- [ ] Blind recommendations generate from friend data
+- [ ] Privacy settings control visibility
 
 ---
 

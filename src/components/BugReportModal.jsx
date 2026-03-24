@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useUser } from '../context/UserContext';
 import { getSupabase } from '../supabaseClient';
+import { APP_VERSION } from '../constants';
 import { createPortal } from 'react-dom';
 import './BugReportModal.css';
 
@@ -29,11 +30,12 @@ function BugReportModal({ onClose }) {
 
       const supabase = getSupabase();
 
-      // Auto-capture page URL and user info
+      // Auto-capture page URL, user info, and app version
       const bugData = {
         user_id: user?.id,
         user_email: user?.email,
         page_url: window.location.href,
+        app_version: APP_VERSION,
         description: description.trim(),
         status: 'open',
       };

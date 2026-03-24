@@ -7,6 +7,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - 2026-03-24
+
+### 🎉 Added
+
+#### Cinematic UI Overhaul
+- **StoryGraph-Inspired Design** - Clean "bookshelf" aesthetic for movie library
+- **Hover Overlay Actions** - Edit, Delete, Add to List only visible on hover
+- **Fixed Aspect Ratio** - `aspect-[2/3]` ensures perfect grid uniformity
+- **Minimalist Cards** - Removed tags, reviews, and buttons from static view
+- **Backdrop Blur Effects** - Modern frosted glass overlays on hover
+- **Cleaner Grid Layout** - Larger `gap-8` spacing for breathing room
+
+#### Version Management System
+- **Centralized Constants** - `src/constants.js` with `APP_VERSION`
+- **Auto-Version Bug Reports** - Every bug submission includes app version
+- **Footer Version Display** - Dynamic "Ignes v{VERSION}" badge
+- **Admin Version Tracking** - BugList displays which version bugs occurred in
+
+#### AI Personality Features (Planned)
+- **The Oracle** - Conversational AI Librarian with personality modes
+  - Snarky, Supportive, Academic, Hype personas
+  - Multi-turn conversations with context memory
+  - Mood-based natural language queries
+  - Quick action buttons (Add to Watchlist/Mark as Watched)
+- **The Matchmaker** - Social compatibility features
+  - Friend system with taste overlap scores
+  - Mood compatibility analysis
+  - Blind recommendations from friends
+  - Watch party sync
+
+### 🎨 UI/UX Improvements
+- **Poster-First Design** - Clean cinematic appearance
+- **Hover-Triggered Actions** - No cluttered buttons on cards
+- **Rating Badge Redesign** - Top-right corner with star icon
+- **Title Overlay** - Movie title appears in hover overlay
+- **Details Modal** - View moods and reviews on demand
+- **Tailwind Utilities** - `group`, `group-hover`, `backdrop-blur`, `aspect-[2/3]`
+
+### 🗄️ Database Changes
+- **bug_reports.app_version** - Track which version bugs occur in
+- **Planned: oracle_sessions** - Chat history for The Oracle
+- **Planned: friendships** - Friend connections for The Matchmaker
+
+### 📁 New Files
+- `src/constants.js` - Centralized version and configuration
+
+### 🔄 Modified Files
+- `src/components/MovieCard.jsx` - Complete cinematic redesign
+- `src/components/Footer.jsx` - Dynamic version display
+- `src/components/BugReportModal.jsx` - Auto-include app version
+- `src/components/BugList.jsx` - Display version in admin dashboard
+- `src/pages/LibraryPage.jsx` - Use new MovieCard component
+- `src/pages/LibraryPage.css` - Removed old card styles
+- `src/pages/AboutPage.jsx` - Use APP_VERSION constant
+- `ROADMAP.md` - Added The Oracle and The Matchmaker features
+
+---
+
 ## [1.2.0] - 2026-03-24
 
 ### 🎉 Added

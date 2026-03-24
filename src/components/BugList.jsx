@@ -173,6 +173,10 @@ function BugList() {
                 
                 <div className="bug-meta">
                   <div className="meta-item">
+                    <span className="meta-label">Version:</span>
+                    <span className="meta-value">{bug.app_version || 'Unknown'}</span>
+                  </div>
+                  <div className="meta-item">
                     <span className="meta-label">Page:</span>
                     <a href={bug.page_url} target="_blank" rel="noopener noreferrer" className="meta-value">
                       {bug.page_url}

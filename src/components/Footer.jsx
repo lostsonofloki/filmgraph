@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import './Footer.css';
 import ReportBugButton from './ReportBugButton';
+import { APP_VERSION, APP_NAME } from '../constants';
 
 // TMDB Logo from your assets folder
 // Official TMDB attribution logo: https://www.themoviedb.org/about/logos-attribution
@@ -33,6 +34,9 @@ function Footer() {
         <div className="footer-actions">
           <ReportBugButton variant="link" className="footer-bug-report" />
           <Link to="/about" className="footer-link">About / Roadmap</Link>
+          <span className="footer-version">
+            {APP_NAME} v{APP_VERSION}
+          </span>
         </div>
       </div>
     </footer>

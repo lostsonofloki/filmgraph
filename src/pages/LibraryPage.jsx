@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { getSupabase } from '../supabaseClient';
 import LogMovieModal from '../components/LogMovieModal';
-import AddToListButton from '../components/AddToListButton';
+import MovieCard from '../components/MovieCard';
 import './LibraryPage.css';
 
 // Mood category colors
@@ -412,101 +412,17 @@ function LibraryPage() {
             </div>
           )}
 
-          <div className="library-grid">
-          {filteredMovies.map((movie) => (
-            <div
-              key={movie.id}
-              className="library-card"
-              onClick={() => movie.tmdb_id && navigate(`/movie/${movie.tmdb_id}`)}
-            >
-              <div className="library-card-poster">
-                {movie.poster ? (
-                  <img src={movie.poster} alt={movie.title} />
-                ) : (
-                  <div className="no-poster">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <circle cx="8.5" cy="8.5" r="1.5" />
-                      <path d="M21 15l-5-5L5 21" />
-                    </svg>
-                  </div>
-                )}
-                {movie.rating && (
-                  <div className="user-rating">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                    </svg>
-                    {movie.rating.toFixed(1)}
-                  </div>
-                )}
-              </div>
-              <div className="library-card-content">
-                <div className="library-card-header">
-                  <h3>{movie.title}</h3>
-                  <p className="movie-year">{movie.year}</p>
-                </div>
-
-                {/* Moods */}
-                {movie.moods && movie.moods.length > 0 && (
-                  <div className="movie-moods">
-                    {movie.moods.slice(0, 4).map((mood) => {
-                      const category = MOOD_CATEGORIES[mood] || 'vibe';
-                      return (
-                        <span
-                          key={mood}
-                          className={`mood-chip ${MOOD_COLORS[category]}`}
-                        >
-                          {mood}
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Review Snippet */}
-                {movie.review && (
-                  <div className="movie-review">
-                    <p>{movie.review.length > 100
-                      ? movie.review.substring(0, 100) + '...'
-                      : movie.review}
-                    </p>
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="card-actions">
-                  <AddToListButton
-                    movie={{
-                      tmdb_id: movie.tmdb_id,
-                      title: movie.title,
-                      poster_path: movie.poster?.replace('https://image.tmdb.org/t/p/w500', '')
-                    }}
-                    className="add-to-list-library"
-                  />
-                  <button
-                    className="edit-btn"
-                    onClick={(e) => handleEdit(e, movie)}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '18px', height: '18px' }}>
-                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
-                    Edit
-                  </button>
-                  <button
-                    className="delete-btn"
-                    onClick={(e) => handleDelete(e, movie.id)}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '18px', height: '18px' }}>
-                      <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                    </svg>
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+          <div className="library-grid gap-8">
+            {filteredMovies.map((movie) => (
+              <MovieCard
+                key={movie.id}
+                movie={movie}
+                isLibraryCard={true}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
         </>
       )}
 
