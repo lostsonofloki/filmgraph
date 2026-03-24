@@ -23,6 +23,11 @@ function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
+  // PROOF OF LIFE ALERT
+  if (typeof window !== 'undefined') {
+    window.alert('IGNES HEADER DEPLOYED');
+  }
+
   const handleLogout = async () => {
     await logout();
     setIsMenuOpen(false);

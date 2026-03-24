@@ -361,3 +361,30 @@ body {
     top: 60px;
   }
 }
+
+/* HAMMER FIX: Force Header Visibility */
+.app-header {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  height: 80px !important;
+  background-color: #000000 !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 9999 !important;
+  border-bottom: 2px solid #333 !important;
+}
+
+/* Fix Content Overlap */
+.profile-page,
+.trending-page {
+  padding-top: 100px !important;
+}
+
+/* Forgot Password Link - Force Visibility */
+.forgot-password-btn {
+  color: #ffffff !important;
+  font-weight: bold !important;
+}
