@@ -4,6 +4,7 @@ import { getSupabase } from '../supabaseClient';
 import { getMovieRecommendations, analyzeMoodPatterns, verifyRecommendation } from '../utils/gemini';
 import { useNavigate } from 'react-router-dom';
 import LogMovieModal from '../components/LogMovieModal';
+import SearchBar from '../components/SearchBar';
 import {
   BarChart,
   Bar,
@@ -882,9 +883,18 @@ function ProfilePage() {
             </label>
           </div>
           <p className="ai-settings-description">
-            When enabled, Ignes uses Gemini AI to analyze your moods and suggest your next watch. 
+            When enabled, Ignes uses Gemini AI to analyze your moods and suggest your next watch.
             Your data is never used for training.
           </p>
+          
+          {/* Search Bar */}
+          <SearchBar
+            onSearch={(query) => {
+              navigate(`/search?q=${encodeURIComponent(query)}`);
+            }}
+            isLoading={isGettingRecs}
+          />
+          
           {aiEnabled ? (
             <>
               <div className="ai-enabled-badge">

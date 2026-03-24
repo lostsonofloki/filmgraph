@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getTrendingMovies, getBackdropUrl, discoverMovies } from '../api/tmdb';
+import SearchBar from '../components/SearchBar';
 import './TrendingMovies.css';
 
 const TMDB_GENRES = [
@@ -103,6 +104,14 @@ function TrendingMovies() {
           </button>
         </div>
       </div>
+
+      {/* Search Bar */}
+      <SearchBar
+        onSearch={(query) => {
+          navigate(`/search?q=${encodeURIComponent(query)}`);
+        }}
+        isLoading={isLoading}
+      />
 
       {/* Power Filter Bar */}
       <div className="power-filter-bar">
