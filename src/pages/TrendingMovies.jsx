@@ -105,13 +105,15 @@ function TrendingMovies() {
         </div>
       </div>
 
-      {/* Search Bar */}
-      <SearchBar
-        onSearch={(query) => {
-          navigate(`/search?q=${encodeURIComponent(query)}`);
-        }}
-        isLoading={isLoading}
-      />
+      {/* Search Bar - Above Trending Header */}
+      <div className="search-bar-wrapper">
+        <SearchBar
+          onSearch={(query) => {
+            navigate(`/search?q=${encodeURIComponent(query)}`);
+          }}
+          isLoading={isLoading}
+        />
+      </div>
 
       {/* Power Filter Bar */}
       <div className="power-filter-bar">

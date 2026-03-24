@@ -888,12 +888,14 @@ function ProfilePage() {
           </p>
           
           {/* Search Bar */}
-          <SearchBar
-            onSearch={(query) => {
-              navigate(`/search?q=${encodeURIComponent(query)}`);
-            }}
-            isLoading={isGettingRecs}
-          />
+          <div className="search-bar-wrapper">
+            <SearchBar
+              onSearch={(query) => {
+                navigate(`/search?q=${encodeURIComponent(query)}`);
+              }}
+              isLoading={isGettingRecs}
+            />
+          </div>
           
           {aiEnabled ? (
             <>

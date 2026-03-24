@@ -311,6 +311,16 @@
   letter-spacing: 0.5px;
 }
 
+/* Search Bar Wrapper - Ensure visibility */
+.search-bar-wrapper {
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto 20px;
+  padding: 0 20px;
+  position: relative;
+  z-index: 10;
+}
+
 /* AI Settings Section */
 .ai-settings-section {
   background: #121212;
