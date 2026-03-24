@@ -169,11 +169,22 @@ body {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .header-content {
+  .header-container {
     padding: 12px 16px;
+    gap: 16px;
   }
 
-  .header-nav {
+  .header-center {
+    max-width: none;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .global-search {
+    width: 100%;
+  }
+
+  .header-right {
     gap: 4px;
   }
 
@@ -197,6 +208,11 @@ body {
 }
 
 @media (max-width: 480px) {
+  .header-container {
+    padding: 10px 12px;
+    gap: 12px;
+  }
+
   .logo svg {
     width: 36px;
     height: 36px;
@@ -213,5 +229,14 @@ body {
 
   .nav-username {
     display: none;
+  }
+
+  .header-center {
+    max-width: 100%;
+  }
+
+  .search-input {
+    font-size: 14px;
+    padding: 8px 36px 8px 36px;
   }
 }
