@@ -174,12 +174,13 @@ function OracleOverlay({ isOpen, onClose, onOracleSearch }) {
 }
 
 // ============================================
-// HEADER - CONTROLLED INPUT, NAVIGATION ONLY IN SUBMIT
+// HEADER - MOBILE SEARCH INLINE (NOT IN MENU)
 // ============================================
 function Header({ onOracleClick }) {
   const { user, isAuthenticated, logout } = useUser();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [tempSearch, setTempSearch] = useState('');
 
   const handleLogout = async () => {
@@ -198,74 +199,124 @@ function Header({ onOracleClick }) {
     if (tempSearch.trim()) {
       navigate(`/search?q=${encodeURIComponent(tempSearch.trim())}`);
       setTempSearch('');
-      if (setIsMobileMenuOpen) setIsMobileMenuOpen(false);
+      setIsSearchExpanded(false);
     }
   };
 
   return (
     <header className="sticky top-0 z-50 h-16 w-full border-b border-white/5 bg-zinc-950/80 backdrop-blur-md">
       <div className="flex h-full max-w-7xl items-center justify-between px-6 mx-auto">
-        {/* Left: Logo */}
-        <Link to="/" className="flex items-center gap-2">
-          <IgnesLogo size={28} />
-          <span className="text-xl font-bold tracking-tighter text-white hover:opacity-80">IGNES</span>
-        </Link>
-
-        {/* Right: Nav + Search + Auth (Desktop) */}
-        <div className="hidden md:flex items-center gap-6">
-          <nav className="flex items-center gap-4">
-            <Link to="/discover" className="text-sm font-medium text-orange-500 hover:text-orange-400 transition-colors">Discover</Link>
-            <Link to="/" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">Trending</Link>
-            <Link to="/library" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">Library</Link>
-            <Link to="/history" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">History</Link>
-          </nav>
-          <div className="flex items-center gap-4 ml-auto">
-            {/* Desktop Search - CONTROLLED INPUT */}
-            <form onSubmit={handleSubmit} className="flex items-center">
-              <input
-                type="text"
-                value={tempSearch}
-                onChange={handleChange}
-                placeholder="Search movies..."
-                className="w-64 bg-zinc-900 text-zinc-200 border border-zinc-700 rounded-md px-4 py-2 focus:outline-none focus:border-amber-500"
-              />
-              <button type="submit" className="hidden">Search</button>
-            </form>
-            <button onClick={onOracleClick} className="text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors">✨ Oracle</button>
-            {isAuthenticated ? (
+        
+        {/* LEFT: Logo OR Search Input (Mobile) / Logo (Desktop) */}
+        <div className="flex items-center gap-2">
+          {/* Mobile: Toggle between Logo and Search */}
+          <div className="md:hidden flex items-center">
+            {!isSearchExpanded ? (
               <>
-                <Link to="/profile" className="text-xs font-bold uppercase tracking-widest text-orange-500 hover:text-orange-400">{user?.username}</Link>
-                <button onClick={handleLogout} className="text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors">Logout</button>
+                <IgnesLogo size={28} />
+                <span className="text-xl font-bold tracking-tighter text-white hover:opacity-80 ml-2">IGNES</span>
               </>
             ) : (
-              <Link to="/login" className="text-sm font-semibold text-white bg-zinc-800 px-4 py-1.5 rounded-full hover:bg-zinc-700 transition-colors">Login</Link>
+              <form onSubmit={handleSubmit} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={tempSearch}
+                  onChange={handleChange}
+                  placeholder="Search movies..."
+                  autoFocus
+                  className="w-48 bg-zinc-900 text-zinc-200 border border-amber-500 rounded-md px-4 py-2 focus:outline-none focus:border-amber-600"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSearchExpanded(false);
+                    setTempSearch('');
+                  }}
+                  className="text-zinc-400 hover:text-white transition-colors"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              </form>
             )}
           </div>
+
+          {/* Desktop: Always show Logo */}
+          <Link to="/" className="hidden md:flex items-center gap-2">
+            <IgnesLogo size={28} />
+            <span className="text-xl font-bold tracking-tighter text-white hover:opacity-80">IGNES</span>
+          </Link>
         </div>
 
-        {/* Hamburger Button */}
-        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="md:hidden p-2 text-zinc-400 hover:text-white transition-colors" aria-label="Toggle menu">
-          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            {isMobileMenuOpen ? (<path d="M18 6L6 18M6 6l12 12" />) : (<path d="M4 6h16M4 12h16M4 18h16" />)}
-          </svg>
-        </button>
+        {/* RIGHT: Search Icon + Hamburger (Mobile) / Nav + Search + Auth (Desktop) */}
+        <div className="flex items-center gap-2">
+          {/* Mobile: Search Icon + Hamburger */}
+          <div className="md:hidden flex items-center gap-2">
+            {!isSearchExpanded && (
+              <button
+                onClick={() => setIsSearchExpanded(true)}
+                className="p-2 text-zinc-400 hover:text-white transition-colors"
+                aria-label="Search"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="M21 21l-4.35-4.35" />
+                </svg>
+              </button>
+            )}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-2 text-zinc-400 hover:text-white transition-colors"
+              aria-label="Toggle menu"
+            >
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                {isMobileMenuOpen ? (
+                  <path d="M18 6L6 18M6 6l12 12" />
+                ) : (
+                  <path d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+          </div>
+
+          {/* Desktop: Nav + Search + Auth */}
+          <div className="hidden md:flex items-center gap-6">
+            <nav className="flex items-center gap-4">
+              <Link to="/discover" className="text-sm font-medium text-orange-500 hover:text-orange-400 transition-colors">Discover</Link>
+              <Link to="/" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">Trending</Link>
+              <Link to="/library" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">Library</Link>
+              <Link to="/history" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">History</Link>
+            </nav>
+            <div className="flex items-center gap-4 ml-auto">
+              <form onSubmit={handleSubmit} className="flex items-center">
+                <input
+                  type="text"
+                  value={tempSearch}
+                  onChange={handleChange}
+                  placeholder="Search movies..."
+                  className="w-64 bg-zinc-900 text-zinc-200 border border-zinc-700 rounded-md px-4 py-2 focus:outline-none focus:border-amber-500"
+                />
+                <button type="submit" className="hidden">Search</button>
+              </form>
+              <button onClick={onOracleClick} className="text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors">✨ Oracle</button>
+              {isAuthenticated ? (
+                <>
+                  <Link to="/profile" className="text-xs font-bold uppercase tracking-widest text-orange-500 hover:text-orange-400">{user?.username}</Link>
+                  <button onClick={handleLogout} className="text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors">Logout</button>
+                </>
+              ) : (
+                <Link to="/login" className="text-sm font-semibold text-white bg-zinc-800 px-4 py-1.5 rounded-full hover:bg-zinc-700 transition-colors">Login</Link>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Mobile Menu Dropdown */}
+      {/* Mobile Menu Dropdown - NO SEARCH BAR */}
       {isMobileMenuOpen && (
         <div className="md:hidden border-t border-white/5 bg-zinc-950 px-6 py-4">
           <nav className="flex flex-col space-y-4">
-            {/* Mobile Search - CONTROLLED INPUT */}
-            <form onSubmit={handleSubmit} className="flex items-center w-full">
-              <input
-                type="text"
-                value={tempSearch}
-                onChange={handleChange}
-                placeholder="Search movies..."
-                className="w-full bg-zinc-900 text-zinc-200 border border-zinc-700 rounded-md px-4 py-2 focus:outline-none focus:border-amber-500"
-              />
-              <button type="submit" className="hidden">Search</button>
-            </form>
             <Link to="/discover" className="text-sm font-medium text-orange-500 hover:text-orange-400 transition-colors py-2">Discover</Link>
             <Link to="/" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors py-2">Trending</Link>
             <Link to="/library" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors py-2">Library</Link>
