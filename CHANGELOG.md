@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## Latest Version: 1.3.9 (March 25, 2026)
+
+**Highlights:**
+- 🔍 Mobile search moved to header (no longer in hamburger menu)
+- 🧭 Search icon toggles full-width input on mobile
+- ⌨️ Form submit only - no navigation on keystroke
+- 🎯 DiscoveryPage textarea uses controlled input pattern
+- 🚀 Dev server runs on port 3000
+
+**Quick Links:**
+- [Full v1.3.9 Notes](#139---march-25-2026)
+- [v1.3.8 Notes](#138---march-24-2026)
+- [Roadmap](./ROADMAP.md)
+- [README](./README.md)
+
+---
+
+## [1.3.9] - March 25, 2026
+
+### 🐛 Fixed
+
+#### Mobile Search Input Focus Loss - COMPLETE FIX
+- **Search Moved to Header** - Removed from hamburger dropdown entirely
+- **Magnifying Glass Toggle** - Tap icon to expand full-width search input
+- **Logo Hides During Search** - Clean transition when search is active
+- **X Button to Close** - Clear input and return to logo view
+- **Independent State** - Search visibility separate from hamburger menu
+- **Controlled Input Pattern** - `useState` for text, NO navigation on onChange
+- **Form Submit Only** - Navigate ONLY when user presses Enter or clicks submit
+
+### 🎉 Added
+
+#### Header Search System Rewrite
+- **Desktop** - Search bar always visible in header (right side)
+- **Mobile** - Magnifying glass icon next to logo
+- **isSearchVisible State** - Toggles between logo and search input
+- **Deep Ember Styling** - Zinc-900 background, amber-500 border on focus
+- **AutoFocus** - Input gains focus immediately when expanded
+- **Same Pattern for DiscoveryPage** - Controlled textarea with handleSubmit
+
+### 📁 Modified Files
+- `src/App.jsx` - Header component rewritten with inline mobile search
+- `src/pages/DiscoveryPage.jsx` - Controlled input with handleSubmit pattern
+
+### 🎨 UI/UX
+- **Mobile Header Layout** - Logo | Search Icon + Hamburger
+- **Expanded Search** - [Search input..........] ✕
+- **No Menu Conflicts** - Search independent of hamburger state
+- **Focus Preserved** - Input stays focused until explicit submit
+
+---
+
 ## Latest Version: 1.3.8 (March 24, 2026)
 
 **Highlights:**

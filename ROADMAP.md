@@ -365,7 +365,7 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 
 **Phase**: Phase 6 In Progress 🚀
 
-**Current Version**: v1.3.7 - Mobile Header Fixed, Oracle Vibe Mapping, Remember Me Toggle
+**Current Version**: v1.3.9 - Mobile Search Fixed (Hard-Mounted Header System)
 
 **Completed Features**:
 - ✅ **Mobile-First Responsive Navbar** - Hamburger menu (mobile) / Inline nav links (desktop 768px+)
