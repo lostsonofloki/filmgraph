@@ -19,7 +19,7 @@ import AboutPage from './pages/AboutPage';
 import ChangelogPage from './pages/ChangelogPage';
 import BugList from './components/BugList';
 import DiscoveryPage from './pages/DiscoveryPage';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import './App.css';
 
 console.log('--- APP IS USING THE NEW CODE ---');
@@ -208,20 +208,19 @@ function Header({ onOracleClick }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Debounce search - navigate only after user stops typing
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchTerm.trim()) {
-        navigate(`/search?q=${encodeURIComponent(searchTerm.trim())}`);
-      }
-    }, 400);
-
-    return () => clearTimeout(timer);
-  }, [searchTerm, navigate]);
-
   const handleLogout = async () => {
     await logout();
     setIsMobileMenuOpen(false);
+  };
+
+  // ONLY submit search when user presses Enter or clicks search button
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchTerm.trim())}`);
+      setSearchTerm(''); // Clear input after search
+      setIsMobileMenuOpen(false); // Close mobile menu if open
+    }
   };
 
   return (
@@ -258,8 +257,8 @@ function Header({ onOracleClick }) {
           {/* Right-Side Group: Search + Auth */}
           <div className="flex items-center gap-4 ml-auto">
 
-            {/* Search Bar - RAW HTML INPUT */}
-            <div className="relative flex items-center w-72">
+            {/* Search Bar - Form with explicit submit */}
+            <form onSubmit={handleSearchSubmit} className="relative flex items-center w-72">
               <input
                 type="text"
                 value={searchTerm}
@@ -268,13 +267,25 @@ function Header({ onOracleClick }) {
                 className="w-full rounded-full border border-white/10 bg-zinc-900/50 py-2 pl-5 pr-12 text-sm text-zinc-200 placeholder-zinc-500 outline-none focus:border-orange-500/50 transition-all"
               />
               <button
-                onClick={(e) => { e.preventDefault(); onOracleClick(); }}
-                className="absolute right-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-purple-600/20 text-purple-400 hover:bg-purple-600 hover:text-white transition-all"
-                title="Ask the Oracle"
+                type="submit"
+                className="absolute right-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-orange-600/20 text-orange-400 hover:bg-orange-600 hover:text-white transition-all"
+                title="Search"
               >
-                <span className="text-sm">✨</span>
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="M21 21l-4.35-4.35" />
+                </svg>
               </button>
-            </div>
+            </form>
+
+            {/* Oracle Button */}
+            <button
+              onClick={onOracleClick}
+              className="flex items-center gap-1 text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors"
+            >
+              <span>✨</span>
+              Oracle
+            </button>
 
             {/* Auth Section */}
             {isAuthenticated ? (
@@ -317,29 +328,26 @@ function Header({ onOracleClick }) {
       {isMobileMenuOpen && (
         <div className="md:hidden border-t border-white/5 bg-zinc-950 px-6 py-4">
           <nav className="flex flex-col space-y-4">
-            {/* Full-Width Search Bar - RAW HTML INPUT */}
-            <div className="relative flex items-center w-full">
+            {/* Full-Width Search Bar - Form with explicit submit */}
+            <form onSubmit={handleSearchSubmit} className="relative flex items-center w-full">
               <input
                 type="text"
                 value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  if (e.target.value.trim()) {
-                    navigate(`/search?q=${encodeURIComponent(e.target.value.trim())}`);
-                    setIsMobileMenuOpen(false);
-                  }
-                }}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search..."
                 className="w-full rounded-full border border-white/10 bg-zinc-900/50 py-2 pl-5 pr-12 text-sm text-zinc-200 placeholder-zinc-500 outline-none focus:border-orange-500/50 transition-all"
               />
               <button
-                onClick={(e) => { e.preventDefault(); onOracleClick(); setIsMobileMenuOpen(false); }}
-                className="absolute right-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-purple-600/20 text-purple-400 hover:bg-purple-600 hover:text-white transition-all"
-                title="Ask the Oracle"
+                type="submit"
+                className="absolute right-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-orange-600/20 text-orange-400 hover:bg-orange-600 hover:text-white transition-all"
+                title="Search"
               >
-                <span className="text-sm">✨</span>
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="M21 21l-4.35-4.35" />
+                </svg>
               </button>
-            </div>
+            </form>
 
             {/* Navigation Links */}
             <Link
