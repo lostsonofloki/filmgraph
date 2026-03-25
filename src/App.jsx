@@ -174,13 +174,13 @@ function OracleOverlay({ isOpen, onClose, onOracleSearch }) {
 }
 
 // ============================================
-// HEADER - MOBILE SEARCH INLINE (NOT IN MENU)
+// HEADER - SOLID SEARCH SYSTEM (NO MORE BUGS)
 // ============================================
 function Header({ onOracleClick }) {
   const { user, isAuthenticated, logout } = useUser();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [tempSearch, setTempSearch] = useState('');
 
   const handleLogout = async () => {
@@ -199,40 +199,42 @@ function Header({ onOracleClick }) {
     if (tempSearch.trim()) {
       navigate(`/search?q=${encodeURIComponent(tempSearch.trim())}`);
       setTempSearch('');
-      setIsSearchExpanded(false);
+      setIsSearchVisible(false);
     }
+  };
+
+  const closeSearch = () => {
+    setIsSearchVisible(false);
+    setTempSearch('');
   };
 
   return (
     <header className="sticky top-0 z-50 h-16 w-full border-b border-white/5 bg-zinc-950/80 backdrop-blur-md">
       <div className="flex h-full max-w-7xl items-center justify-between px-6 mx-auto">
         
-        {/* LEFT: Logo OR Search Input (Mobile) / Logo (Desktop) */}
-        <div className="flex items-center gap-2">
+        {/* LEFT: Logo OR Search Input */}
+        <div className="flex items-center gap-2 flex-1">
           {/* Mobile: Toggle between Logo and Search */}
-          <div className="md:hidden flex items-center">
-            {!isSearchExpanded ? (
+          <div className="md:hidden flex items-center flex-1">
+            {!isSearchVisible ? (
               <>
                 <IgnesLogo size={28} />
                 <span className="text-xl font-bold tracking-tighter text-white hover:opacity-80 ml-2">IGNES</span>
               </>
             ) : (
-              <form onSubmit={handleSubmit} className="flex items-center gap-2">
+              <form onSubmit={handleSubmit} className="flex items-center gap-2 flex-1">
                 <input
                   type="text"
                   value={tempSearch}
                   onChange={handleChange}
                   placeholder="Search movies..."
                   autoFocus
-                  className="w-48 bg-zinc-900 text-zinc-200 border border-amber-500 rounded-md px-4 py-2 focus:outline-none focus:border-amber-600"
+                  className="w-full bg-zinc-900 text-zinc-200 border border-amber-500 rounded-md px-4 py-2 focus:outline-none focus:border-amber-600"
                 />
                 <button
                   type="button"
-                  onClick={() => {
-                    setIsSearchExpanded(false);
-                    setTempSearch('');
-                  }}
-                  className="text-zinc-400 hover:text-white transition-colors"
+                  onClick={closeSearch}
+                  className="flex-shrink-0 text-zinc-400 hover:text-white transition-colors p-1"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M18 6L6 18M6 6l12 12" />
@@ -252,10 +254,10 @@ function Header({ onOracleClick }) {
         {/* RIGHT: Search Icon + Hamburger (Mobile) / Nav + Search + Auth (Desktop) */}
         <div className="flex items-center gap-2">
           {/* Mobile: Search Icon + Hamburger */}
-          <div className="md:hidden flex items-center gap-2">
-            {!isSearchExpanded && (
+          <div className="md:hidden flex items-center">
+            {!isSearchVisible && (
               <button
-                onClick={() => setIsSearchExpanded(true)}
+                onClick={() => setIsSearchVisible(true)}
                 className="p-2 text-zinc-400 hover:text-white transition-colors"
                 aria-label="Search"
               >
