@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
 import { getSupabase } from '../supabaseClient';
 import { discoverMovies } from '../utils/gemini';
@@ -49,6 +49,7 @@ Instead of "This film is dark and moody," say "Rehane's use of natural lighting 
 function DiscoveryPage() {
   const { user } = useUser();
   const [selectedMood, setSelectedMood] = useState(null);
+  const [tempPrompt, setTempPrompt] = useState('');
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [recommendation, setRecommendation] = useState(null);
   const [tmdbData, setTmdbData] = useState(null);
@@ -56,7 +57,6 @@ function DiscoveryPage() {
   const [userFavorites, setUserFavorites] = useState([]);
   const [rejectedIds, setRejectedIds] = useState([]);
   const [rejectedTitles, setRejectedTitles] = useState([]);
-  const promptRef = useRef(null);
 
   useEffect(() => {
     const fetchFavorites = async () => {
@@ -81,14 +81,24 @@ function DiscoveryPage() {
 
   const handleMoodSelect = (mood) => {
     setSelectedMood(mood);
-    if (promptRef.current) {
-      promptRef.current.value = mood.prompt;
+    setTempPrompt(mood.prompt);
+  };
+
+  // handleChange - ONLY updates local text. NO API calls.
+  const handleChange = (e) => {
+    setTempPrompt(e.target.value);
+  };
+
+  // handleSubmit - ONLY place API call happens
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (tempPrompt.trim()) {
+      handleDiscover();
     }
   };
 
   const handleDiscover = async (additionalRejectedIds = [], additionalRejectedTitles = []) => {
-    const promptValue = promptRef.current?.value?.trim();
-    if (!promptValue) return;
+    if (!tempPrompt.trim()) return;
 
     setIsDiscovering(true);
     setError('');
@@ -108,7 +118,7 @@ function DiscoveryPage() {
       const systemPrompt = `${BASE_SYSTEM_PROMPT}${rejectedContext}`;
 
       const aiResponse = await discoverMovies({
-        mood: promptValue,
+        mood: tempPrompt,
         userContext,
         systemPrompt,
       });
@@ -148,7 +158,7 @@ function DiscoveryPage() {
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleDiscover();
+      handleSubmit(e);
     }
   };
 
@@ -176,9 +186,10 @@ function DiscoveryPage() {
 
         <div className="prompt-section">
           <label className="prompt-label">Or describe your vibe:</label>
-          <div className="prompt-input-wrapper">
+          <form onSubmit={handleSubmit} className="prompt-input-wrapper">
             <textarea
-              ref={promptRef}
+              value={tempPrompt}
+              onChange={handleChange}
               onKeyDown={handleKeyDown}
               placeholder="e.g., 'A sci-fi film that explores loneliness with stunning visuals'"
               className="prompt-input"
@@ -186,9 +197,9 @@ function DiscoveryPage() {
               disabled={isDiscovering}
             />
             <button
+              type="submit"
               className="discover-btn"
-              onClick={handleDiscover}
-              disabled={isDiscovering}
+              disabled={isDiscovering || !tempPrompt.trim()}
             >
               {isDiscovering ? (
                 <>
@@ -202,7 +213,7 @@ function DiscoveryPage() {
                 </>
               )}
             </button>
-          </div>
+          </form>
         </div>
 
         {error && (

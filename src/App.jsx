@@ -19,7 +19,7 @@ import AboutPage from './pages/AboutPage';
 import ChangelogPage from './pages/ChangelogPage';
 import BugList from './components/BugList';
 import DiscoveryPage from './pages/DiscoveryPage';
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import './App.css';
 
 console.log('--- APP IS USING THE NEW CODE ---');
@@ -174,28 +174,31 @@ function OracleOverlay({ isOpen, onClose, onOracleSearch }) {
 }
 
 // ============================================
-// HEADER - ZERO AUTO NAVIGATION
+// HEADER - CONTROLLED INPUT, NAVIGATION ONLY IN SUBMIT
 // ============================================
 function Header({ onOracleClick }) {
   const { user, isAuthenticated, logout } = useUser();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const searchInputRef = useRef(null);
+  const [tempSearch, setTempSearch] = useState('');
 
   const handleLogout = async () => {
     await logout();
     setIsMobileMenuOpen(false);
   };
 
-  // Submit handler - ONLY place navigation happens
-  const handleSearchSubmit = (e) => {
+  // handleChange - ONLY updates local text. NO navigation.
+  const handleChange = (e) => {
+    setTempSearch(e.target.value);
+  };
+
+  // handleSubmit - ONLY place navigation happens
+  const handleSubmit = (e) => {
     e.preventDefault();
-    const query = searchInputRef.current?.value?.trim();
-    if (query) {
-      navigate(`/search?q=${encodeURIComponent(query)}`);
-      setSearchTerm('');
-      searchInputRef.current.value = '';
+    if (tempSearch.trim()) {
+      navigate(`/search?q=${encodeURIComponent(tempSearch.trim())}`);
+      setTempSearch('');
+      if (setIsMobileMenuOpen) setIsMobileMenuOpen(false);
     }
   };
 
@@ -217,11 +220,12 @@ function Header({ onOracleClick }) {
             <Link to="/history" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">History</Link>
           </nav>
           <div className="flex items-center gap-4 ml-auto">
-            {/* Desktop Search - FORM ONLY SUBMIT */}
-            <form onSubmit={handleSearchSubmit} className="flex items-center">
+            {/* Desktop Search - CONTROLLED INPUT */}
+            <form onSubmit={handleSubmit} className="flex items-center">
               <input
-                ref={searchInputRef}
                 type="text"
+                value={tempSearch}
+                onChange={handleChange}
                 placeholder="Search movies..."
                 className="w-64 bg-zinc-900 text-zinc-200 border border-zinc-700 rounded-md px-4 py-2 focus:outline-none focus:border-amber-500"
               />
@@ -247,21 +251,21 @@ function Header({ onOracleClick }) {
         </button>
       </div>
 
-      {/* Mobile Menu Dropdown - DOES NOT CLOSE ON TYPING */}
+      {/* Mobile Menu Dropdown */}
       {isMobileMenuOpen && (
         <div className="md:hidden border-t border-white/5 bg-zinc-950 px-6 py-4">
           <nav className="flex flex-col space-y-4">
-            {/* Mobile Search - FORM ONLY SUBMIT */}
-            <form onSubmit={handleSearchSubmit} className="flex items-center w-full">
+            {/* Mobile Search - CONTROLLED INPUT */}
+            <form onSubmit={handleSubmit} className="flex items-center w-full">
               <input
-                ref={searchInputRef}
                 type="text"
+                value={tempSearch}
+                onChange={handleChange}
                 placeholder="Search movies..."
                 className="w-full bg-zinc-900 text-zinc-200 border border-zinc-700 rounded-md px-4 py-2 focus:outline-none focus:border-amber-500"
               />
               <button type="submit" className="hidden">Search</button>
             </form>
-            {/* Nav links - do NOT close menu on click for search */}
             <Link to="/discover" className="text-sm font-medium text-orange-500 hover:text-orange-400 transition-colors py-2">Discover</Link>
             <Link to="/" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors py-2">Trending</Link>
             <Link to="/library" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors py-2">Library</Link>
