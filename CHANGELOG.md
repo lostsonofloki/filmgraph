@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 🔍 Mobile search moved to header (no longer in hamburger menu)
 - 🧭 Search icon toggles full-width input on mobile
 - ⌨️ Form submit only - no navigation on keystroke
+- 🤖 Ember Oracle library integration (Watched, Watchlist, Add to List buttons)
 - 🎯 DiscoveryPage textarea uses controlled input pattern
 - 🚀 Dev server runs on port 3000
 
@@ -47,15 +48,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **AutoFocus** - Input gains focus immediately when expanded
 - **Same Pattern for DiscoveryPage** - Controlled textarea with handleSubmit
 
+#### Ember Oracle Library Integration
+- **Watched Button** - Opens LogMovieModal pre-filled with movie data
+- **Watchlist Button** - Direct Supabase insert with watch_status: 'to-watch'
+- **Add to List Button** - Dropdown to select from user's custom lists
+- **Toast Notifications** - Success/error feedback for all actions
+- **Deep Ember Theme** - Amber borders, zinc backgrounds, proper hover states
+
 ### 📁 Modified Files
 - `src/App.jsx` - Header component rewritten with inline mobile search
-- `src/pages/DiscoveryPage.jsx` - Controlled input with handleSubmit pattern
+- `src/pages/DiscoveryPage.jsx` - Library integration buttons with handlers
+- `src/pages/DiscoveryPage.css` - Added .lib-action-btn and .list-dropdown styles
 
 ### 🎨 UI/UX
 - **Mobile Header Layout** - Logo | Search Icon + Hamburger
 - **Expanded Search** - [Search input..........] ✕
 - **No Menu Conflicts** - Search independent of hamburger state
 - **Focus Preserved** - Input stays focused until explicit submit
+- **Dropdown Fix** - List dropdown positioned correctly with high z-index
 
 ---
 

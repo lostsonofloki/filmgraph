@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
+import { useToast } from '../context/ToastContext';
 import { getSupabase } from '../supabaseClient';
 import { discoverMovies } from '../utils/gemini';
 import { fetchTMDBMovie } from '../api/tmdb';
+import LogMovieModal from '../components/LogMovieModal';
 import './DiscoveryPage.css';
 
 const MOOD_PRESETS = [
@@ -48,6 +50,13 @@ Instead of "This film is dark and moody," say "Rehane's use of natural lighting 
 
 function DiscoveryPage() {
   const { user } = useUser();
+  let toast;
+  try {
+    toast = useToast();
+  } catch (e) {
+    console.warn('ToastContext not available:', e);
+    toast = { success: () => {}, error: () => {} };
+  }
   const [selectedMood, setSelectedMood] = useState(null);
   const [tempPrompt, setTempPrompt] = useState('');
   const [isDiscovering, setIsDiscovering] = useState(false);
@@ -57,6 +66,11 @@ function DiscoveryPage() {
   const [userFavorites, setUserFavorites] = useState([]);
   const [rejectedIds, setRejectedIds] = useState([]);
   const [rejectedTitles, setRejectedTitles] = useState([]);
+  
+  // Library integration states
+  const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+  const [isListDropdownOpen, setIsListDropdownOpen] = useState(false);
+  const [userLists, setUserLists] = useState([]);
 
   useEffect(() => {
     const fetchFavorites = async () => {
@@ -79,17 +93,34 @@ function DiscoveryPage() {
     fetchFavorites();
   }, [user?.id]);
 
+  // Fetch user's custom lists
+  useEffect(() => {
+    const fetchLists = async () => {
+      if (!user?.id) return;
+      try {
+        const supabase = getSupabase();
+        const { data } = await supabase
+          .from('lists')
+          .select('id, name, description')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        setUserLists(data || []);
+      } catch (err) {
+        console.error('Error fetching lists:', err);
+      }
+    };
+    fetchLists();
+  }, [user?.id]);
+
   const handleMoodSelect = (mood) => {
     setSelectedMood(mood);
     setTempPrompt(mood.prompt);
   };
 
-  // handleChange - ONLY updates local text. NO API calls.
   const handleChange = (e) => {
     setTempPrompt(e.target.value);
   };
 
-  // handleSubmit - ONLY place API call happens
   const handleSubmit = (e) => {
     e.preventDefault();
     if (tempPrompt.trim()) {
@@ -122,8 +153,6 @@ function DiscoveryPage() {
         userContext,
         systemPrompt,
       });
-
-      console.log('AI Recommendation:', aiResponse);
 
       if (!aiResponse || !aiResponse.title) {
         throw new Error('The Oracle is silent. Please try again.');
@@ -160,6 +189,17 @@ function DiscoveryPage() {
       e.preventDefault();
       handleSubmit(e);
     }
+  };
+
+  const getMovieDataForModal = () => {
+    if (!tmdbData) return null;
+    return {
+      id: tmdbData.id,
+      title: tmdbData.title,
+      poster_path: tmdbData.poster_path,
+      release_date: tmdbData.release_date,
+      overview: tmdbData.overview
+    };
   };
 
   return (
@@ -223,8 +263,13 @@ function DiscoveryPage() {
           </div>
         )}
 
+        {console.log('=== DISCOVERY RENDER DEBUG ===')}
+        {console.log('recommendation:', recommendation)}
+        {console.log('tmdbData:', tmdbData)}
+        {console.log('userLists:', userLists)}
         {recommendation && (
           <div className="recommendation-card animate-in fade-in">
+            {console.log('✅ RENDERING CARD:', recommendation.title)}
             <div className="rec-poster-container">
               {tmdbData?.poster_path ? (
                 <img
@@ -260,6 +305,7 @@ function DiscoveryPage() {
               </div>
 
               <div className="rec-actions">
+                {/* View on TMDB */}
                 {tmdbData?.id && (
                   <a
                     href={`https://www.themoviedb.org/movie/${tmdbData.id}`}
@@ -271,6 +317,98 @@ function DiscoveryPage() {
                   </a>
                 )}
 
+                {/* Watched Button */}
+                <button
+                  onClick={() => {
+                    if (tmdbData) setIsLogModalOpen(true);
+                  }}
+                  className="lib-action-btn"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                  Watched
+                </button>
+
+                {/* Watchlist Button */}
+                <button
+                  onClick={async () => {
+                    if (!tmdbData || !user?.id) return;
+                    try {
+                      const supabase = getSupabase();
+                      const { error } = await supabase.from('movie_logs').insert({
+                        user_id: user.id,
+                        tmdb_id: tmdbData.id,
+                        title: tmdbData.title,
+                        year: tmdbData.release_date?.split('-')[0],
+                        poster: tmdbData.poster_path,
+                        watch_status: 'to-watch',
+                        rating: 0,
+                        moods: [],
+                        review: ''
+                      });
+                      if (error) throw error;
+                      toast.success(`Added to Watchlist`);
+                    } catch (err) {
+                      console.error('Watchlist error:', err);
+                      toast.error('Failed to add to watchlist');
+                    }
+                  }}
+                  className="lib-action-btn"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                  Watchlist
+                </button>
+
+                {/* Add to List Button */}
+                <div className="relative" style={{ zIndex: 100 }}>
+                  <button
+                    onClick={() => setIsListDropdownOpen(!isListDropdownOpen)}
+                    className="lib-action-btn"
+                    disabled={userLists.length === 0}
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                      <polyline points="17 21 17 13 7 13 7 21" />
+                      <polyline points="7 3 7 8 15 8" />
+                    </svg>
+                    Add to List
+                  </button>
+                  {isListDropdownOpen && userLists.length > 0 && (
+                    <div className="list-dropdown" style={{ right: 0, overflow: 'visible', zIndex: 9999 }}>
+                      {userLists.map((list) => (
+                        <button
+                          key={list.id}
+                          onClick={async () => {
+                            try {
+                              const supabase = getSupabase();
+                              const { error } = await supabase.from('list_items').insert({
+                                list_id: list.id,
+                                tmdb_id: tmdbData.id,
+                                title: tmdbData.title,
+                                poster_path: tmdbData.poster_path
+                              });
+                              if (error) throw error;
+                              toast.success(`Added to ${list.name}`);
+                              setIsListDropdownOpen(false);
+                            } catch (err) {
+                              console.error('Add to list error:', err);
+                              toast.error(err.message?.includes('duplicate') ? 'Already in this list' : 'Failed to add to list');
+                            }
+                          }}
+                          className="list-dropdown-item"
+                        >
+                          {list.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Reject & Reroll */}
                 <button
                   className="reject-reroll-btn"
                   onClick={handleRejectAndReroll}
@@ -302,6 +440,18 @@ function DiscoveryPage() {
           </div>
         )}
       </div>
+
+      {/* Log Movie Modal */}
+      {isLogModalOpen && tmdbData && (
+        <LogMovieModal
+          movie={getMovieDataForModal()}
+          onClose={() => setIsLogModalOpen(false)}
+          onSaved={() => {
+            setIsLogModalOpen(false);
+            toast.success(`"${tmdbData.title}" logged successfully!`);
+          }}
+        />
+      )}
     </div>
   );
 }
