@@ -53,7 +53,7 @@ A phased approach to building Ignes from a static UI to a fully-featured movie l
 | 2.2 | Create **SearchBar** component | Input field for movie search | ✅ |
 | 2.3 | Implement **fetch** logic | async/await to query TMDB API | ✅ |
 | 2.4 | Build **SearchResults** display | Show search results as clickable cards | ✅ |
-| 2.5 | Auto-fill **Log Movie** form | Click result → pre-populate title & poster | ⬜ |
+| 2.5 | Auto-fill **Log Movie** form | Click result → pre-populate title & poster | ✅ |
 | 2.6 | Add loading & error states | Handle API failures gracefully | ✅ |
 | 2.7 | Build **TrendingMovies** page | Display trending movies from TMDB | ✅ |
 | 2.8 | Build **MovieDetail** page | Full movie view with backdrop | ✅ |
@@ -93,7 +93,7 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 - [x] Movie detail pages show full information
 - [x] Rotten Tomatoes scores visible on cards
 - [x] Recommendations section shows related movies
-- [ ] Clicking a result opens Log Movie form with data pre-filled
+- [x] Clicking a result opens Log Movie form with data pre-filled
 - [x] Handles network errors and no-results scenarios
 
 ---
@@ -113,6 +113,7 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 | 3.5 | Implement **Create (Log)** | Save movie + rating + moods to Supabase | ✅ |
 | 3.6 | Implement **Read (Library)** | Fetch and display user's logged movies | ✅ |
 | 3.7 | Implement **Delete/Edit** | Remove or update existing logs | ✅ |
+| 3.8 | Implement **Data Validation** | Prevent duplicate movie logs in database | ⬜ |
 
 ### Database Schema
 ```sql
@@ -144,8 +145,8 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 - [x] Users can sign up and log in
 - [x] Logged-in users can log movies with ratings and moods
 - [x] Data persists in Supabase database
-- [ ] Users can view their personal library
-- [ ] Users can edit and delete their logs
+- [x] Users can view their personal library
+- [x] Users can edit and delete their logs
 
 ---
 
@@ -365,7 +366,7 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 
 **Phase**: Phase 6 In Progress 🚀
 
-**Current Version**: v1.3.10 - IGNES Logo Home Button + Ember Oracle Library Integration
+**Current Version**: v1.3.12 - OMDb HTTPS Fix + ROADMAP Consistency + IGNES Logo Home Button
 
 **Completed Features**:
 - ✅ **Mobile-First Responsive Navbar** - Hamburger menu (mobile) / Inline nav links (desktop 768px+)
@@ -380,7 +381,7 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 - ✅ **Edit Movie Logs** - "Edit Log" button on MovieDetail opens modal pre-filled with your data
 - ✅ **Supabase Backend** - Auth, PostgreSQL, RLS policies configured (includes genres column)
 - ✅ **User Authentication** - Sign up, login, logout with Supabase Auth
-- ✅ **Remember Me Checkbox** (v1.3.3) - Toggle between localStorage/sessionStorage persistence
+- 🏗️ **Remember Me Checkbox** (v1.3.3) - Toggle between localStorage/sessionStorage persistence (needs refinement)
 - ✅ **Forgot Password Flow** - Email-based password reset with Supabase Auth
 - ✅ **RatingSlider** - StoryGraph-style 0.0-5.0 with 0.1 increments, gradient fill
 - ✅ **Mood Palette** - 22 moods across 3 color-coded categories:

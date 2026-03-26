@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## Latest Version: 1.3.10 (March 26, 2026)
+## Latest Version: 1.3.12 (March 26, 2026)
 
 **Highlights:**
 - 🔍 Mobile search moved to header (no longer in hamburger menu)
@@ -15,18 +15,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ⌨️ Form submit only - no navigation on keystroke
 - 🤖 Ember Oracle library integration (Watched, Watchlist, Add to List buttons)
 - 🏠 IGNES logo now acts as home button
+- 🔒 OMDb API fixed - HTTPS to prevent Mixed Content errors
+- 📋 ROADMAP.md updated - Task consistency fixes, added Data Validation task
 - 🎯 DiscoveryPage textarea uses controlled input pattern
 - 🚀 Dev server runs on port 3000
 
 **Quick Links:**
-- [Full v1.3.10 Notes](#1310---march-25-2026)
-- [v1.3.9 Notes](#139---march-25-2026)
+- [Full v1.3.12 Notes](#1312---march-26-2026)
+- [v1.3.11 Notes](#1311---march-26-2026)
 - [Roadmap](./ROADMAP.md)
 - [README](./README.md)
 
 ---
 
-## [1.3.10] - March 26, 2026
+## [1.3.12] - March 26, 2026
+
+### 🐛 Fixed
+
+#### OMDb API Mixed Content Error
+- **HTTP → HTTPS** - Changed OMDb API URL from `http://` to `https://`
+- **Vercel Deployment Fix** - Resolves "Mixed Content" browser errors
+- **Secure Fetch** - All API requests now use secure HTTPS endpoints
+
+### 📝 Documentation
+
+#### ROADMAP.md Consistency Fixes
+- **Phase 2.5** - Marked Auto-fill Log Movie form as ✅ Complete
+- **Phase 3.6/3.7** - Marked Read/Library and Delete/Edit as ✅ Complete
+- **Phase 3.8** - Added Data Validation task (prevent duplicate logs)
+- **Remember Me** - Changed from ✅ to 🏗️ (needs refinement)
+- **Success Criteria** - Updated to match actual implementation status
+
+---
+
+## [1.3.11] - March 26, 2026
 
 ### 🐛 Fixed
 
