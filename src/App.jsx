@@ -217,10 +217,10 @@ function Header({ onOracleClick }) {
           {/* Mobile: Toggle between Logo and Search */}
           <div className="md:hidden flex items-center flex-1">
             {!isSearchVisible ? (
-              <>
+              <Link to="/" className="flex items-center gap-2">
                 <IgnesLogo size={28} />
                 <span className="text-xl font-bold tracking-tighter text-white hover:opacity-80 ml-2">IGNES</span>
-              </>
+              </Link>
             ) : (
               <form onSubmit={handleSubmit} className="flex items-center gap-2 flex-1">
                 <input
