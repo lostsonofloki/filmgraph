@@ -21,24 +21,40 @@ INPUT FORMATS YOU MAY ENCOUNTER:
 - Plain lists: "Pulp Fiction, 1994"
 - Notes: "Watched: Inception (2010) - loved it!"
 - Numbered lists: "1. The Matrix (1999)"
-- Just titles: "Blade Runner 2049"
+- Just titles: "Shrek" or "Blade Runner 2049"
+- Single movie: "The Godfather"
 
 RULES:
-1. Extract ONLY the movie title and release year
-2. Ignore ratings, reviews, notes, and extra text
-3. If year is missing, use "N/A"
-4. Return ONLY a valid JSON array - NO explanation, NO markdown
+1. Extract the movie title (REQUIRED - always extract)
+2. Extract the release year if present (OPTIONAL - use "N/A" if missing)
+3. Ignore ratings, reviews, notes, and extra text
+4. Even a single word like "Shrek" or "Jaws" is a valid movie title
+5. Return ONLY a valid JSON array - NO explanation, NO markdown
 
 OUTPUT FORMAT:
 [{"title": "Exact Movie Title", "year": "1994"}]
 
-EXAMPLE INPUT:
+EXAMPLE INPUT 1 (Multiple movies):
 "The Shawshank Redemption (1994) ★★★★☆
 Pulp Fiction, 1994
 Watched: Inception (2010) - loved it!"
 
-EXAMPLE OUTPUT:
-[{"title": "The Shawshank Redemption", "year": "1994"}, {"title": "Pulp Fiction", "year": "1994"}, {"title": "Inception", "year": "2010"}]`;
+EXAMPLE OUTPUT 1:
+[{"title": "The Shawshank Redemption", "year": "1994"}, {"title": "Pulp Fiction", "year": "1994"}, {"title": "Inception", "year": "2010"}]
+
+EXAMPLE INPUT 2 (Single movie, no year):
+"Shrek"
+
+EXAMPLE OUTPUT 2:
+[{"title": "Shrek", "year": "N/A"}]
+
+EXAMPLE INPUT 3 (Mixed formats):
+"The Matrix
+Goodfellas (1990)
+3. Pulp Fiction"
+
+EXAMPLE OUTPUT 3:
+[{"title": "The Matrix", "year": "N/A"}, {"title": "Goodfellas", "year": "1990"}, {"title": "Pulp Fiction", "year": "N/A"}]`;
 
   try {
     const response = await fetch(GROQ_API_URL, {
@@ -72,15 +88,27 @@ EXAMPLE OUTPUT:
     }
 
     const parsed = JSON.parse(content);
-    
-    // Handle both array directly or object with movies key
-    const movies = Array.isArray(parsed) ? parsed : (parsed.movies || []);
-    
-    console.log(`📦 Groq parsed ${movies.length} movies from text`);
+
+    // Handle multiple formats:
+    // 1. Array: [{"title": "Jaws", "year": "N/A"}]
+    // 2. Object with movies key: {"movies": [...]}
+    // 3. Single movie object: {"title": "Jaws", "year": "N/A"}
+    let movies;
+    if (Array.isArray(parsed)) {
+      movies = parsed;
+    } else if (parsed.movies && Array.isArray(parsed.movies)) {
+      movies = parsed.movies;
+    } else if (parsed.title) {
+      // Single movie object - wrap in array
+      movies = [parsed];
+    } else {
+      movies = [];
+    }
+
     return movies;
 
   } catch (error) {
-    console.error('❌ Archive parsing failed:', error.message);
+    console.error('Archive parsing failed:', error.message);
     throw error;
   }
 };

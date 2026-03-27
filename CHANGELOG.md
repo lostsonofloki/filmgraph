@@ -42,9 +42,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Plain lists: `"Pulp Fiction, 1994"`
   - Notes: `"Watched: Inception (2010) - loved it!"`
   - Numbered lists: `"1. The Matrix (1999)"`
-  - Just titles: `"Blade Runner 2049"`
+  - Just titles: `"Shrek"` or `"Jaws"` (year optional)
+  - Single movie: `"The Godfather"`
 - **Smart Extraction** - Ignores ratings, reviews, notes, and extra text
 - **JSON Output** - Returns clean `{title, year}` pairs for downstream processing
+- **Flexible Parsing** - Handles single movie objects and arrays from Groq
 
 #### TMDB Batch Verification
 - **`verifyBatchWithTMDB()`** - Parallel TMDB API calls for all parsed movies
@@ -117,6 +119,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Empty State Handling** - Graceful handling of lists with no custom lists
 - **Year Parsing** - Handles "N/A" for movies without release years
 - **Poster Fallback** - Shows "No Poster" placeholder when TMDB has no image
+- **Groq JSON Parsing** - Handles single movie objects in addition to arrays
+- **Single Movie Import** - Now accepts titles without years (e.g., "Shrek", "Jaws")
 
 ---
 

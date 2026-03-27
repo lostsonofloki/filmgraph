@@ -203,10 +203,11 @@ export const fetchTMDBMovie = async (title, year = '') => {
     return null;
   }
 
-  try {
+  // Helper to run the actual fetch
+  const search = async (searchYear) => {
     const searchQuery = encodeURIComponent(title);
-    const yearParam = year && year !== 'N/A' ? `&primary_release_year=${year}` : '';
-
+    const yearParam = searchYear && searchYear !== 'N/A' ? `&primary_release_year=${searchYear}` : '';
+    
     const response = await fetch(
       `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${searchQuery}${yearParam}`
     );
@@ -226,8 +227,20 @@ export const fetchTMDBMovie = async (title, year = '') => {
         };
       }
     }
-
     return null;
+  };
+
+  try {
+    // Attempt 1: Title + Year (The "Precise" way)
+    let movie = await search(year);
+
+    // Attempt 2: Title Only (The "Fuzzy" fallback)
+    if (!movie) {
+      console.log(`⚠️ No match for "${title}" with year ${year}. Trying title only...`);
+      movie = await search(null);
+    }
+
+    return movie;
   } catch (error) {
     console.error(`Error fetching TMDB data for "${title}":`, error.message);
     return null;
