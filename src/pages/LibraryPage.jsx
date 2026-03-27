@@ -7,6 +7,7 @@ import LogMovieModal from '../components/LogMovieModal';
 import MovieCard from '../components/MovieCard';
 import CreateListModal from '../components/CreateListModal';
 import ArchiveImporterModal from '../components/ArchiveImporterModal';
+import { runPosterMigration } from '../utils/posterMigration';
 import './LibraryPage.css';
 
 const MOOD_CATEGORIES = {
@@ -63,6 +64,7 @@ function LibraryPage() {
   const [showCreateListModal, setShowCreateListModal] = useState(false);
   const [selectedList, setSelectedList] = useState(null);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [isMigratingPosters, setIsMigratingPosters] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -160,6 +162,26 @@ function LibraryPage() {
     setActiveTab('lists');
   };
 
+  const handleRefreshPosters = async () => {
+    if (!confirm('This will fetch poster images for all movies imported without posters. Continue?')) {
+      return;
+    }
+
+    setIsMigratingPosters(true);
+    setError('');
+
+    try {
+      const stats = await runPosterMigration(user.id);
+      alert(`Poster refresh complete!\n\n✅ Fixed: ${stats.fixed}\n⏭️ Skipped: ${stats.skipped}\n❌ Errors: ${stats.errors}`);
+      fetchMovies(); // Refresh to show new posters
+    } catch (err) {
+      console.error('Error refreshing posters:', err);
+      setError('Failed to refresh posters.');
+    } finally {
+      setIsMigratingPosters(false);
+    }
+  };
+
   const filteredMovies = movies.filter((movie) => {
     const matchesSearch = movie.title.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesMood = !selectedMood || (movie.moods && movie.moods.includes(selectedMood));
@@ -198,6 +220,14 @@ function LibraryPage() {
                 <line x1="12" y1="3" x2="12" y2="15" />
               </svg>
               ✨ Magic Import
+            </button>
+            <button
+              className="btn-secondary"
+              onClick={handleRefreshPosters}
+              disabled={isMigratingPosters}
+              style={{ opacity: isMigratingPosters ? 0.5 : 1 }}
+            >
+              {isMigratingPosters ? '⏳ Refreshing...' : '🖼️ Refresh Posters'}
             </button>
             <button
               className="create-list-btn"
