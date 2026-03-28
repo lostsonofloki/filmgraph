@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import { UserProvider, useUser } from './context/UserContext';
 import { ListProvider } from './context/ListContext';
 import { ToastProvider } from './context/ToastContext';
@@ -22,159 +22,10 @@ import DiscoveryPage from './pages/DiscoveryPage';
 import { useState } from 'react';
 import './App.css';
 
-const VIBE_MAP = {
-  dark: [80, 53],
-  comedy: [35],
-  funny: [35],
-  hilarious: [35],
-  scary: [27],
-  horror: [27],
-  terrifying: [27],
-  spooky: [27],
-  action: [28],
-  adrenaline: [28],
-  explosive: [28],
-  'sci-fi': [878],
-  science: [878],
-  space: [878],
-  futuristic: [878],
-  alien: [878],
-  romance: [10749],
-  love: [10749],
-  romantic: [10749],
-  drama: [18],
-  emotional: [18],
-  sad: [18],
-  thriller: [53],
-  suspense: [53],
-  tense: [53],
-  mystery: [9648],
-  crime: [80],
-  detective: [80],
-  fantasy: [14],
-  magic: [14],
-  adventure: [12],
-  epic: [12],
-  animation: [16],
-  animated: [16],
-  family: [10751],
-  kids: [10751],
-  documentary: [99],
-  war: [10752],
-  western: [37],
-  music: [10402],
-  musical: [10402, 35],
-  'brain mush': [35, 10751],
-  'mind-bending': [878, 9648, 53],
-  'cozy': [10751, 16, 35],
-  'deep cuts': [18, 99],
-  noir: [80, 53],
-  euphoric: [35, 10749],
-  'sick day': [16, 10751, 35],
-};
-
-function parseVibe(input) {
-  const lowerInput = input.toLowerCase();
-  const genres = new Set();
-  const multiWordKeys = ['brain mush', 'mind-bending', 'deep cuts', 'sick day', 'sci-fi'];
-  multiWordKeys.forEach((key) => {
-    if (lowerInput.includes(key)) {
-      VIBE_MAP[key].forEach((id) => genres.add(id));
-    }
-  });
-  Object.keys(VIBE_MAP).forEach((key) => {
-    if (key.includes(' ') || key.includes('-')) return;
-    if (lowerInput.includes(key)) {
-      VIBE_MAP[key].forEach((id) => genres.add(id));
-    }
-  });
-  return Array.from(genres);
-}
-
-// ============================================
-// ORACLE OVERLAY
-// ============================================
-function OracleOverlay({ isOpen, onClose, onOracleSearch }) {
-  const [vibeInput, setVibeInput] = useState('');
-  if (!isOpen) return null;
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (vibeInput.trim()) {
-      onOracleSearch(vibeInput.trim());
-      setVibeInput('');
-      onClose();
-    }
-  };
-  const handleQuickMood = (mood) => {
-    onOracleSearch(mood);
-    onClose();
-  };
-  const moods = [
-    { label: 'Brain Mush', icon: '🥴', desc: 'Light comedies' },
-    { label: 'Adrenaline', icon: '🍿', desc: 'High energy' },
-    { label: 'Mind-Bending', icon: '🧠', desc: 'Complex sci-fi' },
-    { label: 'Sick Day', icon: '🤒', desc: 'Cozy comfort' },
-  ];
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-xl">
-      <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 shadow-2xl">
-        <div className="border-b border-white/5 bg-zinc-900/50 p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-3xl animate-pulse">🔮</span>
-              <div>
-                <h2 className="text-xl font-bold text-orange-500">The Oracle</h2>
-                <p className="text-xs text-zinc-500">Tell me your vibe</p>
-              </div>
-            </div>
-            <button onClick={onClose} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-800 hover:text-white transition-colors">
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-        <div className="p-6">
-          <form onSubmit={handleSubmit} className="mb-6">
-            <input
-              type="text"
-              value={vibeInput}
-              onChange={(e) => setVibeInput(e.target.value)}
-              placeholder='Tell the Oracle your vibe (e.g., "A dark comedy for a rainy night")'
-              className="w-full rounded-xl border border-white/10 bg-zinc-900 px-5 py-4 text-lg text-zinc-200 placeholder-zinc-500 outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20 transition-all"
-              autoFocus
-            />
-            <p className="mt-2 text-xs text-zinc-500">Press Enter to search</p>
-          </form>
-          <div>
-            <p className="mb-3 text-xs font-medium uppercase tracking-widest text-zinc-500">Quick Start</p>
-            <div className="grid grid-cols-2 gap-3">
-              {moods.map((mood) => (
-                <button
-                  key={mood.label}
-                  onClick={() => handleQuickMood(mood.label)}
-                  className="flex flex-col items-start gap-1 rounded-xl border border-white/5 bg-zinc-900/50 p-4 text-left transition-all hover:scale-[1.02] hover:border-orange-500/30 hover:bg-zinc-900"
-                >
-                  <span className="text-2xl">{mood.icon}</span>
-                  <span className="font-bold text-sm text-zinc-300">{mood.label}</span>
-                  <span className="text-xs text-zinc-500">{mood.desc}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className="border-t border-white/5 bg-zinc-900/30 p-4 text-center">
-          <button onClick={onClose} className="text-xs font-bold text-zinc-600 hover:text-white uppercase tracking-widest transition-colors">Close [Esc]</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ============================================
 // HEADER - SOLID SEARCH SYSTEM (NO MORE BUGS)
 // ============================================
-function Header({ onOracleClick }) {
+function Header() {
   const { user, isAuthenticated, logout } = useUser();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -299,7 +150,6 @@ function Header({ onOracleClick }) {
                 />
                 <button type="submit" className="hidden">Search</button>
               </form>
-              <button onClick={onOracleClick} className="text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors">✨ Oracle</button>
               {isAuthenticated ? (
                 <>
                   <Link to="/profile" className="text-xs font-bold uppercase tracking-widest text-orange-500 hover:text-orange-400">{user?.username}</Link>
@@ -342,28 +192,11 @@ function Header({ onOracleClick }) {
 function AppContent() {
   const location = useLocation();
   const { user } = useUser();
-  const navigate = useNavigate();
-  const [isOracleOpen, setIsOracleOpen] = useState(false);
   const isAuthPage = ['/login', '/register', '/update-password'].includes(location.pathname);
-
-  const handleOracleSearch = (vibe) => {
-    const genres = parseVibe(vibe);
-    let searchUrl = '/search?';
-    const params = new URLSearchParams();
-    if (genres.length > 0) {
-      params.set('genres', genres.join(','));
-      params.set('q', vibe);
-    } else {
-      params.set('q', vibe);
-    }
-    searchUrl += params.toString();
-    navigate(searchUrl);
-    setIsOracleOpen(false);
-  };
 
   return (
     <div className="app">
-      {!isAuthPage && <Header onOracleClick={() => setIsOracleOpen(true)} />}
+      {!isAuthPage && <Header />}
       <main className="app-main">
         <div className="main-content">
           <Routes>
@@ -386,7 +219,6 @@ function AppContent() {
         </div>
       </main>
       <Footer />
-      <OracleOverlay isOpen={isOracleOpen} onClose={() => setIsOracleOpen(false)} onOracleSearch={handleOracleSearch} />
     </div>
   );
 }
