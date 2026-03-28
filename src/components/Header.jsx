@@ -20,12 +20,20 @@ function Header({ onOracleClick }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (tempSearch.trim()) {
-      navigate(`/search?q=${encodeURIComponent(tempSearch.trim())}`);
+    
+    // Trim whitespace from search query
+    const cleanQuery = tempSearch.trim();
+    
+    // Reject empty queries - prevent searching whitespace
+    if (!cleanQuery) {
       setTempSearch('');
-      setIsSearchVisible(false);
-      setIsMobileMenuOpen(false);
+      return;
     }
+    
+    navigate(`/search?q=${encodeURIComponent(cleanQuery)}`);
+    setTempSearch('');
+    setIsSearchVisible(false);
+    setIsMobileMenuOpen(false);
   };
 
   const closeSearch = () => {

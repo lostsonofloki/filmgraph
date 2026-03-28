@@ -369,13 +369,101 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 
 ---
 
+## Phase 6.16: Bug Fixes & Stability 🔧
+
+**Goal**: Address UX edge cases and API error handling for a polished, production-ready experience.
+
+### Bugs Fixed (v1.5.1)
+
+| # | Bug | Severity | Component | Fix | Status |
+|---|-----|----------|-----------|-----|--------|
+| 1 | **Whitespace Search** | Minor | `Header.jsx` | Trim input + reject empty queries | ✅ Fixed |
+| 2 | **Ghost Movie Page** | High | `MovieDetail.jsx` | Early return guard for invalid/empty movie data | ✅ Fixed |
+| 3 | **Ghost Buttons** | Medium | `MovieDetail.jsx` | Resolved by #2 — buttons removed from DOM on invalid data | ✅ Fixed |
+| 4 | **Exposed API Keys** | Critical | `.env` | Verified `.env` never committed to git history | ✅ Secure |
+
+### The "Ghost Hunter" Fix
+
+**Problem**: TMDB returns `200 OK` with empty or malformed objects for invalid movie IDs, causing blank pages with fully-armed action buttons.
+
+**Solution**: Add an early return guard in `MovieDetail.jsx` that checks for missing data before rendering:
+
+```javascript
+// Ghost Hunter Fix - catches invalid IDs, empty data, or TMDB returning 200 OK with no data
+if (!movie || !movie.title) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+      <h2 className="text-4xl font-creepster text-accent mb-4">Signal Lost</h2>
+      <p className="text-text-muted mb-8 max-w-md">
+        The archives have no record of this tape. It may have been corrupted, deleted, or it never existed at all.
+      </p>
+      <button onClick={handleBack} className="btn-primary">
+        Return to Library
+      </button>
+    </div>
+  );
+}
+```
+
+### Whitespace Search Fix
+
+**Problem**: Submitting whitespace-only searches returns empty results, giving users the "silent treatment" (bad UX).
+
+**Solution**: Trim and validate search input in `Header.jsx`:
+
+```javascript
+const handleSubmit = (e) => {
+  e.preventDefault();
+  
+  // Trim whitespace from search query
+  const cleanQuery = tempSearch.trim();
+  
+  // Reject empty queries - prevent searching whitespace
+  if (!cleanQuery) {
+    setTempSearch('');
+    return;
+  }
+  
+  navigate(`/search?q=${encodeURIComponent(cleanQuery)}`);
+  setTempSearch('');
+  setIsSearchVisible(false);
+  setIsMobileMenuOpen(false);
+};
+```
+
+### Security Audit
+
+**API Key Protection**: Verified that `.env` file has never been committed to git history.
+
+```bash
+$ git log --all --full-history -- .env
+# (empty output = secure)
+```
+
+| File | Status | Risk |
+|------|--------|------|
+| `.env` | Never committed | ✅ Safe |
+| `.env.example` | Committed (template with placeholders) | ✅ Safe |
+| `debugEnv.js` | Removed (was dev-only utility) | ✅ Safe |
+
+### Success Criteria
+
+- [x] Whitespace-only searches are rejected silently
+- [x] Invalid movie IDs display "Signal Lost" 404 page
+- [x] Action buttons are removed from DOM on invalid data
+- [x] API keys remain protected from git exposure
+- [x] Error states provide clear user feedback
+
+---
+
 ## 🎯 Current Status
 
 **Phase**: Phase 6 In Progress 🚀
 
-**Current Version**: v1.5.0 - Magic Importer with AI-Powered Bulk Import
+**Current Version**: v1.5.1 - Bug Fixes & Stability (Ghost Hunter, Whitespace Search, Security Audit)
 
 **Completed Features**:
+- ✅ **Magic Importer** (v1.5.0) - AI-powered bulk import with Groq LPU parsing
 - ✅ **Mobile-First Responsive Navbar** - Hamburger menu (mobile) / Inline nav links (desktop 768px+)
   - Desktop: Logo | Discover, Trending, Library, History | Search + Profile
   - Mobile: Logo + Hamburger → Full-width dropdown with search + nav
@@ -415,6 +503,7 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 - ✅ **Components Demo Page** - Showcase of all UI components for testing and development
 - ✅ **About/Roadmap Page** (v1.2.0) - Ignes Hub with changelog and roadmap
 - ✅ **Bug Report System** (v1.2.0) - In-app bug reporting with admin dashboard
+- ✅ **Bug Fixes & Stability** (v1.5.1) - Ghost Hunter fix, Whitespace Search, Security Audit
 - ✅ **Cinematic MovieCard** (v1.3.0) - StoryGraph-inspired clean bookshelf design with hover overlays
 - ✅ **Version Management** (v1.3.0) - Centralized constants with auto-version in bug reports
 - ✅ **Oracle Vibe Mapping** (v1.3.4) - Natural language to TMDB genre ID mapping

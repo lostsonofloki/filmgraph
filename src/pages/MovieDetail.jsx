@@ -247,11 +247,20 @@ function MovieDetail() {
     );
   }
 
-  if (!movie) {
+  // Ghost Hunter Fix - catches invalid IDs, empty data, or TMDB returning 200 OK with no data
+  if (!movie || !movie.title) {
     return (
-      <div className="not-found">
-        <h2>Movie not found</h2>
-        <button onClick={handleBack} className="back-button">Go Back</button>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+        <h2 className="text-4xl font-creepster text-accent mb-4">Signal Lost</h2>
+        <p className="text-text-muted mb-8 max-w-md">
+          The archives have no record of this tape. It may have been corrupted, deleted, or it never existed at all.
+        </p>
+        <button 
+          onClick={handleBack}
+          className="btn-primary"
+        >
+          Return to Library
+        </button>
       </div>
     );
   }
