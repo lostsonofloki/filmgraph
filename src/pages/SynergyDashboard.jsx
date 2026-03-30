@@ -45,12 +45,12 @@ function SynergyDashboard() {
       // Fetch both users' movie logs
       const { data: myLogs, error: myLogsError } = await supabase
         .from('movie_logs')
-        .select('tmdb_id, title, poster, rating, genres, watch_status')
+        .select('tmdb_id, title, poster_path, rating, genres, watch_status')
         .eq('user_id', user.id);
 
       const { data: friendLogs, error: friendLogsError } = await supabase
         .from('movie_logs')
-        .select('tmdb_id, title, poster, rating, genres, watch_status')
+        .select('tmdb_id, title, poster_path, rating, genres, watch_status')
         .eq('user_id', friendId);
 
       if (myLogsError) throw myLogsError;
@@ -77,13 +77,14 @@ function SynergyDashboard() {
 
     // Find shared movies (both have watched and rated)
     const sharedMovies = [];
-    myLogs.forEach(myMovie => {
+    myLogs?.forEach(myMovie => {
+      if (!myMovie) return;
       const friendMovie = friendMoviesMap.get(myMovie.tmdb_id);
       if (friendMovie && myMovie.rating && friendMovie.rating) {
         sharedMovies.push({
           tmdb_id: myMovie.tmdb_id,
           title: myMovie.title,
-          poster: myMovie.poster,
+          poster_path: myMovie.poster_path,
           myRating: myMovie.rating,
           theirRating: friendMovie.rating,
           difference: Math.abs(myMovie.rating - friendMovie.rating),
@@ -92,19 +93,20 @@ function SynergyDashboard() {
     });
 
     // Find shared watchlist (both want to watch)
-    const myWatchlist = new Set(myLogs.filter(m => m.watch_status === 'to-watch').map(m => m.tmdb_id));
-    const theirWatchlist = new Set(friendLogs.filter(m => m.watch_status === 'to-watch').map(m => m.tmdb_id));
+    const myWatchlist = new Set(myLogs?.filter(m => m?.watch_status === 'to-watch').map(m => m?.tmdb_id) || []);
+    const theirWatchlist = new Set(friendLogs?.filter(m => m?.watch_status === 'to-watch').map(m => m?.tmdb_id) || []);
 
     const sharedWatchlist = [];
     const seenTmdbIds = new Set();
 
-    myLogs.forEach(myMovie => {
+    myLogs?.forEach(myMovie => {
+      if (!myMovie) return;
       if (myWatchlist.has(myMovie.tmdb_id) && theirWatchlist.has(myMovie.tmdb_id)) {
         if (!seenTmdbIds.has(myMovie.tmdb_id)) {
           sharedWatchlist.push({
             tmdb_id: myMovie.tmdb_id,
             title: myMovie.title,
-            poster: myMovie.poster,
+            poster_path: myMovie.poster_path,
           });
           seenTmdbIds.add(myMovie.tmdb_id);
         }
@@ -295,26 +297,27 @@ function SynergyDashboard() {
                   Movies where your ratings differed by 2+ points
                 </p>
                 <div className="debates-list">
-                  {synergyData.greatDebates.slice(0, 5).map((debate) => (
+                  {synergyData?.greatDebates?.slice(0, 5)?.map((debate) => debate && (
                     <div key={debate.tmdb_id} className="debate-card">
-                      {debate.poster && (
+                      {debate.poster_path && (
                         <img
-                          src={getPosterUrl(debate.poster, 'w185')}
+                          src={getPosterUrl(debate.poster_path, 'w185')}
                           alt={debate.title}
                           className="debate-poster"
+                          onError={(e) => { e.target.src = 'https://ui-avatars.com/api/?name=?&background=7e22ce&color=fff&size=185'; }}
                         />
                       )}
                       <div className="debate-info">
                         <div className="debate-title">{debate.title}</div>
                         <div className="debate-ratings">
-                          <span className="my-rating">You: {debate.myRating.toFixed(1)}★</span>
+                          <span className="my-rating">You: {debate.myRating?.toFixed(1)}★</span>
                           <span className="vs">vs</span>
                           <span className="their-rating">
-                            {friend.display_name || friend.username}: {debate.theirRating.toFixed(1)}★
+                            {friend?.display_name?.split('@')[0] || friend?.username || 'Friend'}: {debate.theirRating?.toFixed(1)}★
                           </span>
                         </div>
                         <div className="debate-difference">
-                          Difference: {debate.difference.toFixed(1)} points
+                          Difference: {debate.difference?.toFixed(1)} points
                         </div>
                       </div>
                     </div>
@@ -337,13 +340,14 @@ function SynergyDashboard() {
               </div>
             ) : (
               <div className="shared-watchlist-grid">
-                {synergyData.sharedWatchlist.map((movie) => (
+                {synergyData?.sharedWatchlist?.map((movie) => movie && (
                   <div key={movie.tmdb_id} className="shared-movie-card">
-                    {movie.poster ? (
+                    {movie.poster_path ? (
                       <img
-                        src={getPosterUrl(movie.poster, 'w342')}
+                        src={getPosterUrl(movie.poster_path, 'w342')}
                         alt={movie.title}
                         className="shared-poster"
+                        onError={(e) => { e.target.src = 'https://ui-avatars.com/api/?name=?&background=7e22ce&color=fff&size=342'; }}
                       />
                     ) : (
                       <div className="no-poster">

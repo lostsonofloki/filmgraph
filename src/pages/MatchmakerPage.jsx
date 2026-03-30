@@ -5,8 +5,8 @@ import { getSupabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import './MatchmakerPage.css';
 
-// Default avatar placeholder
-const DEFAULT_AVATAR = 'https://via.placeholder.com/150/7e22ce/ffffff?text=?';
+// Default avatar placeholder with UI Avatars API
+const DEFAULT_AVATAR = 'https://ui-avatars.com/api/?name=?&background=7e22ce&color=fff&size=128';
 
 /**
  * MatchmakerPage - Social compatibility feature
@@ -289,12 +289,12 @@ function MatchmakerPage() {
           <div className="requests-section">
             <h2 className="section-title">Incoming Requests</h2>
             <div className="requests-list">
-              {friendRequests.map((request) => (
+              {friendRequests?.map((request) => request && (
                 <div key={request.id} className="request-card">
                   <div className="request-user">
                     <img 
-                      src={request.profiles?.avatar_url || DEFAULT_AVATAR} 
-                      alt={request.profiles?.username || 'User'} 
+                      src={request.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(request.profiles?.display_name || 'User')}&background=7e22ce&color=fff&size=128`} 
+                      alt={request.profiles?.display_name?.split('@')[0] || request.profiles?.username || 'User'} 
                       className="user-avatar" 
                       onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
                     />
@@ -324,12 +324,12 @@ function MatchmakerPage() {
           <div className="requests-section">
             <h2 className="section-title">Sent Requests</h2>
             <div className="requests-list">
-              {sentRequests.map((request) => (
+              {sentRequests?.map((request) => request && (
                 <div key={request.id} className="request-card">
                   <div className="request-user">
                     <img 
-                      src={request.receiver?.avatar_url || DEFAULT_AVATAR} 
-                      alt={request.receiver?.username || 'User'} 
+                      src={request.receiver?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(request.receiver?.display_name || 'User')}&background=7e22ce&color=fff&size=128`} 
+                      alt={request.receiver?.display_name?.split('@')[0] || request.receiver?.username || 'User'} 
                       className="user-avatar"
                       onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
                     />
@@ -356,15 +356,15 @@ function MatchmakerPage() {
           <div className="friends-section">
             <h2 className="section-title">Your Friends</h2>
             <div className="friends-list">
-              {friends.map((friendship) => (
+              {friends?.map((friendship) => friendship && friendship.friend && (
                 <div
                   key={friendship.id}
                   className="friend-card"
                 >
                   <div className="friend-user">
                     <img 
-                      src={friendship.friend?.avatar_url || DEFAULT_AVATAR} 
-                      alt={friendship.friend?.username || 'User'} 
+                      src={friendship.friend?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(friendship.friend?.display_name || 'User')}&background=7e22ce&color=fff&size=128`} 
+                      alt={friendship.friend?.display_name?.split('@')[0] || friendship.friend?.username || 'User'} 
                       className="user-avatar"
                       onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
                     />
