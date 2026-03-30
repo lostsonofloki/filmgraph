@@ -375,16 +375,18 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 
 ## Phase 6.16: Bug Fixes & Stability 🔧
 
-**Goal**: Address UX edge cases and API error handling for a polished, production-ready experience.
+**Goal**: Address UX edge cases, database schema conflicts, and API error handling for a polished, production-ready experience.
 
-### Bugs Fixed (v1.5.1)
+### Bugs Fixed (v1.8.1 - The Anniversary Patch)
 
 | # | Bug | Severity | Component | Fix | Status |
 |---|-----|----------|-----------|-----|--------|
-| 1 | **Whitespace Search** | Minor | `Header.jsx` | Trim input + reject empty queries | ✅ Fixed |
-| 2 | **Ghost Movie Page** | High | `MovieDetail.jsx` | Early return guard for invalid/empty movie data | ✅ Fixed |
-| 3 | **Ghost Buttons** | Medium | `MovieDetail.jsx` | Resolved by #2 — buttons removed from DOM on invalid data | ✅ Fixed |
-| 4 | **Exposed API Keys** | Critical | `.env` | Verified `.env` never committed to git history | ✅ Secure |
+| 1 | **Matchmaker 400/406 Errors** | High | `Supabase SQL` | Added explicit Foreign Keys connecting `friendships` to `profiles` table. | ✅ Fixed |
+| 2 | **Matchmaker White Screen** | Critical | `Matchmaker.jsx` | Added Optional Chaining (`?.`) and stable `ui-avatars.com` fallbacks to prevent crashes on null profiles. | ✅ Fixed |
+| 3 | **0% Synergy (Privacy Lock)** | High | `Supabase RLS` | Fixed RLS policy on `movie_logs` using `::uuid` casting to allow friends to view each other's libraries for comparison. | ✅ Fixed |
+| 4 | **Schema Naming Conflict** | High | `Database` | Reconciled `poster` vs `poster_path` by creating a Generated Virtual Column, and ensured `genres` column exists. | ✅ Fixed |
+| 5 | **Discover 'Add to List' 400** | High | `Discover.jsx` | Stripped `genres` from the insert payload to prevent Postgres type-casting rejections on quick-adds. | ✅ Fixed |
+| 6 | **Gemini Parsing Crash** | Medium | `AI API` | Switched from `gemini-1.5-flash-lite-preview` to stable `gemini-1.5-flash` to prevent 503 stream drops. | ✅ Fixed |
 
 ### The "Ghost Hunter" Fix
 
@@ -464,68 +466,21 @@ $ git log --all --full-history -- .env
 
 **Phase**: Phase 6 Complete ✅
 
-**Current Version**: v1.8.0 - Ember Oracle & The Matchmaker
+**Current Version**: v1.8.1 - The Matchmaker & Universal Stability
 
 **Completed Features**:
-- ✅ **Ember Oracle** (v1.8.0) - AI-powered movie discovery with mood bubbles and natural language search
-- ✅ **The Matchmaker** (v1.8.0) - Social compatibility feature with friend invites and synergy scores
-- ✅ **Social Hub Card** (v1.8.0) - Profile page entry point for friend management
-- ✅ **Friends Carousel** (v1.8.0) - Horizontal scroll of friend chips with match scores
-- ✅ **Discover Page Navigation** (v1.8.0) - Movie posters and titles now clickable
-- ✅ **AddToListButton Icon Variant** (v1.8.0) - Fixed mobile library card three-button layout
-- ✅ **Deep Ember Theme** (v1.8.0) - Consistent dark aesthetic with amber/orange accents
-- ✅ **Font-creepster Headers** (v1.8.0) - Creepster font applied to Matchmaker and Social Hub titles
-- ✅ **Thumb-Friendly Tap Targets** (v1.8.0) - 48px minimum button heights for mobile
-- ✅ **Native Mobile UX** (v1.7.0) - Replaced hamburger menu with fixed BottomNav (Home, Discover, Library, Profile)
-- ✅ **Watchlist Quick-Toggle** (v1.7.0) - Three-button action row (Eye icon for Watchlist, Primary Log, Folder for Lists)
-- ✅ **API Stability** (v1.7.0) - Fixed 406 errors by adding Accept headers to all TMDB calls
-- ✅ **Discover Fix** (v1.7.0) - Patched "Future Bias" to prevent unreleased movies from appearing in results
-- ✅ **Where to Watch** (v1.6.0) - Streaming provider logos with rent/buy fallback
-- ✅ **Magic Importer** (v1.5.0) - AI-powered bulk import with Groq LPU parsing
-- ✅ **Mobile-First Responsive Navbar** - Hamburger menu (mobile) / Inline nav links (desktop 768px+)
-  - Desktop: Logo | Discover, Trending, Library, History | Search + Profile
-  - Mobile: Logo + Hamburger → Full-width dropdown with search + nav
-- ✅ **Minimalist Dark Theme** - #0a0a0a background, clean typography
-- ✅ **TMDB/OMDb Dual-API** - Trending movies, search, details, RT scores
-- ✅ **Movie Detail Pages** - High-res backdrops, cast, recommendations, TMDB + RT scores
-- ✅ **Clickable Cast Members** - Click any actor to see their profile and filmography
-- ✅ **Actor Pages** - Actor bios, photos, and top movies sorted by popularity
-- ✅ **Personal Reviews on Movie Details** - "My Review" section shows your rating, moods, review when you've logged a movie
-- ✅ **Edit Movie Logs** - "Edit Log" button on MovieDetail opens modal pre-filled with your data
-- ✅ **Supabase Backend** - Auth, PostgreSQL, RLS policies configured (includes genres column)
-- ✅ **User Authentication** - Sign up, login, logout with Supabase Auth
-- ✅ **Remember Me Checkbox** (v1.3.3) - Toggle between localStorage/sessionStorage persistence
-- ✅ **Forgot Password Flow** - Email-based password reset with Supabase Auth
-- ✅ **RatingSlider** - StoryGraph-style 0.0-5.0 with 0.1 increments, gradient fill
-- ✅ **Mood Palette** - 22 moods across 3 color-coded categories:
-  - **Emotional** (Warm/Red): Bittersweet, Heartwarming, Tear-jerker, Uplifting, Bleak
-  - **Vibe** (Cool/Purple): Atmospheric, Dark, Gritty, Neon-soaked, Tense, Whimsical, Gory, Eerie, Claustrophobic, Campy, Dread-filled, Jump-scary
-  - **Intellectual** (Slate/Grey): Psychological, Mind-bending, Challenging, Philosophical, Slow-burn, Complex
-- ✅ **LogMovieModal** - Full logging form with rating, moods, review, watch status, genres (with React Portals)
-- ✅ **My Library** - StoryGraph-style tabs (Watched/Want to Watch), rich movie cards with Edit/Delete buttons
-- ✅ **Library Search Filter** - Filter your library by title, mood, genre; sort by rating/date
-- ✅ **Custom Lists** (v1.3.1) - Create, view, and manage personal movie collections
-- ✅ **Clickable Movie Cards** - Search results and library cards navigate to MovieDetail on click
-- ✅ **Hover Effects** - Cards scale and show shadow on hover for visual feedback
-- ✅ **Editable Profiles** - Display name, bio, avatar with integrated Movie Insights
-- ✅ **Movie Insights Dashboard** - Total Watched, Average Rating, Top Genres (pie), Ratings Distribution (bar), Mood Breakdown (horizontal bar) - merged into Profile Page
-- ✅ **TMDB-Compliant Footer** - Logo + required attribution text
-- ✅ **Protected Routes** - Auth guards for user-specific pages
-- ✅ **Power Filter (Search/Trending)** - Genre, Sort By, Year filtering with TMDB Discover API
-- ✅ **Up Next Queue** - Horizontal shelf showing top 5 movies in watchlist (dark container, purple dot indicator)
-- ✅ **Watch History Timeline** - Vertical timeline with glowing nodes, grouped by month
-- ✅ **Anime Filter** - Dedicated discoverAnime() function for Japanese animation
-- ✅ **Profile Avatar Upload** - Supabase Storage integration with drag-to-upload UI
-- ✅ **Creepy Footer Styling** - Creepster font with blood red glow effect
-- ✅ **Stats Dashboard** - Recharts-based analytics with genre, mood, and rating visualizations
-- ✅ **Components Demo Page** - Showcase of all UI components for testing and development
-- ✅ **About/Roadmap Page** (v1.2.0) - Ignes Hub with changelog and roadmap
-- ✅ **Bug Report System** (v1.2.0) - In-app bug reporting with admin dashboard
-- ✅ **Bug Fixes & Stability** (v1.5.1) - Ghost Hunter fix, Whitespace Search, Security Audit
-- ✅ **Cinematic MovieCard** (v1.3.0) - StoryGraph-inspired clean bookshelf design with hover overlays
-- ✅ **Version Management** (v1.3.0) - Centralized constants with auto-version in bug reports
-- ✅ **Oracle Vibe Mapping** (v1.3.4) - Natural language to TMDB genre ID mapping
-- ✅ **Library Grid Responsive** (v1.3.1) - `grid-cols-2 md:grid-cols-4 lg:grid-cols-6`
+- ✅ **The Matchmaker** (v1.8.0) - Fully operational social compatibility feature.
+  - Generates Synergy Scores, calculates "Gore Gap," and finds Common Ground.
+  - Cross-user database queries unlocked via strict RLS UUID casting.
+  - Fail-safe UI with optional chaining and fallback avatars.
+- ✅ **Universal Mood Palette** (v1.8.1) - Expanded from horror-focus to all genres (Romantic, Hilarious, Adrenaline-fueled, Cerebral, etc.).
+- ✅ **Social Hub Card** (v1.8.0) - Profile page entry point for friend management.
+- ✅ **Friends Carousel** (v1.8.0) - Horizontal scroll of friend chips with match scores.
+- ✅ **Discover Page Navigation** (v1.8.0) - Movie posters and titles are fully clickable via React Router.
+- ✅ **Ember Oracle Stabilization** (v1.8.1) - Upgraded to stable Gemini Flash 1.5; bulletproofed Watchlist payload.
+- ✅ **Database Bouncer** (Phase 3.8) - Enforced `UNIQUE (user_id, tmdb_id)` constraint to permanently prevent duplicate logs.
+- ✅ **Native Mobile UX** (v1.7.0) - Replaced hamburger menu with fixed BottomNav (Home, Discover, Library, Profile).
+- ✅ **Watchlist Quick-Toggle** (v1.7.0) - Three-button action row (Eye icon for Watchlist, Primary Log, Folder for Lists).
 - ✅ **Magic Importer** (v1.5.0) - AI-powered bulk import with Groq LPU parsing
 
 **🤖 Ember Oracle - AI Discovery (v1.3.2+)**:
@@ -746,3 +701,41 @@ User Query → Groq LPU (llama-3.3-70b-versatile) → Genre IDs (300-600ms)
 - **Mood Palette**: Moods are color-coded by category for quick visual scanning
 - **Rating Slider**: Precision 0.1 increments with gradient fill that tracks progress
 - **Quick Launch**: Double-click `launch.bat` to start dev server
+
+---
+
+## Phase 6.17: Collaborative Shared Lists 🤝
+
+**Status**: 📝 **Planned**
+
+**Goal**: Upgrade custom lists into multiplayer experiences where friends can co-curate movie collections in real-time.
+
+### Tasks
+
+| # | Task | Description | Status |
+|---|------|-------------|--------|
+| 6.17.1 | **Database Schema** | Create `lists`, `list_members` (user_id, role), and `list_entries` (added_by) tables. | ⬜ |
+| 6.17.2 | **RLS Security** | Policy: `auth.uid()` must exist in `list_members` to view/edit the list. | ⬜ |
+| 6.17.3 | **Invite System** | Allow adding collaborators via UUID or nickname. | ⬜ |
+| 6.17.4 | **Action Menu Sync** | Shared lists appear dynamically in the "Add to List" modal. | ⬜ |
+| 6.17.5 | **Attribution UI** | Show the avatar of the specific user who added a movie to the shared list. | ⬜ |
+| 6.17.6 | **Real-Time Sync** | Use Supabase Realtime to update the list live when a friend adds a movie. | ⬜ |
+
+---
+
+## Phase 6.18: Robust Search & Deep Discovery 🔍
+
+**Status**: 📝 **Planned**
+
+**Goal**: Expand the search engine to handle cast/crew and provide deep-linking across the entire TMDB filmography.
+
+### Tasks
+
+| # | Task | Description | Status |
+|---|------|-------------|--------|
+| 6.18.1 | **Global Search Update** | Update search logic to hit `search/person` alongside movies. | ⬜ |
+| 6.18.2 | **UI Categorization** | Visually separate "Movies" and "People" in search dropdowns/results. | ⬜ |
+| 6.18.3 | **Advanced Person Profiles** | Enhance existing actor pages with full `person/{id}/movie_credits` endpoints. | ⬜ |
+| 6.18.4 | **Smart Filtering** | Add genre toggles on actor pages (e.g., "Show Horror Only"). | ⬜ |
+| 6.18.5 | **Deep Navigation** | Ensure all Cast/Crew names on Movie Details link to Person Profiles. | ⬜ |
+| 6.18.6 | **"Logged" Indicators** | Add a visual badge on filmography grids showing which movies you've already logged. | ⬜ |
