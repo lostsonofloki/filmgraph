@@ -9,8 +9,9 @@ import './AddToListButton.css';
  * AddToListButton - Dropdown button to add a movie to custom lists
  * @param {Object} movie - Movie object with tmdb_id, title, poster_path
  * @param {string} className - Additional CSS class name
+ * @param {'default' | 'icon'} variant - Button variant ('default' shows text, 'icon' shows icon only)
  */
-function AddToListButton({ movie, className = '' }) {
+function AddToListButton({ movie, className = '', variant = 'default' }) {
   const { user, isAuthenticated } = useUser();
   const { lists, isLoading, addMovieToList, isMovieInList, getListsContainingMovie } = useLists();
   const toast = useToast();
@@ -75,22 +76,40 @@ function AddToListButton({ movie, className = '' }) {
   return (
     <>
       <div className={`add-to-list-container ${className}`} ref={dropdownRef}>
-        <button
-          className="add-to-list-button"
-          onClick={handleToggleDropdown}
-          disabled={isLoading}
-          aria-expanded={isOpen}
-          aria-haspopup="true"
-          title={existingLists.length > 0 ? `In ${existingLists.length} list(s)` : 'Add to list'}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-          <span>Add to List</span>
-          {existingLists.length > 0 && (
-            <span className="add-to-list-badge">{existingLists.length}</span>
-          )}
-        </button>
+        {variant === 'icon' ? (
+          <button
+            className="add-to-list-button-icon"
+            onClick={handleToggleDropdown}
+            disabled={isLoading}
+            aria-expanded={isOpen}
+            aria-haspopup="true"
+            title={existingLists.length > 0 ? `In ${existingLists.length} list(s)` : 'Add to list'}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            {existingLists.length > 0 && (
+              <span className="add-to-list-badge">{existingLists.length}</span>
+            )}
+          </button>
+        ) : (
+          <button
+            className="add-to-list-button"
+            onClick={handleToggleDropdown}
+            disabled={isLoading}
+            aria-expanded={isOpen}
+            aria-haspopup="true"
+            title={existingLists.length > 0 ? `In ${existingLists.length} list(s)` : 'Add to list'}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            <span>Add to List</span>
+            {existingLists.length > 0 && (
+              <span className="add-to-list-badge">{existingLists.length}</span>
+            )}
+          </button>
+        )}
 
         {isOpen && (
           <div className="add-to-list-dropdown">

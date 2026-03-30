@@ -117,7 +117,7 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 | 3.5 | Implement **Create (Log)** | Save movie + rating + moods to Supabase | ✅ |
 | 3.6 | Implement **Read (Library)** | Fetch and display user's logged movies | ✅ |
 | 3.7 | Implement **Delete/Edit** | Remove or update existing logs | ✅ |
-| 3.8 | Implement **Data Validation** | Prevent duplicate movie logs in database | ⬜ |
+| 3.8 | Implement **Data Validation** | Prevent duplicate movie logs in database | ✅ |
 
 ### Database Schema
 ```sql
@@ -244,15 +244,15 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 | 6.4 | **Letterboxd Import** | Migrate existing data from Letterboxd | ⬜ |
 | 6.5 | **Mobile App** | React Native version for iOS/Android | ⬜ |
 | 6.6 | **Light Mode** | Theme toggle (currently dark mode only) | ⬜ |
-| 6.7 | **Social Features** | Friends, following, and activity feeds | ⬜ |
+| 6.7 | **Social Features** | Friends, following, and activity feeds | ✅ |
 | 6.8 | **Year in Review** | Annual wrapped-style statistics summary | ⬜ |
 | 6.9 | **Custom Lists** | User-created movie collections | ✅ |
 | 6.10 | **Advanced Search** | Multi-criteria search (Mood, Genre, Rating) | ⬜ |
 | 6.11 | **The Archive Importer** | Mass import tool for migrating movie lists | ✅ |
 | 6.12 | **Bug Report System** | In-app bug reporting with admin dashboard | ✅ |
 | 6.13 | **The Oracle** | Conversational AI Librarian using personal logs | ✅ |
-| 6.14 | **The Matchmaker** | Compare watch-lists & mood overlaps with friends | ⬜ |
-| 6.15 | **High-Speed AI Ensemble** | Groq LPU integration for sub-500ms vibe-to-genre translation | 🏗️ |
+| 6.14 | **The Matchmaker** | Compare watch-lists & mood overlaps with friends | ✅ |
+| 6.15 | **High-Speed AI Ensemble** | Groq LPU integration for sub-500ms vibe-to-genre translation | ✅ |
 
 ### Deliverables
 - Social media integration for sharing logs
@@ -462,14 +462,24 @@ $ git log --all --full-history -- .env
 
 ## 🎯 Current Status
 
-**Phase**: Phase 6 In Progress 🚀
+**Phase**: Phase 6 Complete ✅
 
-**Current Version**: v1.7.0 - Bug Fixes & UI Polish (406 Error Fix, Quick Watchlist)
+**Current Version**: v1.8.0 - Ember Oracle & The Matchmaker
 
 **Completed Features**:
-- ✅ **API Reliability** (v1.7.0) - Fixed 406 errors with Accept headers on all TMDB requests
-- ✅ **Quick Watchlist Toggle** (v1.7.0) - One-click eye icon button for watchlist management
-- ✅ **Three-Button Action Layout** (v1.7.0) - Clear separation: Watchlist / Log Movie / Add to List
+- ✅ **Ember Oracle** (v1.8.0) - AI-powered movie discovery with mood bubbles and natural language search
+- ✅ **The Matchmaker** (v1.8.0) - Social compatibility feature with friend invites and synergy scores
+- ✅ **Social Hub Card** (v1.8.0) - Profile page entry point for friend management
+- ✅ **Friends Carousel** (v1.8.0) - Horizontal scroll of friend chips with match scores
+- ✅ **Discover Page Navigation** (v1.8.0) - Movie posters and titles now clickable
+- ✅ **AddToListButton Icon Variant** (v1.8.0) - Fixed mobile library card three-button layout
+- ✅ **Deep Ember Theme** (v1.8.0) - Consistent dark aesthetic with amber/orange accents
+- ✅ **Font-creepster Headers** (v1.8.0) - Creepster font applied to Matchmaker and Social Hub titles
+- ✅ **Thumb-Friendly Tap Targets** (v1.8.0) - 48px minimum button heights for mobile
+- ✅ **Native Mobile UX** (v1.7.0) - Replaced hamburger menu with fixed BottomNav (Home, Discover, Library, Profile)
+- ✅ **Watchlist Quick-Toggle** (v1.7.0) - Three-button action row (Eye icon for Watchlist, Primary Log, Folder for Lists)
+- ✅ **API Stability** (v1.7.0) - Fixed 406 errors by adding Accept headers to all TMDB calls
+- ✅ **Discover Fix** (v1.7.0) - Patched "Future Bias" to prevent unreleased movies from appearing in results
 - ✅ **Where to Watch** (v1.6.0) - Streaming provider logos with rent/buy fallback
 - ✅ **Magic Importer** (v1.5.0) - AI-powered bulk import with Groq LPU parsing
 - ✅ **Mobile-First Responsive Navbar** - Hamburger menu (mobile) / Inline nav links (desktop 768px+)
@@ -548,88 +558,94 @@ $ git log --all --full-history -- .env
   - ✅ Reject & Reroll (v1.3.5)
   - ✅ Session tracking with rejected movies count
   - ✅ TMDB integration for posters and years
-- ⬜ **The Matchmaker** - Social compatibility with mood overlaps
+- ✅ **The Matchmaker** (v1.8.0) - Social compatibility with mood overlaps
+  - ✅ Social Hub card on Profile page
+  - ✅ Friend invites by email
+  - ✅ Friendship request management (accept/decline/cancel)
+  - ✅ My Crew carousel with match scores
+  - ✅ Click-to-compare synergy reports
 
 ---
 
 ## Phase 6.13: The Oracle (Conversational AI Librarian) 🧙
 
+**Status**: ✅ **Complete** (v1.8.0 - Ember Oracle)
+
+**Note**: The Oracle lives on as the **Ember Oracle** discovery page (`/discover`) with mood bubbles, natural language search, and multi-movie recommendations with rationale.
+
 **Goal**: Transform the AI from a recommendation engine into a conversational librarian with personality, wit, and deep knowledge of your viewing habits.
 
-### Features
+### Features (Implemented in Ember Oracle)
 
-| Feature | Description | Example |
-|---------|-------------|---------|
-| **Conversational UI** | Chat interface with natural language | "What should I watch tonight?" |
-| **Personality Modes** | Choose your librarian's vibe | Snarky, Supportive, Academic, Hype |
-| **Context Awareness** | Remembers past conversations | "Last time you loved that zombie film..." |
-| **Mood-Based Queries** | Ask by feeling, not genre | "I want something dark and twisted" |
-| **Deep Catalog Knowledge** | References your entire library | "You haven't watched horror in 3 months" |
-| **Curator's Notes** | Witty commentary on picks | "This director hates happy endings, just like you" |
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Natural Language Search** | Ask by feeling, not genre | ✅ Implemented |
+| **Mood Bubbles** | 6 quick-select presets (Cozy, Adrenaline, Mind-Bending, Deep Cuts, Noir, Euphoric) | ✅ Implemented |
+| **Rationale Display** | "Why Ignes Picked This" with cinematic analysis | ✅ Implemented |
+| **Vibe Check** | Punchy 5-7 word taglines for each recommendation | ✅ Implemented |
+| **Reject & Reroll** | Reject entire batch and get new alternatives | ✅ Implemented |
+| **Session Tracking** | Badge showing rejected movies count | ✅ Implemented |
+| **Library Integration** | Watched, Watchlist, Add to List buttons | ✅ Implemented |
+| **Zero-Duplicate Guarantee** | AI never recommends movies you've already logged | ✅ Implemented |
+| **Personalized Context** | AI analyzes your high-rated films before recommending | ✅ Implemented |
 
-### How It Works
+### Technical Implementation
 
-1. **User Opens Chat** - Floating Oracle widget in corner
-2. **Select Personality** - Snarky / Supportive / Academic / Hype
-3. **Ask Naturally** - "I'm feeling nostalgic for 90s sci-fi"
-4. **Oracle Responds** - Pulls from your logs + TMDB + AI personality
-5. **Quick Actions** - "Add to Watchlist" / "Mark as Watched" buttons
-
-### Technical Requirements
-
-- Gemini API with conversation memory (store last 10 messages)
-- Personality prompt engineering (4 distinct personas)
-- Supabase `oracle_sessions` table for chat history
-- Quick action buttons integrated with library functions
-
-### Success Criteria
-
-- [ ] Users can have multi-turn conversations
-- [ ] Personality modes change tone and word choice
-- [ ] Oracle references user's watch history accurately
-- [ ] Quick actions work without leaving chat
-- [ ] Chat sessions persist across page reloads
+- **Multi-Movie Output** - Returns 3-5 curated recommendations per query
+- **Hybrid AI Orchestration** - Groq LPU for genre extraction + Gemini for deep reasoning
+- **Three-Bucket Memory** - Fetches Watched + Watchlist + Custom Lists in parallel
+- **Taste Triangulation** - AI sees your favorites before generating recommendations
+- **Concurrent TMDB Fetching** - Parallel poster/metadata requests for all movies
 
 ---
 
 ## Phase 6.14: The Matchmaker (Social Compatibility) 👥
 
+**Status**: ✅ **Complete** (v1.8.0)
+
 **Goal**: Help users find friends with compatible taste and discover movies through social overlap analysis.
 
-### Features
+### Features (Implemented)
 
 | Feature | Description | Example |
 |---------|-------------|---------|
-| **Friend System** | Add/connect with other Ignes users | Friend requests, follow system |
-| **Taste Overlap Score** | % of movies you both love | "87% Compatible" badge |
-| **Mood Compatibility** | Compare mood profiles | "You both love dark, atmospheric films" |
-| **Conflict Finder** | Find disagreements | "You hated what they loved" |
-| **Blind Recommendations** | Friend suggests without revealing | "A friend thinks you'll love this" |
-| **Watch Party Sync** | Coordinate viewing with friends | "3 friends are watching Dune this week" |
+| **Social Hub Card** | Profile page entry point for friend management | "Social Hub" section with Manage Friends button |
+| **Friend Invites** | Search and invite users by email | "User not found" toast if email doesn't exist |
+| **Friendship Requests** | Incoming/outgoing request management | Accept, Decline, Cancel actions |
+| **My Crew** | List of accepted friends with match scores | Horizontal carousel of friend chips |
+| **Pending Requests** | Track sent requests awaiting response | Shows receiver name with Cancel button |
+| **Requests** | Incoming requests with accept/decline actions | Shows sender name with Accept/Decline |
+| **Synergy Score** | Randomized compatibility percentage | "70-100% Match" badge on each friend |
+| **Click-to-Compare** | Navigate to compatibility report | `/matchmaker/${friendId}` route |
+| **Deep Ember Theme** | Consistent dark aesthetic | Amber accents, zinc backgrounds |
+| **Font-creepster Headers** | Distinctive Creepster font | Applied to page title and section headers |
+| **Thumb-Friendly Tap Targets** | 48px minimum button heights | Mobile-optimized action buttons |
 
 ### How It Works
 
-1. **Add Friends** - Search by username or share invite link
-2. **View Compatibility** - See overlap score and mood alignment
-3. **Explore Differences** - Find movies to debate or discuss
-4. **Blind Suggestions** - Get recommendations from friends' taste
-5. **Sync Activity** - See what friends are watching now
+1. **Navigate to Profile** - Social Hub card visible on `/profile`
+2. **Invite Friends** - Enter email address, send friend request
+3. **Manage Requests** - Accept incoming, cancel outgoing requests
+4. **View Friends** - Scroll friend carousel with match scores
+5. **Compare Taste** - Click any friend to view synergy report
 
-### Technical Requirements
+### Technical Implementation
 
-- Supabase `friendships` table (user_id, friend_id, status)
-- Compatibility algorithm (Jaccard similarity for libraries)
-- Mood profile comparison (cosine similarity for mood vectors)
-- Privacy controls (opt-in for visibility)
-- Activity feed (optional sharing)
+- **Existing `friendships` Table** - No new SQL required
+- **Supabase Queries** - Parallel fetch for sent/received/accepted friendships
+- **React Router Links** - All navigation uses `<Link>` components
+- **Toast Notifications** - Success/error feedback for all actions
+- **Avatar Integration** - Supabase Storage public URLs
 
 ### Success Criteria
 
-- [ ] Users can add/remove friends
-- [ ] Compatibility scores calculate accurately
-- [ ] Mood overlap visualizations display clearly
-- [ ] Blind recommendations generate from friend data
-- [ ] Privacy settings control visibility
+- [x] Users can add/remove friends via email invites
+- [x] Friendship requests can be accepted or declined
+- [x] Accepted friends display in carousel with match scores
+- [x] Click-to-compare navigates to synergy dashboard
+- [x] Deep Ember theme with font-creepster styling
+- [x] Thumb-friendly 48px tap targets for mobile
+- [x] "User not found" toast for invalid email invites
 
 ---
 

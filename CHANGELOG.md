@@ -7,19 +7,144 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## Latest Version: 1.7.0 (March 28, 2026)
+## Latest Version: 1.8.0 (March 29, 2026)
 
 **Highlights:**
-- 🔧 **API Reliability** - Fixed 406 errors with proper Accept headers
-- 👁️ **Quick Watchlist** - One-click toggle for watchlist status
-- 🎬 **Three-Button Layout** - Clear separation: Watchlist / Log Movie / Add to List
-- 📱 **Mobile Responsive** - Buttons stack vertically on small screens
+- 🔮 **Ember Oracle** - AI-powered movie discovery with mood-based recommendations
+- 🤝 **The Matchmaker** - Social compatibility feature for comparing movie tastes with friends
+- 🎭 **6 Mood Presets** - Quick-select bubbles for instant vibe matching
+- 📱 **Mobile Navigation** - Discover page movie cards now clickable
+- 🎨 **Deep Ember Theme** - Consistent dark aesthetic with amber/orange accents
 
 **Quick Links:**
-- [Full v1.7.0 Notes](#170---march-28-2026)
-- [Previous: v1.6.0](#160---march-28-2026)
+- [Full v1.8.0 Notes](#180---march-29-2026)
+- [Previous: v1.7.0](#170---march-28-2026)
 - [Roadmap](./ROADMAP.md)
 - [README](./README.md)
+
+---
+
+## [1.8.0] - March 29, 2026
+
+### 🚀 Added
+
+#### Ember Oracle - AI-Powered Discovery
+- **Mood Bubbles** - 6 quick-select presets with icons:
+  - 🕯️ **Cozy** - Warm, comforting films for quiet nights
+  - 🔥 **Adrenaline** - High-octane action and thrills
+  - 🧠 **Mind-Bending** - Reality-twisting, thought-provoking cinema
+  - 💎 **Deep Cuts** - Obscure gems most viewers haven't seen
+  - 🌑 **Noir** - Dark, atmospheric crime with moral ambiguity
+  - ✨ **Euphoric** - Uplifting films that leave you feeling alive
+- **Natural Language Input** - "A sci-fi film that explores loneliness with stunning visuals"
+- **Vibe Check** - Punchy 5-7 word taglines for each recommendation
+- **Rationale Display** - "Why Ignes Picked This" with cinematic analysis
+- **Reject & Reroll** - Reject entire batch and get new recommendations
+- **Session Tracking** - Badge showing rejected movies count
+- **TMDB Integration** - Auto-fetch posters, release years, and metadata
+- **Library Integration**:
+  - **Watched Button** - Log movie with rating instantly
+  - **Watchlist Button** - Add to watchlist in one click
+  - **Add to List** - Dropdown to add to custom lists
+  - **View on TMDB** - Direct link to TMDB movie page
+
+#### The Matchmaker - Social Compatibility (Phase 6.14)
+- **Social Hub Card** - New section on Profile page with friend management
+- **Friend Invites** - Search and invite users by email
+- **Friendship Requests** - Incoming/outgoing request management
+- **My Crew** - List of accepted friends with match scores
+- **Pending Requests** - Track sent requests awaiting response
+- **Requests** - Incoming requests with accept/decline actions
+- **Synergy Score** - Randomized compatibility percentage (70-100%)
+- **Click-to-Compare** - Tap any friend chip to view compatibility report
+- **Deep Ember Theme** - Consistent dark zinc backgrounds with amber accents
+- **Font-creepster Headers** - Distinctive Creepster font for titles
+- **Thumb-Friendly Tap Targets** - 48px minimum button heights
+
+#### Profile Page Enhancements
+- **Social Hub Section** - Dedicated area for friend management
+- **Friends Carousel** - Horizontal scroll of friend chips with avatars
+- **Add Friend Chip** - Quick access button to invite new friends
+- **Match Score Badges** - Green compatibility percentage on each friend
+- **Link Navigation** - All friend elements use React Router Link components
+
+### 🐛 Fixed
+
+#### Discover Page Navigation
+- **Problem**: Movie posters and titles on `/discover` results were not clickable
+- **Fix**: Wrapped poster and title in `<Link to="/movie/${movie.id}">` components
+- **Styling**: Added `.rec-poster-link` and `.rec-title-link` CSS classes
+- **Hover Effects**: Poster scales and title turns orange on hover
+- **No Default Link Styling**: Removed underlines and color shifts
+
+#### AddToListButton Mobile Layout
+- **Problem**: `variant="icon"` prop was ignored, breaking mobile library cards
+- **Fix**: Added `variant` prop to function signature with default `'default'`
+- **Icon Variant**: Renders compact 44x44px icon-only button when `variant="icon"`
+- **Three-Button Layout**: Edit Log, Add to List, Delete now fit side-by-side on mobile
+- **Styling**: Matches other mobile action buttons with amber border and hover effects
+
+### 🎨 UI/UX
+
+#### Deep Ember Theme
+- **Background**: #0a0a0a dark zinc base
+- **Accents**: Amber (#f97316) and orange (#ea580c) gradients
+- **Borders**: Subtle zinc-800/900 borders
+- **Shadows**: Orange-tinted glow effects on hover
+- **Typography**: Clean hierarchy with proper spacing
+
+#### Mood Bubble Design
+- **Grid Layout**: Auto-fit responsive grid (min 140px)
+- **Active State**: Orange gradient background with glow
+- **Hover Effects**: Lift animation with border highlight
+- **Icon + Label**: Clear visual hierarchy with emoji icons
+
+#### Matchmaker Styling
+- **Header**: Large Creepster font title with orange glow
+- **Input Fields**: 16px padding, 48px min-height for touch targets
+- **Buttons**: Gradient backgrounds with hover lift
+- **Cards**: Dark zinc backgrounds with subtle borders
+- **Avatars**: 48px circular with gradient fallbacks
+
+### 🛠️ Changed
+
+#### New Files
+- **DiscoveryPage.jsx** - Complete AI discovery interface
+- **DiscoveryPage.css** - Deep Ember themed styling
+- **MatchmakerPage.jsx** - Social compatibility management
+- **MatchmakerPage.css** - Responsive friend management UI
+
+#### Updated Files
+- **ProfilePage.jsx** - Added Social Hub section with friend carousel
+- **ProfilePage.css** - Social hub and friend chip styling
+- **App.jsx** - Added `/discover` and `/matchmaker` routes
+- **index.css** - Added `.font-creepster` utility class
+
+#### Backend Integration
+- **getHybridRecommendation()** - Multi-movie AI recommendations with Groq + Gemini
+- **fetchUserMovieHistory()** - Three-bucket memory fetch (Watched + Watchlist + Lists)
+- **friendships Table** - Existing table for social connections
+- **Zero-Duplicate Guarantee** - Combines session rejections with lifetime library
+
+### ⚡ Performance
+
+#### AI Orchestration
+- **Groq Genre Extraction** - ~300-600ms for ultra-fast vibe-to-genre translation
+- **Parallel TMDB Fetching** - Concurrent poster/metadata requests
+- **Three-Bucket Fetch** - Promise.all for sub-500ms data prep
+- **Efficient Joins** - `lists!inner(user_id)` eliminates N+1 queries
+
+#### Social Features
+- **Parallel Friendship Queries** - Sent/received/accepted fetched simultaneously
+- **Optimized Avatar Loading** - Public URLs from Supabase Storage
+- **Lazy Loading** - Friend chips render on demand
+
+### 📝 Documentation
+
+#### Updated Files
+- **CHANGELOG.md** - Comprehensive v1.8.0 release notes
+- **ROADMAP.md** - Phase 6.14 (Matchmaker) marked complete
+- **ROADMAP.md** - Ember Oracle features documented
 
 ---
 

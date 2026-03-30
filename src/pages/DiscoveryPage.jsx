@@ -4,6 +4,7 @@ import { useToast } from '../context/ToastContext';
 import { getSupabase } from '../supabaseClient';
 import { getHybridRecommendation, BASE_SYSTEM_PROMPT } from '../utils/gemini';
 import { fetchTMDBMovie } from '../api/tmdb';
+import { Link } from 'react-router-dom';
 import LogMovieModal from '../components/LogMovieModal';
 import './DiscoveryPage.css';
 
@@ -309,26 +310,54 @@ function DiscoveryPage() {
               return (
                 <div key={`${rec.title}-${rec.year}`} className="recommendation-card animate-in fade-in">
                   <div className="rec-poster-container">
-                    {movieTmdb?.poster_path ? (
-                      <img
-                        src={`https://image.tmdb.org/t/p/w500${movieTmdb.poster_path}`}
-                        alt={rec.title}
-                        className="rec-poster"
-                      />
+                    {movieTmdb?.id ? (
+                      <Link to={`/movie/${movieTmdb.id}`} className="rec-poster-link">
+                        {movieTmdb?.poster_path ? (
+                          <img
+                            src={`https://image.tmdb.org/t/p/w500${movieTmdb.poster_path}`}
+                            alt={rec.title}
+                            className="rec-poster"
+                          />
+                        ) : (
+                          <div className="rec-poster-placeholder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                              <rect x="3" y="3" width="18" height="18" rx="2" />
+                              <circle cx="8.5" cy="8.5" r="1.5" />
+                              <path d="M21 15l-5-5L5 21" />
+                            </svg>
+                          </div>
+                        )}
+                      </Link>
                     ) : (
-                      <div className="rec-poster-placeholder">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-                          <rect x="3" y="3" width="18" height="18" rx="2" />
-                          <circle cx="8.5" cy="8.5" r="1.5" />
-                          <path d="M21 15l-5-5L5 21" />
-                        </svg>
-                      </div>
+                      <>
+                        {movieTmdb?.poster_path ? (
+                          <img
+                            src={`https://image.tmdb.org/t/p/w500${movieTmdb.poster_path}`}
+                            alt={rec.title}
+                            className="rec-poster"
+                          />
+                        ) : (
+                          <div className="rec-poster-placeholder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                              <rect x="3" y="3" width="18" height="18" rx="2" />
+                              <circle cx="8.5" cy="8.5" r="1.5" />
+                              <path d="M21 15l-5-5L5 21" />
+                            </svg>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
 
                   <div className="rec-content">
                     <div className="rec-header">
-                      <h2 className="rec-title">{movieTmdb?.title || rec.title}</h2>
+                      {movieTmdb?.id ? (
+                        <Link to={`/movie/${movieTmdb.id}`} className="rec-title-link">
+                          {movieTmdb?.title || rec.title}
+                        </Link>
+                      ) : (
+                        <h2 className="rec-title">{movieTmdb?.title || rec.title}</h2>
+                      )}
                       <span className="rec-year">{movieTmdb?.release_date?.split('-')[0] || rec.year}</span>
                     </div>
 

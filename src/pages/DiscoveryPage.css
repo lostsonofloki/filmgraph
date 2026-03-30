@@ -242,6 +242,18 @@
   }
 }
 
+.rec-poster-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.rec-poster-link:hover .rec-poster {
+  opacity: 0.9;
+  transform: scale(1.02);
+  transition: all 0.2s ease;
+}
+
 .rec-poster {
   width: 100%;
   height: auto;
@@ -249,6 +261,7 @@
   object-fit: cover;
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease;
 }
 
 .rec-poster-placeholder {
@@ -286,6 +299,19 @@
   font-weight: 700;
   color: #ffffff;
   margin: 0;
+}
+
+.rec-title-link {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.rec-title-link:hover {
+  color: #f97316;
 }
 
 .rec-year {

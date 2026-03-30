@@ -37,6 +37,44 @@
   height: 18px;
 }
 
+/* Icon variant - compact button for mobile library cards */
+.add-to-list-button-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 12px;
+  background: rgba(24, 24, 24, 0.9);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 44px;
+  min-height: 44px;
+  color: #f59e0b;
+}
+
+.add-to-list-button-icon:hover:not(:disabled) {
+  background: rgba(234, 88, 12, 0.9);
+  border-color: rgba(234, 88, 12, 0.5);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+}
+
+.add-to-list-button-icon:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  background: rgba(38, 38, 38, 0.9);
+  border-color: rgba(63, 63, 67, 0.3);
+}
+
+.add-to-list-button-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
 .add-to-list-badge {
   position: absolute;
   top: -6px;

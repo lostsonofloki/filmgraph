@@ -19,6 +19,8 @@ import AboutPage from './pages/AboutPage';
 import ChangelogPage from './pages/ChangelogPage';
 import BugList from './components/BugList';
 import DiscoveryPage from './pages/DiscoveryPage';
+import MatchmakerPage from './pages/MatchmakerPage';
+import SynergyDashboard from './pages/SynergyDashboard';
 import { useState } from 'react';
 import './App.css';
 
@@ -214,6 +216,8 @@ function AppContent() {
             <Route path="/admin/bugs" element={<BugList />} />
             <Route path="/discover" element={<ProtectedRoute><DiscoveryPage /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+            <Route path="/matchmaker" element={<ProtectedRoute><MatchmakerPage /></ProtectedRoute>} />
+            <Route path="/matchmaker/:friendId" element={<ProtectedRoute><SynergyDashboard /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

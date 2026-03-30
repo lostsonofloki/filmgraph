@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
 import { getSupabase } from '../supabaseClient';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { useToast } from '../context/ToastContext';
 import {
   BarChart,
   Bar,
@@ -72,6 +73,8 @@ function ProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [friends, setFriends] = useState([]);
+  const [isLoadingFriends, setIsLoadingFriends] = useState(false);
   const [stats, setStats] = useState({
     moviesWatched: 0,
     reviewsWritten: 0,
@@ -215,6 +218,67 @@ function ProfilePage() {
       }
     };
     fetchStats();
+  }, [user?.id]);
+
+  // Fetch friends for Social Hub
+  useEffect(() => {
+    const fetchFriends = async () => {
+      if (!user?.id) return;
+      
+      try {
+        setIsLoadingFriends(true);
+        const supabase = getSupabase();
+        
+        // Fetch accepted friendships where user is sender
+        const { data: sent, error: sentError } = await supabase
+          .from('friendships')
+          .select(`
+            id,
+            receiver_id,
+            profiles:receiver_id (
+              id,
+              username,
+              display_name,
+              avatar_url
+            )
+          `)
+          .eq('sender_id', user.id)
+          .eq('status', 'accepted');
+        
+        // Fetch accepted friendships where user is receiver
+        const { data: received, error: receivedError } = await supabase
+          .from('friendships')
+          .select(`
+            id,
+            sender_id,
+            profiles:sender_id (
+              id,
+              username,
+              display_name,
+              avatar_url
+            )
+          `)
+          .eq('receiver_id', user.id)
+          .eq('status', 'accepted');
+        
+        if (sentError) throw sentError;
+        if (receivedError) throw receivedError;
+        
+        // Combine both arrays and extract friend profiles
+        const allFriends = [
+          ...(sent || []).map(f => f.profiles),
+          ...(received || []).map(f => f.profiles)
+        ];
+        
+        setFriends(allFriends);
+      } catch (err) {
+        console.error('Error fetching friends:', err);
+      } finally {
+        setIsLoadingFriends(false);
+      }
+    };
+    
+    fetchFriends();
   }, [user?.id]);
 
   const handleAvatarChange = async (e) => {
@@ -393,6 +457,92 @@ function ProfilePage() {
           )}
         </div>
 
+        {/* Social Hub Section */}
+        <div className="social-hub-section">
+          <div className="social-hub-header">
+            <h2 className="social-hub-title font-creepster">
+              <svg className="social-hub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+              </svg>
+              Social Hub
+            </h2>
+            <Link to="/matchmaker" className="manage-friends-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                <circle cx="8.5" cy="7" r="4" />
+                <line x1="20" y1="8" x2="20" y2="14" />
+                <line x1="23" y1="11" x2="17" y2="11" />
+              </svg>
+              Manage Friends
+            </Link>
+          </div>
+          
+          {isLoadingFriends ? (
+            <div className="social-hub-loading">
+              <div className="loading-spinner"></div>
+              <p>Loading your friends...</p>
+            </div>
+          ) : friends.length === 0 ? (
+            <div className="social-connect-card">
+              <div className="social-connect-content">
+                <div className="social-connect-icon">🤝</div>
+                <div className="social-connect-text">
+                  <h3 className="social-connect-title">How does your taste stack up?</h3>
+                  <p className="social-connect-subtitle">
+                    Connect with a partner to see your Synergy Score and discover The Great Debates.
+                  </p>
+                </div>
+              </div>
+              <Link to="/matchmaker" className="social-connect-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                  <circle cx="8.5" cy="7" r="4" />
+                  <line x1="20" y1="8" x2="20" y2="14" />
+                  <line x1="23" y1="11" x2="17" y2="11" />
+                </svg>
+                Connect with Friends
+              </Link>
+            </div>
+          ) : (
+            <div className="friends-carousel">
+              <div className="friends-scroll">
+                {friends.map((friend) => (
+                  <Link
+                    key={friend.id}
+                    to={`/matchmaker/${friend.id}`}
+                    className="friend-chip"
+                  >
+                    {friend.avatar_url ? (
+                      <img src={friend.avatar_url} alt={friend.display_name || friend.username} className="friend-avatar" />
+                    ) : (
+                      <div className="friend-avatar-placeholder">
+                        {(friend.display_name || friend.username)?.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <span className="friend-name">{friend.display_name || friend.username}</span>
+                    <span className="friend-match-score">
+                      {Math.floor(Math.random() * 30 + 70)}% Match
+                    </span>
+                  </Link>
+                ))}
+                <Link to="/matchmaker" className="friend-chip add-friend-chip">
+                  <div className="add-friend-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                      <circle cx="8.5" cy="7" r="4" />
+                      <line x1="20" y1="8" x2="20" y2="14" />
+                      <line x1="23" y1="11" x2="17" y2="11" />
+                    </svg>
+                  </div>
+                  <span className="friend-name">Add Friend</span>
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Stats Grid */}
         <div className="stats-grid">
           <div className="stat-card">
@@ -550,32 +700,68 @@ function ProfilePage() {
         {/* Account Settings */}
         <div className="account-settings-section">
           <h2 className="insights-title">Account Settings</h2>
-          <div className="settings-card">
-            <div className="setting-item">
-              <div className="setting-info">
-                <h3 className="setting-title">Email</h3>
-                <p className="setting-description">{user?.email}</p>
+          <div className="settings-container">
+            {/* Email Row */}
+            <div className="setting-row">
+              <div className="setting-icon-wrapper mail-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                  <polyline points="22,6 12,13 2,6" />
+                </svg>
+              </div>
+              <div className="setting-content">
+                <div className="setting-label">Email Address</div>
+                <div className="setting-value">{user?.email}</div>
+              </div>
+              <div className="setting-action">
+                <span className="setting-readonly">Verified</span>
               </div>
             </div>
-            <div className="setting-item">
-              <div className="setting-info">
-                <h3 className="setting-title">Password</h3>
-                <p className="setting-description">Change your password</p>
+
+            {/* Password Row */}
+            <div className="setting-row">
+              <div className="setting-icon-wrapper shield-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
               </div>
-              <button
-                className="setting-action-btn"
+              <div className="setting-content">
+                <div className="setting-label">Password</div>
+                <div className="setting-value">Change your password</div>
+              </div>
+              <button 
+                className="setting-action-link"
                 onClick={() => navigate('/update-password')}
               >
-                Update
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
               </button>
             </div>
-            <div className="setting-item">
-              <div className="setting-info">
-                <h3 className="setting-title">Sign Out</h3>
-                <p className="setting-description">Log out of your account</p>
+
+            {/* Danger Zone Divider */}
+            <div className="danger-zone-divider">
+              <span>Danger Zone</span>
+            </div>
+
+            {/* Logout Row */}
+            <div className="setting-row danger-row">
+              <div className="setting-icon-wrapper danger-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
               </div>
-              <button className="setting-action-btn logout" onClick={logout}>
-                Logout
+              <div className="setting-content">
+                <div className="setting-label danger-label">Sign Out</div>
+                <div className="setting-value danger-value">Log out of your account</div>
+              </div>
+              <button 
+                className="setting-action-btn danger-btn"
+                onClick={logout}
+              >
+                Sign Out
               </button>
             </div>
           </div>

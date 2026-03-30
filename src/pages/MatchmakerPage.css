@@ -1,0 +1,367 @@
+/* Matchmaker Page - Deep Ember Theme */
+.matchmaker-page {
+  min-height: 100vh;
+  background: #0a0a0a;
+  padding: 40px 24px;
+}
+
+.matchmaker-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Header */
+.matchmaker-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.matchmaker-title {
+  font-family: 'Creepster', cursive;
+  font-size: 48px;
+  font-weight: 700;
+  color: #f97316;
+  margin: 0 0 12px 0;
+  text-shadow: 0 0 20px rgba(249, 115, 22, 0.3);
+  letter-spacing: 2px;
+}
+
+.matchmaker-subtitle {
+  font-size: 16px;
+  color: #a1a1aa;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Sections */
+.section-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 20px 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #27272a;
+}
+
+/* Invite Section */
+.invite-section {
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 32px;
+}
+
+.invite-form {
+  display: flex;
+  gap: 12px;
+}
+
+.invite-input {
+  flex: 1;
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  border-radius: 12px;
+  padding: 16px 20px;
+  font-size: 16px;
+  color: #ffffff;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.invite-input:focus {
+  border-color: #f97316;
+}
+
+.invite-input::placeholder {
+  color: #71717a;
+}
+
+.invite-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.invite-btn {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 16px 32px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  min-height: 52px;
+}
+
+.invite-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(249, 115, 22, 0.3);
+}
+
+.invite-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Requests & Friends Lists */
+.requests-section,
+.friends-section {
+  margin-bottom: 32px;
+}
+
+.requests-list,
+.friends-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Request Card */
+.request-card {
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.request-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.user-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #3f3f46;
+}
+
+.user-avatar-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+  border: 2px solid #3f3f46;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.user-display-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.user-username {
+  font-size: 13px;
+  color: #71717a;
+}
+
+.request-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.accept-btn {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 48px;
+}
+
+.accept-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(34, 197, 94, 0.3);
+}
+
+.decline-btn {
+  background: #27272a;
+  color: #a1a1aa;
+  border: 1px solid #3f3f46;
+  border-radius: 10px;
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 48px;
+}
+
+.decline-btn:hover {
+  background: #3f3f46;
+  color: #ffffff;
+}
+
+.cancel-btn {
+  background: #27272a;
+  color: #a1a1aa;
+  border: 1px solid #3f3f46;
+  border-radius: 10px;
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 48px;
+}
+
+.cancel-btn:hover {
+  background: #3f3f46;
+  color: #ffffff;
+}
+
+/* Friend Card */
+.friend-card {
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  transition: all 0.2s ease;
+}
+
+.friend-card:hover {
+  border-color: #3f3f46;
+}
+
+.friend-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.friend-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.compare-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 48px;
+}
+
+.compare-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.compare-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(249, 115, 22, 0.3);
+}
+
+/* Loading & Empty States */
+.loading-state,
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #27272a;
+  border-top-color: #f97316;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-state p,
+.empty-state p {
+  font-size: 15px;
+  color: #71717a;
+  margin: 0;
+}
+
+.empty-state svg {
+  width: 64px;
+  height: 64px;
+  color: #3f3f46;
+  margin-bottom: 20px;
+}
+
+.empty-state h3 {
+  font-size: 20px;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+}
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+  .matchmaker-page {
+    padding: 24px 16px;
+  }
+
+  .matchmaker-title {
+    font-size: 36px;
+  }
+
+  .invite-form {
+    flex-direction: column;
+  }
+
+  .invite-btn {
+    width: 100%;
+  }
+
+  .request-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .request-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

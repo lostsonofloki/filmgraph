@@ -6,20 +6,40 @@ import './LogMovieModal.css';
 import { createPortal } from 'react-dom';
 
 const MOODS = [
-  { id: 'atmospheric', label: 'Atmospheric', emoji: '🌫️', category: 'vibe' },
+  // Emotional (Warm/Red)
   { id: 'bittersweet', label: 'Bittersweet', emoji: '🥀', category: 'emotional' },
-  { id: 'dark', label: 'Dark', emoji: '🌑', category: 'vibe' },
-  { id: 'mindbending', label: 'Mind-bending', emoji: '🌀', category: 'intellectual' },
-  { id: 'tense', label: 'Tense', emoji: '😰', category: 'vibe' },
   { id: 'uplifting', label: 'Uplifting', emoji: '✨', category: 'emotional' },
+  { id: 'bleak', label: 'Bleak', emoji: '☁️', category: 'emotional' },
+  { id: 'romantic', label: 'Romantic', emoji: '💕', category: 'emotional' },
+  { id: 'feel-good', label: 'Feel-good', emoji: '😊', category: 'emotional' },
+  { id: 'nostalgic', label: 'Nostalgic', emoji: '📼', category: 'emotional' },
+  { id: 'heart-wrenching', label: 'Heart-wrenching', emoji: '💔', category: 'emotional' },
+  { id: 'inspiring', label: 'Inspiring', emoji: '🌟', category: 'emotional' },
+  
+  // Vibe (Cool/Purple)
+  { id: 'atmospheric', label: 'Atmospheric', emoji: '🌫️', category: 'vibe' },
+  { id: 'dark', label: 'Dark', emoji: '🌑', category: 'vibe' },
+  { id: 'tense', label: 'Tense', emoji: '😰', category: 'vibe' },
   { id: 'gory', label: 'Gory', emoji: '🩸', category: 'vibe' },
   { id: 'eerie', label: 'Eerie', emoji: '🏚️', category: 'vibe' },
   { id: 'claustrophobic', label: 'Claustrophobic', emoji: '📦', category: 'vibe' },
   { id: 'campy', label: 'Campy', emoji: '🪓', category: 'vibe' },
-  { id: 'bleak', label: 'Bleak', emoji: '☁️', category: 'emotional' },
   { id: 'dread', label: 'Dread-filled', emoji: '😨', category: 'vibe' },
   { id: 'jump-scary', label: 'Jump-scary', emoji: '👻', category: 'vibe' },
+  { id: 'adrenaline-fueled', label: 'Adrenaline-fueled', emoji: '🔥', category: 'vibe' },
+  { id: 'hilarious', label: 'Hilarious', emoji: '😂', category: 'vibe' },
+  { id: 'epic', label: 'Epic', emoji: '🏔️', category: 'vibe' },
+  { id: 'swoon-worthy', label: 'Swoon-worthy', emoji: '😍', category: 'vibe' },
+  { id: 'stylized', label: 'Stylized', emoji: '🎨', category: 'vibe' },
+  { id: 'satirical', label: 'Satirical', emoji: '🎭', category: 'vibe' },
+  
+  // Intellectual (Slate/Grey)
+  { id: 'mindbending', label: 'Mind-bending', emoji: '🌀', category: 'intellectual' },
   { id: 'psychological', label: 'Psychological', emoji: '🧠', category: 'intellectual' },
+  { id: 'technological', label: 'Technological', emoji: '🤖', category: 'intellectual' },
+  { id: 'profound', label: 'Profound', emoji: '🌌', category: 'intellectual' },
+  { id: 'political', label: 'Political', emoji: '🏛️', category: 'intellectual' },
+  { id: 'cerebral', label: 'Cerebral', emoji: '🎓', category: 'intellectual' },
 ];
 
 /**
@@ -195,9 +215,27 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
 
           <div>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '8px' }}>Mood</label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {MOODS.map((mood) => (
-                <button key={mood.id} type="button" style={{ padding: '8px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: '500', transition: 'all 0.2s', backgroundColor: selectedMoods.includes(mood.id) ? '#7e22ce' : '#2a2a2a', color: selectedMoods.includes(mood.id) ? '#ffffff' : '#9ca3af', border: 'none', cursor: 'pointer' }} onClick={() => handleMoodToggle(mood.id)}>{mood.emoji} {mood.label}</button>
+                <button
+                  key={mood.id}
+                  type="button"
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    transition: 'all 0.2s',
+                    backgroundColor: selectedMoods.includes(mood.id) ? '#7e22ce' : '#2a2a2a',
+                    color: selectedMoods.includes(mood.id) ? '#ffffff' : '#9ca3af',
+                    border: 'none',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                  onClick={() => handleMoodToggle(mood.id)}
+                >
+                  {mood.emoji} {mood.label}
+                </button>
               ))}
             </div>
           </div>
