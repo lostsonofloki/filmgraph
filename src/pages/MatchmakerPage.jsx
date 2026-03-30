@@ -5,6 +5,9 @@ import { getSupabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import './MatchmakerPage.css';
 
+// Default avatar placeholder
+const DEFAULT_AVATAR = 'https://via.placeholder.com/150/7e22ce/ffffff?text=?';
+
 /**
  * MatchmakerPage - Social compatibility feature
  * Send/accept friend requests to compare movie tastes
@@ -111,10 +114,10 @@ function MatchmakerPage() {
       const allFriends = [
         ...(sentFriends || []).map(f => ({ ...f, friend: f.profiles })),
         ...(receivedFriends || []).map(f => ({ ...f, friend: f.profiles }))
-      ];
+      ].filter(f => f.friend); // Filter out any null profiles
 
-      setFriendRequests(incoming || []);
-      setSentRequests(sent || []);
+      setFriendRequests((incoming || []).filter(r => r.profiles)); // Filter out null profiles
+      setSentRequests((sent || []).filter(r => r.receiver)); // Filter out null receivers
       setFriends(allFriends);
     } catch (err) {
       console.error('Error fetching friendships:', err);
@@ -289,18 +292,17 @@ function MatchmakerPage() {
               {friendRequests.map((request) => (
                 <div key={request.id} className="request-card">
                   <div className="request-user">
-                    {request.profiles?.avatar_url ? (
-                      <img src={request.profiles?.avatar_url} alt={request.profiles?.username} className="user-avatar" />
-                    ) : (
-                      <div className="user-avatar-placeholder">
-                        {request.profiles?.username?.charAt(0).toUpperCase()}
-                      </div>
-                    )}
+                    <img 
+                      src={request.profiles?.avatar_url || DEFAULT_AVATAR} 
+                      alt={request.profiles?.username || 'User'} 
+                      className="user-avatar" 
+                      onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
+                    />
                     <div className="user-info">
                       <span className="user-display-name">
-                        {request.profiles?.display_name || request.profiles?.username}
+                        {request.profiles?.display_name || request.profiles?.username || 'Unknown User'}
                       </span>
-                      <span className="user-username">@{request.profiles?.username}</span>
+                      <span className="user-username">@{request.profiles?.username || 'user'}</span>
                     </div>
                   </div>
                   <div className="request-actions">
@@ -325,18 +327,17 @@ function MatchmakerPage() {
               {sentRequests.map((request) => (
                 <div key={request.id} className="request-card">
                   <div className="request-user">
-                    {request.receiver?.avatar_url ? (
-                      <img src={request.receiver?.avatar_url} alt={request.receiver?.username} className="user-avatar" />
-                    ) : (
-                      <div className="user-avatar-placeholder">
-                        {request.receiver?.username?.charAt(0).toUpperCase()}
-                      </div>
-                    )}
+                    <img 
+                      src={request.receiver?.avatar_url || DEFAULT_AVATAR} 
+                      alt={request.receiver?.username || 'User'} 
+                      className="user-avatar"
+                      onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
+                    />
                     <div className="user-info">
                       <span className="user-display-name">
-                        {request.receiver?.display_name || request.receiver?.username}
+                        {request.receiver?.display_name || request.receiver?.username || 'Unknown User'}
                       </span>
-                      <span className="user-username">@{request.receiver?.username}</span>
+                      <span className="user-username">@{request.receiver?.username || 'user'}</span>
                     </div>
                   </div>
                   <div className="request-actions">
@@ -361,18 +362,17 @@ function MatchmakerPage() {
                   className="friend-card"
                 >
                   <div className="friend-user">
-                    {friendship.friend?.avatar_url ? (
-                      <img src={friendship.friend?.avatar_url} alt={friendship.friend?.username} className="user-avatar" />
-                    ) : (
-                      <div className="user-avatar-placeholder">
-                        {friendship.friend?.username?.charAt(0).toUpperCase()}
-                      </div>
-                    )}
+                    <img 
+                      src={friendship.friend?.avatar_url || DEFAULT_AVATAR} 
+                      alt={friendship.friend?.username || 'User'} 
+                      className="user-avatar"
+                      onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
+                    />
                     <div className="user-info">
                       <span className="user-display-name">
-                        {friendship.friend?.display_name || friendship.friend?.username}
+                        {friendship.friend?.display_name || friendship.friend?.username || 'Unknown User'}
                       </span>
-                      <span className="user-username">@{friendship.friend?.username}</span>
+                      <span className="user-username">@{friendship.friend?.username || 'user'}</span>
                     </div>
                   </div>
                   <div className="friend-actions">
