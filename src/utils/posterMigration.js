@@ -96,7 +96,7 @@ export const runPosterMigration = async (userId) => {
 
   console.log('🔧 Starting poster migration...');
 
-  // Fetch all movies for user
+  // Fetch all movies for user - check poster_path column only
   const { data: movies, error } = await supabase
     .from('movie_logs')
     .select('id, tmdb_id, poster_path')
@@ -107,21 +107,80 @@ export const runPosterMigration = async (userId) => {
     return { fixed: 0, skipped: 0, errors: 1 };
   }
 
-  console.log(`📦 Found ${movies.length} movies to check`);
+  // Filter: Only process movies where poster_path is null OR doesn't start with http
+  const moviesNeedingRefresh = movies.filter(m => 
+    !m.poster_path || 
+    m.poster_path === 'N/A' || 
+    !m.poster_path.startsWith('http')
+  );
+
+  console.log(`📦 Total movies found: ${movies.length}`);
+  console.log(`🔍 Movies needing poster_path refresh: ${moviesNeedingRefresh.length}`);
+  console.log('📋 Movies to process:', moviesNeedingRefresh.map(m => ({ id: m.id, tmdb_id: m.tmdb_id, current_poster_path: m.poster_path })));
 
   let fixed = 0;
   let skipped = 0;
   let errors = 0;
 
-  for (const movie of movies) {
+  for (const movie of moviesNeedingRefresh) {
     try {
-      const result = await fixMoviePoster(movie.id, movie.tmdb_id, movie.poster_path, supabase);
+      console.log(`\n--- Processing movie ID: ${movie.id}, TMDB ID: ${movie.tmdb_id} ---`);
+      console.log(`📌 Current poster_path: ${movie.poster_path}`);
 
-      if (result.success) {
-        console.log(`✅ Fixed: ${movie.id} - ${result.action}`);
+      // Skip if no TMDB ID
+      if (!movie.tmdb_id) {
+        console.log(`⏭️ Skipped: ${movie.id} - No TMDB ID`);
+        skipped++;
+        continue;
+      }
+
+      // Fetch from TMDB
+      const tmdbData = await fetchTMDBMovieByTmdbId(movie.tmdb_id);
+      
+      if (!tmdbData?.poster_path) {
+        console.log(`⏭️ Skipped: ${movie.id} - No poster_path from TMDB`);
+        skipped++;
+        continue;
+      }
+
+      const newPosterPath = tmdbData.poster_path;
+      console.log(`🎬 TMDB returned poster_path: ${newPosterPath}`);
+
+      // Build the update payload
+      const updatePayload = { poster_path: newPosterPath };
+      console.log(`📦 Update payload being sent:`, JSON.stringify(updatePayload, null, 2));
+
+      // Execute the update - targeting poster_path column explicitly
+      const { data, error, status } = await supabase
+        .from('movie_logs')
+        .update(updatePayload)
+        .eq('id', movie.id)
+        .select();
+
+      // Verbose response logging
+      console.log(`📡 Supabase response for movie ${movie.id}:`);
+      console.log(`   - Status: ${status}`);
+      console.log(`   - Error:`, error);
+      console.log(`   - Data:`, data);
+
+      // Check for RLS blocking (no error but no data returned)
+      if (!error && !data) {
+        console.warn(`⚠️ WARNING: RLS may be blocking update for movie ${movie.id} - no error but no data returned`);
+        skipped++;
+        continue;
+      }
+
+      if (error) {
+        console.error(`❌ PATCH failed for ${movie.id}:`, error.message);
+        errors++;
+        continue;
+      }
+
+      if (data && data.length > 0) {
+        console.log(`✅ Fixed: ${movie.id} - poster_path updated to ${newPosterPath}`);
         fixed++;
       } else {
-        console.log(`⏭️ Skipped: ${movie.id} - ${result.reason}`);
+        console.log(`⏭️ Skipped: ${movie.id} - No rows affected`);
         skipped++;
       }
     } catch (err) {
@@ -133,7 +192,7 @@ export const runPosterMigration = async (userId) => {
     await new Promise(resolve => setTimeout(resolve, 100));
   }
 
-  console.log(`🎉 Migration complete: ${fixed} fixed, ${skipped} skipped, ${errors} errors`);
+  console.log(`\n🎉 Migration complete: ${fixed} fixed, ${skipped} skipped, ${errors} errors`);
 
   return { fixed, skipped, errors };
 };
