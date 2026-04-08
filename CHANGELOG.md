@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.3] - April 7, 2026
+
+### 🐛 Fixed
+- 🔧 **Edit Movie Log Poster Update Error** - Fixed "column 'poster' can only be updated to DEFAULT"
+  - Removed `poster` field from all insert/update payloads in `LogMovieModal.jsx`
+  - `poster` is a Supabase generated column and cannot be explicitly written to
+  - Both insert and update operations now exclude `poster` entirely
+- 🔢 **"N/A" Integer Cast Error** - Fixed "invalid input syntax for type integer: 'N/A'"
+  - Changed `movieYear` fallback from `'N/A'` string to `null`
+  - Added `parseInt(year, 10)` sanitization before sending `year` to Supabase
+  - Prevents Postgres integer column type mismatch on missing release dates
+
+---
+
 ## [1.8.2] - April 1, 2026
 
 ### 🐛 Fixed

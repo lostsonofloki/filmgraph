@@ -60,7 +60,7 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
   // Safety defaults
   const movieTitle = movie?.title || 'Loading...';
   const moviePoster = movie?.poster_path || '';
-  const movieYear = movie?.release_date?.split('-')[0] || 'N/A';
+  const movieYear = movie?.release_date?.split('-')[0] || null;
 
   const handleMoodToggle = (moodId) => {
     setSelectedMoods((prev) =>
@@ -88,11 +88,11 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
 
       const supabase = getSupabase();
 
+      // Build base data — poster is a generated column, exclude it entirely
       const movieData = {
         user_id: user.id,
         title: movieTitle,
-        year: movieYear,
-        poster: moviePoster ? `https://image.tmdb.org/t/p/w500${moviePoster}` : null,
+        year: movieYear ? parseInt(movieYear, 10) : null,
         rating: rating > 0 ? parseFloat(rating.toFixed(1)) : null,
         moods: selectedMoods.length > 0 ? selectedMoods : null,
         genres: finalGenres,
