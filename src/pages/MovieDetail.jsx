@@ -576,7 +576,7 @@ function MovieDetail() {
                 {movie.credits.cast.slice(0, 10).map((actor) => (
                   <Link
                     key={actor.id}
-                    to={`/actor/${actor.id}`}
+                    to={`/person/${actor.id}`}
                     className="cast-card-link"
                   >
                     <div className="cast-card">

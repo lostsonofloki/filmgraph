@@ -73,10 +73,30 @@ function AboutPage() {
           <div className="changelog-content">
             <div className="changelog-item">
               <div className="changelog-header">
-                <h3>🐛 Database Payload Fixes</h3>
+                <h3>🤝 Shared Lists & People Search</h3>
                 <span className="changelog-date">April 7, 2026</span>
               </div>
               <ul className="changelog-list">
+                <li>
+                  <span className="badge-new">NEW</span>
+                  Collaborative shared lists with owner/editor/viewer roles
+                </li>
+                <li>
+                  <span className="badge-new">NEW</span>
+                  Invite collaborators by username or display name
+                </li>
+                <li>
+                  <span className="badge-new">NEW</span>
+                  Per-movie attribution — see who added each movie
+                </li>
+                <li>
+                  <span className="badge-new">NEW</span>
+                  Unified search for movies AND people (actors, directors)
+                </li>
+                <li>
+                  <span className="badge-new">NEW</span>
+                  Person profile pages with full filmography + genre filter
+                </li>
                 <li>
                   <span className="badge-fix">FIX</span>
                   Removed poster from insert/update payloads (Supabase generated column)
@@ -89,21 +109,21 @@ function AboutPage() {
             </div>
             <div className="changelog-item">
               <div className="changelog-header">
-                <h3>🔮 Ember Oracle & Matchmaker</h3>
-                <span className="changelog-date">March 29, 2026</span>
+                <h3>🔍 Advanced Filter Engine</h3>
+                <span className="changelog-date">April 7, 2026</span>
               </div>
               <ul className="changelog-list">
                 <li>
                   <span className="badge-new">NEW</span>
-                  AI-powered movie discovery with mood-based recommendations
+                  Multi-criteria filtering: genres, year, mood, rating, search
                 </li>
                 <li>
                   <span className="badge-new">NEW</span>
-                  Social compatibility — compare movie taste with friends
+                  Operator parsing — type &quot;&gt; 2000&quot; or &quot;&gt;= 4&quot; naturally
                 </li>
                 <li>
                   <span className="badge-new">NEW</span>
-                  6 mood presets for quick-select vibe matching
+                  Save, load, and delete filter presets
                 </li>
               </ul>
             </div>
@@ -124,18 +144,33 @@ function AboutPage() {
             <h2>Roadmap</h2>
           </div>
           <div className="roadmap-content">
-            {/* v1.9.0 */}
+            {/* v1.10.0 - SHIPPED */}
+            <div className="roadmap-item">
+              <div className="roadmap-version">
+                <span className="version-pill v1-10">v1.10.0</span>
+                <span className="roadmap-status status-shipped">Shipped</span>
+              </div>
+              <h3>Shared Lists & People Discovery</h3>
+              <ul className="roadmap-list">
+                <li>Collaborative lists with owner/editor/viewer roles</li>
+                <li>Invite collaborators by username or display name</li>
+                <li>Unified search for movies AND people</li>
+                <li>Person profile pages with filmography + genre filter</li>
+              </ul>
+            </div>
+
+            {/* v1.9.0 - SHIPPED */}
             <div className="roadmap-item">
               <div className="roadmap-version">
                 <span className="version-pill v1-9">v1.9.0</span>
-                <span className="roadmap-status status-planned">Planned</span>
+                <span className="roadmap-status status-shipped">Shipped</span>
               </div>
-              <h3>Advanced Filters & Search</h3>
+              <h3>Advanced Filter Engine</h3>
               <ul className="roadmap-list">
                 <li>Multi-criteria filtering (genre, year, mood, rating)</li>
-                <li>Save custom filter presets</li>
-                <li>Filter by cast, director, keywords</li>
-                <li>Advanced search operators</li>
+                <li>Operator parsing for year and rating (&gt;, &gt;=, &lt;, &lt;=)</li>
+                <li>Save, load, and delete filter presets</li>
+                <li>Fuzzy search across title and review fields</li>
               </ul>
             </div>
 
@@ -143,14 +178,14 @@ function AboutPage() {
             <div className="roadmap-item">
               <div className="roadmap-version">
                 <span className="version-pill v2-0">v2.0.0</span>
-                <span className="roadmap-status status-future">Future</span>
+                <span className="roadmap-status status-future">Next</span>
               </div>
               <h3>Social Expansion</h3>
               <ul className="roadmap-list">
                 <li>Activity feeds & shared watch history</li>
-                <li>Collaborative lists</li>
                 <li>Comments & discussions on movie logs</li>
                 <li>Share movie cards to social media</li>
+                <li>Real-time Supabase collaboration</li>
               </ul>
             </div>
 

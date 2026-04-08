@@ -272,6 +272,11 @@
   color: #ffffff;
 }
 
+.version-pill.v1-10 {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  color: #ffffff;
+}
+
 .version-pill.v3-0 {
   background: linear-gradient(135deg, #475569 0%, #334155 100%);
   color: #ffffff;
@@ -289,6 +294,12 @@
   background: rgba(5, 150, 105, 0.1);
   color: #10b981;
   border: 1px solid rgba(5, 150, 105, 0.3);
+}
+
+.status-shipped {
+  background: rgba(249, 115, 22, 0.1);
+  color: #f97316;
+  border: 1px solid rgba(249, 115, 22, 0.3);
 }
 
 .status-future {

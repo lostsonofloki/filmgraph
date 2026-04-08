@@ -1,0 +1,367 @@
+.advanced-filter-engine {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Preset Bar */
+.filter-preset-bar {
+  position: relative;
+}
+
+.preset-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #9ca3af;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.preset-toggle-btn:hover {
+  color: #ffffff;
+  border-color: #3a3a3a;
+  background: #222222;
+}
+
+.preset-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 100;
+  width: 320px;
+  max-height: 400px;
+  overflow-y: auto;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+.preset-empty {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 8px 0;
+  text-align: center;
+}
+
+.preset-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.preset-item:hover {
+  background: #222222;
+}
+
+.preset-item-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  color: #d1d5db;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  padding: 4px 0;
+}
+
+.preset-item-btn:hover {
+  color: #ffffff;
+}
+
+.preset-item-delete {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preset-item-delete:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.preset-save-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #2a2a2a;
+}
+
+.preset-name-input {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #ffffff;
+  background: #121212;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.preset-name-input:focus {
+  border-color: #444444;
+}
+
+.preset-save-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  background: #7e22ce;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.preset-save-btn:hover:not(:disabled) {
+  background: #6b21a8;
+}
+
+.preset-save-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Filter Groups */
+.filter-group-wide {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-group-wide label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #888888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-input-wide {
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #ffffff;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.filter-input-wide:focus {
+  border-color: #444444;
+  background: #222222;
+}
+
+.filter-input-wide::placeholder {
+  color: #555555;
+}
+
+/* Genres */
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-group label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #888888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.genre-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.genre-chip {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #9ca3af;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.genre-chip:hover {
+  border-color: #3a3a3a;
+  color: #d1d5db;
+}
+
+.genre-chip.active {
+  background: #7e22ce;
+  border-color: #7e22ce;
+  color: #ffffff;
+}
+
+/* Filter Row */
+.filter-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-row .filter-group {
+  flex: 1;
+  min-width: 180px;
+}
+
+.filter-input {
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #ffffff;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.filter-input:focus {
+  border-color: #444444;
+  background: #222222;
+}
+
+.filter-input::placeholder {
+  color: #555555;
+}
+
+.filter-select {
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #ffffff;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.filter-select:hover {
+  border-color: #3a3a3a;
+}
+
+.filter-select:focus {
+  border-color: #444444;
+  background: #222222;
+}
+
+.filter-select option {
+  background: #1a1a1a;
+  color: #ffffff;
+}
+
+/* Actions */
+.filter-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px solid #1a1a1a;
+}
+
+.filter-clear-btn {
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #ef4444;
+  background: transparent;
+  border: 1px solid #3a2a2a;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-clear-btn:hover {
+  background: #3a2a2a;
+  border-color: #ef4444;
+}
+
+.filter-apply-btn {
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  background: #7e22ce;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-apply-btn:hover:not(:disabled) {
+  background: #6b21a8;
+}
+
+.filter-apply-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .advanced-filter-engine {
+    padding: 0 16px 16px;
+    gap: 16px;
+  }
+
+  .filter-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .filter-row .filter-group {
+    min-width: 100%;
+  }
+
+  .preset-dropdown {
+    width: calc(100vw - 32px);
+    left: 0;
+  }
+
+  .filter-actions {
+    flex-direction: column-reverse;
+  }
+
+  .filter-clear-btn,
+  .filter-apply-btn {
+    width: 100%;
+    text-align: center;
+  }
+}

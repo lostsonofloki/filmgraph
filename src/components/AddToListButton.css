@@ -311,6 +311,39 @@
   height: 16px;
 }
 
+/* Shared list button */
+.add-to-list-create-shared {
+  margin-top: 6px;
+  background-color: rgba(126, 34, 206, 0.15);
+  border-color: rgba(126, 34, 206, 0.3);
+  color: #c084fc;
+}
+
+.add-to-list-create-shared:hover {
+  background-color: rgba(126, 34, 206, 0.25);
+  border-color: #7e22ce;
+  color: #ffffff;
+}
+
+.add-to-list-shared {
+  position: relative;
+}
+
+.shared-list-icon {
+  margin-right: 6px;
+  color: #c084fc;
+  flex-shrink: 0;
+}
+
+.view-only-badge {
+  font-size: 11px;
+  color: #6b7280;
+  background: #2a2a2a;
+  padding: 2px 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
 /* Responsive adjustments */
 @media (max-width: 640px) {
   .add-to-list-dropdown {
