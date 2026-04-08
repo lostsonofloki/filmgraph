@@ -14,7 +14,6 @@ import LibraryPage from './pages/LibraryPage';
 import ProfilePage from './pages/ProfilePage';
 import WatchHistory from './pages/WatchHistory';
 import ActorPage from './pages/ActorPage';
-import PersonProfile from './pages/PersonProfile';
 import UpdatePasswordPage from './pages/UpdatePasswordPage';
 import AboutPage from './pages/AboutPage';
 import ChangelogPage from './pages/ChangelogPage';
@@ -206,7 +205,6 @@ function AppContent() {
             <Route path="/" element={<TrendingMovies />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/movie/:id" element={<MovieDetail />} />
-            <Route path="/person/:personId" element={<PersonProfile />} />
             <Route path="/actor/:id" element={<ActorPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />

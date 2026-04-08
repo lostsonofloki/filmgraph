@@ -7,46 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.10.0] - April 7, 2026
-
-### ✨ Added
-- 🤝 **Shared Lists** — Collaborative movie lists with real-time attribution
-  - Create shared lists and invite collaborators (owner/editor/viewer roles)
-  - Search users by username/name to invite
-  - Per-movie attribution — see who added each movie
-  - Shared lists appear in "Add to List" dropdown alongside personal lists
-  - New `list_members` and `list_entries` tables with full RLS policies
-- 🔍 **Robust Search — People Discovery**
-  - Unified search bar searches both movies AND people simultaneously
-  - Tabbed results: Movies tab + People tab
-  - Person profile pages with bio, headshot, and full filmography grid
-  - Genre filtering on filmography (e.g. "Horror Only" credits)
-  - "Logged" badges on movies you've already added to your collection
-  - Cast links on movie detail pages now navigate to full person profiles
-
-### 🐛 Fixed
-- 🔧 **Edit Movie Log Poster Update Error** - Fixed "column 'poster' can only be updated to DEFAULT"
-  - Removed `poster` field from all insert/update payloads in `LogMovieModal.jsx`
-  - `poster` is a Supabase generated column and cannot be explicitly written to
-  - Both insert and update operations now exclude `poster` entirely
-- 🔢 **"N/A" Integer Cast Error** - Fixed "invalid input syntax for type integer: 'N/A'"
-  - Changed `movieYear` fallback from `'N/A'` string to `null`
-  - Added `parseInt(year, 10)` sanitization before sending `year` to Supabase
-  - Prevents Postgres integer column type mismatch on missing release dates
-
----
-
-## [1.9.0] - April 7, 2026
-
-### ✨ Added
-- 🔍 **Advanced Filter Engine** - Multi-criteria filtering for personal movie library
-  - Genre multi-select with chip-style toggle buttons
-  - Release year with operator parsing (`> 2000`, `<= 1990`, `2015`)
-  - Mood filtering against logged movie moods array
-  - Min rating with operator parsing (`>= 4`, `> 3.5`)
-  - Fuzzy search across title and review fields
-  - Save/load/delete filter presets stored in Supabase `user_filter_presets` table
-  - Dynamic Supabase query builder with `.contains`, `.or`, and operator chaining
+## [1.8.3] - April 7, 2026
 
 ### 🐛 Fixed
 - 🔧 **Edit Movie Log Poster Update Error** - Fixed "column 'poster' can only be updated to DEFAULT"
