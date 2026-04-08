@@ -73,29 +73,37 @@ function AboutPage() {
           <div className="changelog-content">
             <div className="changelog-item">
               <div className="changelog-header">
-                <h3>🎉 Custom Lists Feature</h3>
-                <span className="changelog-date">March 24, 2026</span>
+                <h3>🐛 Database Payload Fixes</h3>
+                <span className="changelog-date">April 7, 2026</span>
+              </div>
+              <ul className="changelog-list">
+                <li>
+                  <span className="badge-fix">FIX</span>
+                  Removed poster from insert/update payloads (Supabase generated column)
+                </li>
+                <li>
+                  <span className="badge-fix">FIX</span>
+                  Fixed "N/A" integer cast error on missing release dates
+                </li>
+              </ul>
+            </div>
+            <div className="changelog-item">
+              <div className="changelog-header">
+                <h3>🔮 Ember Oracle & Matchmaker</h3>
+                <span className="changelog-date">March 29, 2026</span>
               </div>
               <ul className="changelog-list">
                 <li>
                   <span className="badge-new">NEW</span>
-                  Create unlimited custom movie lists
+                  AI-powered movie discovery with mood-based recommendations
                 </li>
                 <li>
                   <span className="badge-new">NEW</span>
-                  Add movies to multiple lists
+                  Social compatibility — compare movie taste with friends
                 </li>
                 <li>
                   <span className="badge-new">NEW</span>
-                  Toast notifications for actions
-                </li>
-                <li>
-                  <span className="badge-fix">FIX</span>
-                  Resolved UUID/42883 save error
-                </li>
-                <li>
-                  <span className="badge-fix">FIX</span>
-                  Matching button styles across all pages
+                  6 mood presets for quick-select vibe matching
                 </li>
               </ul>
             </div>
@@ -116,30 +124,15 @@ function AboutPage() {
             <h2>Roadmap</h2>
           </div>
           <div className="roadmap-content">
-            {/* v1.2.0 */}
+            {/* v1.9.0 */}
             <div className="roadmap-item">
               <div className="roadmap-version">
-                <span className="version-pill v1-2">v1.2.0</span>
+                <span className="version-pill v1-9">v1.9.0</span>
                 <span className="roadmap-status status-planned">Planned</span>
               </div>
-              <h3>Discovery Tab</h3>
+              <h3>Advanced Filters & Search</h3>
               <ul className="roadmap-list">
-                <li>Enhanced movie discovery with advanced filters</li>
-                <li>Genre-based browsing improvements</li>
-                <li>Year range selector</li>
-                <li>Sort by popularity, rating, release date</li>
-              </ul>
-            </div>
-
-            {/* v1.3.0 */}
-            <div className="roadmap-item">
-              <div className="roadmap-version">
-                <span className="version-pill v1-3">v1.3.0</span>
-                <span className="roadmap-status status-planned">Planned</span>
-              </div>
-              <h3>Advanced Filters</h3>
-              <ul className="roadmap-list">
-                <li>Multi-criteria filtering</li>
+                <li>Multi-criteria filtering (genre, year, mood, rating)</li>
                 <li>Save custom filter presets</li>
                 <li>Filter by cast, director, keywords</li>
                 <li>Advanced search operators</li>
@@ -152,12 +145,27 @@ function AboutPage() {
                 <span className="version-pill v2-0">v2.0.0</span>
                 <span className="roadmap-status status-future">Future</span>
               </div>
-              <h3>Social Features</h3>
+              <h3>Social Expansion</h3>
               <ul className="roadmap-list">
-                <li>Friend system & activity feeds</li>
-                <li>Share movie logs to social media</li>
+                <li>Activity feeds & shared watch history</li>
                 <li>Collaborative lists</li>
-                <li>Comments & discussions</li>
+                <li>Comments & discussions on movie logs</li>
+                <li>Share movie cards to social media</li>
+              </ul>
+            </div>
+
+            {/* v3.0.0 */}
+            <div className="roadmap-item">
+              <div className="roadmap-version">
+                <span className="version-pill v3-0">v3.0.0</span>
+                <span className="roadmap-status status-future">Vision</span>
+              </div>
+              <h3>Mobile App & Premium Features</h3>
+              <ul className="roadmap-list">
+                <li>Native iOS/Android app</li>
+                <li>Offline mode for logging on the go</li>
+                <li>Advanced analytics & yearly reports</li>
+                <li>Custom themes & branding</li>
               </ul>
             </div>
           </div>
