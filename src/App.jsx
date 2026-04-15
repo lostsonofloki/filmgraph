@@ -22,7 +22,9 @@ import BugList from './components/BugList';
 import DiscoveryPage from './pages/DiscoveryPage';
 import MatchmakerPage from './pages/MatchmakerPage';
 import SynergyDashboard from './pages/SynergyDashboard';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { flushQueuedMovieLogs } from './utils/offlineQueue';
+import { useInstallPrompt } from './pwa/useInstallPrompt';
 import './App.css';
 
 // ============================================
@@ -195,10 +197,27 @@ function Header() {
 function AppContent() {
   const location = useLocation();
   const isAuthPage = ['/login', '/register', '/update-password'].includes(location.pathname);
+  const { isInstallable, isInstalled, promptInstall } = useInstallPrompt();
 
   return (
     <div className="app">
       {!isAuthPage && <Header />}
+      {!isAuthPage && isInstallable && !isInstalled && (
+        <div className="mx-auto max-w-7xl px-4 pt-3">
+          <div className="rounded-lg border border-orange-500/30 bg-zinc-900/95 p-3 text-sm text-zinc-200">
+            <div className="flex items-center justify-between gap-3">
+              <p>Install Filmgraph for a faster app-like experience and better offline access.</p>
+              <button
+                type="button"
+                onClick={promptInstall}
+                className="rounded-md bg-orange-500 px-3 py-1.5 text-xs font-semibold text-black hover:bg-orange-400"
+              >
+                Install
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <main className="app-main">
         <div className="main-content">
           <Routes>
@@ -231,6 +250,20 @@ function AppContent() {
 // APP ROOT
 // ============================================
 function App() {
+  useEffect(() => {
+    const flushPendingLogs = async () => {
+      try {
+        await flushQueuedMovieLogs();
+      } catch (_error) {
+        // Ignore; queue will retry on next online event.
+      }
+    };
+
+    window.addEventListener('online', flushPendingLogs);
+    flushPendingLogs();
+    return () => window.removeEventListener('online', flushPendingLogs);
+  }, []);
+
   return (
     <Router>
       <UserProvider>

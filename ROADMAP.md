@@ -10,20 +10,21 @@ A phased approach to building Filmgraph from a static UI to a fully-featured mov
 
 ### Tasks
 
-| # | Task | Component | Status |
-|---|------|-----------|--------|
-| 1.1 | Sketch UI wireframes | Home screen + Log Movie screen | ✅ |
-| 1.2 | Build **MovieCard** component | Poster, title, year display | ✅ |
-| 1.3 | Build **StarRating** component | Clickable stars with 0.5 increments | ✅ |
-| 1.4 | Build **MoodChip** component | Toggleable mood buttons | ✅ |
-| 1.5 | Create **MovieGrid** layout | CSS Grid/Flexbox collection view | ✅ |
-| 1.6 | Set up React Router | Navigation between pages | ✅ |
-| 1.7 | Build **HomePage** (Library view) | Main screen with movie grid | ✅ |
-| 1.8 | Build **LogMoviePage** | Form for logging movies | ✅ |
-| 1.9 | Build **Logo** component | Film frame + bar chart logo | ✅ |
-| 1.10 | Build **Footer** component | TMDB/OMDb attributions | ✅ |
+| #    | Task                              | Component                           | Status |
+| ---- | --------------------------------- | ----------------------------------- | ------ |
+| 1.1  | Sketch UI wireframes              | Home screen + Log Movie screen      | ✅     |
+| 1.2  | Build **MovieCard** component     | Poster, title, year display         | ✅     |
+| 1.3  | Build **StarRating** component    | Clickable stars with 0.5 increments | ✅     |
+| 1.4  | Build **MoodChip** component      | Toggleable mood buttons             | ✅     |
+| 1.5  | Create **MovieGrid** layout       | CSS Grid/Flexbox collection view    | ✅     |
+| 1.6  | Set up React Router               | Navigation between pages            | ✅     |
+| 1.7  | Build **HomePage** (Library view) | Main screen with movie grid         | ✅     |
+| 1.8  | Build **LogMoviePage**            | Form for logging movies             | ✅     |
+| 1.9  | Build **Logo** component          | Film frame + bar chart logo         | ✅     |
+| 1.10 | Build **Footer** component        | TMDB/OMDb attributions              | ✅     |
 
 ### Deliverables
+
 - ✅ Fully functional static UI
 - ✅ All core components built and styled
 - ✅ Responsive design (desktop + mobile)
@@ -31,6 +32,7 @@ A phased approach to building Filmgraph from a static UI to a fully-featured mov
 - ✅ Compliant Footer with API attributions
 
 ### Success Criteria
+
 - [x] Can navigate between Home and Log Movie screens
 - [x] Star rating highlights correctly on click (with 0.5 increments)
 - [x] Mood chips toggle on/off
@@ -47,25 +49,26 @@ A phased approach to building Filmgraph from a static UI to a fully-featured mov
 
 ### Tasks
 
-| # | Task | Description | Status |
-|---|------|-------------|--------|
-| 2.1 | Get **TMDB API Key** | Sign up at [The Movie Database](https://www.themoviedb.org/) | ✅ |
-| 2.2 | Create **SearchBar** component | Input field for movie search | ✅ |
-| 2.3 | Implement **fetch** logic | async/await to query TMDB API | ✅ |
-| 2.4 | Build **SearchResults** display | Show search results as clickable cards | ✅ |
-| 2.5 | Auto-fill **Log Movie** form | Click result → pre-populate title & poster | ✅ |
-| 2.6 | Add loading & error states | Handle API failures gracefully | ✅ |
-| 2.7 | Build **TrendingMovies** page | Display trending movies from TMDB | ✅ |
-| 2.8 | Build **MovieDetail** page | Full movie view with backdrop | ✅ |
-| 2.9 | Get **OMDb API Key** | Rotten Tomatoes scores integration | ✅ |
-| 2.10 | Fetch **RT scores** by IMDB ID | Display critic scores on movie cards | ✅ |
-| 2.11 | Display **Recommendations** | Show related movies on detail page | ✅ |
-| 2.12 | Build **RatingSlider** | StoryGraph-style precision slider (0.0-5.0) | ✅ |
-| 2.13 | Build **Mood Palette** | 15 moods across 3 categories | ✅ |
-| 2.14 | Build **LogMovieModal** | Full logging form with Supabase insert | ✅ |
-| 2.15 | Integrate **Watch Providers** | Display streaming availability (Where to Watch) | ✅ |
+| #    | Task                            | Description                                                  | Status |
+| ---- | ------------------------------- | ------------------------------------------------------------ | ------ |
+| 2.1  | Get **TMDB API Key**            | Sign up at [The Movie Database](https://www.themoviedb.org/) | ✅     |
+| 2.2  | Create **SearchBar** component  | Input field for movie search                                 | ✅     |
+| 2.3  | Implement **fetch** logic       | async/await to query TMDB API                                | ✅     |
+| 2.4  | Build **SearchResults** display | Show search results as clickable cards                       | ✅     |
+| 2.5  | Auto-fill **Log Movie** form    | Click result → pre-populate title & poster                   | ✅     |
+| 2.6  | Add loading & error states      | Handle API failures gracefully                               | ✅     |
+| 2.7  | Build **TrendingMovies** page   | Display trending movies from TMDB                            | ✅     |
+| 2.8  | Build **MovieDetail** page      | Full movie view with backdrop                                | ✅     |
+| 2.9  | Get **OMDb API Key**            | Rotten Tomatoes scores integration                           | ✅     |
+| 2.10 | Fetch **RT scores** by IMDB ID  | Display critic scores on movie cards                         | ✅     |
+| 2.11 | Display **Recommendations**     | Show related movies on detail page                           | ✅     |
+| 2.12 | Build **RatingSlider**          | StoryGraph-style precision slider (0.0-5.0)                  | ✅     |
+| 2.13 | Build **Mood Palette**          | 15 moods across 3 categories                                 | ✅     |
+| 2.14 | Build **LogMovieModal**         | Full logging form with Supabase insert                       | ✅     |
+| 2.15 | Integrate **Watch Providers**   | Display streaming availability (Where to Watch)              | ✅     |
 
 ### API Endpoints (TMDB)
+
 ```
 GET /trending/movie/{time_window}
 GET /search/movie?q={movie_name}
@@ -76,11 +79,13 @@ GET /movie/{movie_id}/images
 ```
 
 ### API Endpoints (OMDb)
+
 ```
 GET /?apikey={key}&i={imdb_id}&plot=full
 ```
 
 ### Deliverables
+
 - ✅ Working movie search (OMDb)
 - ✅ Trending movies display (TMDB)
 - ✅ Movie detail pages with backdrops
@@ -91,6 +96,7 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 - ✅ Streaming provider display (Where to Watch)
 
 ### Success Criteria
+
 - [x] Typing a movie name returns relevant results
 - [x] Trending movies display with backdrop images
 - [x] Movie detail pages show full information
@@ -108,18 +114,19 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 
 ### Tasks
 
-| # | Task | Description | Status |
-|---|------|-------------|--------|
-| 3.1 | Initialize **Supabase Client** | Connect React to Supabase project | ✅ |
-| 3.2 | Run **SQL Schema** | Create profiles and movie_logs tables | ✅ |
-| 3.3 | Configure **RLS Policies** | Set up Row Level Security (Privacy) | ✅ |
-| 3.4 | Build **Auth Flow** | Sign Up / Login / Logout components | ✅ |
-| 3.5 | Implement **Create (Log)** | Save movie + rating + moods to Supabase | ✅ |
-| 3.6 | Implement **Read (Library)** | Fetch and display user's logged movies | ✅ |
-| 3.7 | Implement **Delete/Edit** | Remove or update existing logs | ✅ |
-| 3.8 | Implement **Data Validation** | Prevent duplicate movie logs in database | ✅ |
+| #   | Task                           | Description                              | Status |
+| --- | ------------------------------ | ---------------------------------------- | ------ |
+| 3.1 | Initialize **Supabase Client** | Connect React to Supabase project        | ✅     |
+| 3.2 | Run **SQL Schema**             | Create profiles and movie_logs tables    | ✅     |
+| 3.3 | Configure **RLS Policies**     | Set up Row Level Security (Privacy)      | ✅     |
+| 3.4 | Build **Auth Flow**            | Sign Up / Login / Logout components      | ✅     |
+| 3.5 | Implement **Create (Log)**     | Save movie + rating + moods to Supabase  | ✅     |
+| 3.6 | Implement **Read (Library)**   | Fetch and display user's logged movies   | ✅     |
+| 3.7 | Implement **Delete/Edit**      | Remove or update existing logs           | ✅     |
+| 3.8 | Implement **Data Validation**  | Prevent duplicate movie logs in database | ✅     |
 
 ### Database Schema
+
 ```sql
 -- movie_logs table
 {
@@ -139,6 +146,7 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 ```
 
 ### Deliverables
+
 - ✅ Supabase client initialized
 - ✅ SQL schema with RLS policies
 - ✅ User authentication (email/password)
@@ -146,6 +154,7 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 - ✅ Supabase insert function
 
 ### Success Criteria
+
 - [x] Users can sign up and log in
 - [x] Logged-in users can log movies with ratings and moods
 - [x] Data persists in Supabase database
@@ -160,29 +169,32 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 
 ### Tasks
 
-| # | Task | Description | Status |
-|---|------|-------------|--------|
-| 4.1 | Build **Stats Dashboard** page | Analytics overview | ✅ |
-| 4.2 | Integrate **Recharts** | Pie/bar charts for moods, genres, years | ✅ |
-| 4.3 | Create **Up Next Queue** | Shelf for next 5 movies to watch | ✅ |
-| 4.4 | Add **Mood Filtering** | Filter library by mood (Atmospheric, Tense, etc.) | ✅ |
-| 4.5 | Add **Sorting Options** | Sort by rating, date, year | ✅ |
-| 4.6 | Build **Watch History** | Calendar/timeline of watched movies | ✅ |
-| 4.7 | Implement **Edit/Update** | Modify existing movie logs | ✅ |
+| #   | Task                           | Description                                       | Status |
+| --- | ------------------------------ | ------------------------------------------------- | ------ |
+| 4.1 | Build **Stats Dashboard** page | Analytics overview                                | ✅     |
+| 4.2 | Integrate **Recharts**         | Pie/bar charts for moods, genres, years           | ✅     |
+| 4.3 | Create **Up Next Queue**       | Shelf for next 5 movies to watch                  | ✅     |
+| 4.4 | Add **Mood Filtering**         | Filter library by mood (Atmospheric, Tense, etc.) | ✅     |
+| 4.5 | Add **Sorting Options**        | Sort by rating, date, year                        | ✅     |
+| 4.6 | Build **Watch History**        | Calendar/timeline of watched movies               | ✅     |
+| 4.7 | Implement **Edit/Update**      | Modify existing movie logs                        | ✅     |
 
 ### Dashboard Metrics
+
 - 📊 Most-watched moods (bar chart)
 - 📊 Movies watched per month (bar chart)
 - 📊 Average rating over time (displayed)
 - 📊 Top genres (pie chart)
 
 ### Deliverables
+
 - ✅ Interactive stats dashboard (ProfilePage + StatsDashboard)
 - ✅ "Up Next" queue feature (LibraryPage)
 - ✅ Mood-based filtering (LibraryPage)
 - ✅ Advanced sorting options (LibraryPage)
 
 ### Success Criteria
+
 - [x] Dashboard displays accurate, visual statistics
 - [x] Can filter library by mood
 - [x] Can sort by rating, date, or year
@@ -196,17 +208,18 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 
 ### Tasks
 
-| # | Task | Description | Status |
-|---|------|-------------|--------|
-| 5.1 | **Gemini API Setup** | Connect Google AI Studio to the frontend | ✅ |
-| 5.2 | **AI Opt-In Toggle** | Add a "Privacy First" toggle in Profile settings | ✅ |
-| 5.3 | **Smart Recommendations** | Generate "Because you liked X" suggestions with TMDB IDs | ✅ |
-| 5.4 | **AI-Free Fallback** | Ensure the UI looks great even when AI is OFF | ✅ |
-| 5.5 | **Mood Pattern Analysis** | AI-powered insights about user's horror palate | ✅ |
-| 5.6 | **Recommendation Feedback Loop** | Thumbs up/down with banished list | ✅ |
-| 5.7 | **Library Integration** | Add to Watchlist / Mark as Watched buttons | ✅ |
+| #   | Task                             | Description                                              | Status |
+| --- | -------------------------------- | -------------------------------------------------------- | ------ |
+| 5.1 | **Gemini API Setup**             | Connect Google AI Studio to the frontend                 | ✅     |
+| 5.2 | **AI Opt-In Toggle**             | Add a "Privacy First" toggle in Profile settings         | ✅     |
+| 5.3 | **Smart Recommendations**        | Generate "Because you liked X" suggestions with TMDB IDs | ✅     |
+| 5.4 | **AI-Free Fallback**             | Ensure the UI looks great even when AI is OFF            | ✅     |
+| 5.5 | **Mood Pattern Analysis**        | AI-powered insights about user's horror palate           | ✅     |
+| 5.6 | **Recommendation Feedback Loop** | Thumbs up/down with banished list                        | ✅     |
+| 5.7 | **Library Integration**          | Add to Watchlist / Mark as Watched buttons               | ✅     |
 
 ### Deliverables
+
 - ✅ Google AI Studio integration (@google/generative-ai)
 - ✅ Privacy-first opt-in settings (AI Discovery toggle in Profile)
 - ✅ SQL schema update (ai_enabled column)
@@ -219,6 +232,7 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 - ✅ LogMovieModal integration for instant rating
 
 ### Success Criteria
+
 - [x] Users can enable/disable AI features in Profile settings
 - [x] Smart recommendations generate based on watch history and moods
 - [x] App functions fully without AI enabled (privacy-first default)
@@ -236,25 +250,26 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 
 ### Tasks
 
-| # | Task | Description | Status |
-|---|------|-------------|--------|
-| 6.1 | **Social Sharing** | Share movie logs to social media platforms | ⬜ |
-| 6.2 | **Watch History Calendar** | Visual calendar view of watched movies | ⬜ |
-| 6.3 | **Smart Recommendations V2** | Enhanced AI with cross-user patterns & seasonal picks | ⬜ |
-| 6.4 | **Letterboxd Import** | Migrate existing data from Letterboxd | ⬜ |
-| 6.5 | **Mobile App** | React Native version for iOS/Android | ⬜ |
-| 6.6 | **Light Mode** | Theme toggle (currently dark mode only) | ⬜ |
-| 6.7 | **Social Features** | Friends, following, and activity feeds | ✅ |
-| 6.8 | **Year in Review** | Annual wrapped-style statistics summary | ⬜ |
-| 6.9 | **Custom Lists** | User-created movie collections | ✅ |
-| 6.10 | **Advanced Search** | Multi-criteria search (Mood, Genre, Rating) | ⬜ |
-| 6.11 | **The Archive Importer** | Mass import tool for migrating movie lists | ✅ |
-| 6.12 | **Bug Report System** | In-app bug reporting with admin dashboard | ✅ |
-| 6.13 | **The Oracle** | Conversational AI Librarian using personal logs | ✅ |
-| 6.14 | **The Matchmaker** | Compare watch-lists & mood overlaps with friends | ✅ |
-| 6.15 | **High-Speed AI Ensemble** | Groq LPU integration for sub-500ms vibe-to-genre translation | ✅ |
+| #    | Task                         | Description                                                  | Status |
+| ---- | ---------------------------- | ------------------------------------------------------------ | ------ |
+| 6.1  | **Social Sharing**           | Share movie logs to social media platforms                   | ⬜     |
+| 6.2  | **Watch History Calendar**   | Visual calendar view of watched movies                       | ⬜     |
+| 6.3  | **Smart Recommendations V2** | Enhanced AI with cross-user patterns & seasonal picks        | ⬜     |
+| 6.4  | **Letterboxd Import**        | Migrate existing data from Letterboxd                        | ⬜     |
+| 6.5  | **Mobile App (Deferred)**    | React Native version for iOS/Android (pushed back)           | ⏸️     |
+| 6.6  | **Light Mode**               | Theme toggle (currently dark mode only)                      | ⬜     |
+| 6.7  | **Social Features**          | Friends, following, and activity feeds                       | ✅     |
+| 6.8  | **Year in Review**           | Annual wrapped-style statistics summary                      | ⬜     |
+| 6.9  | **Custom Lists**             | User-created movie collections                               | ✅     |
+| 6.10 | **Advanced Search**          | Multi-criteria search (Mood, Genre, Rating)                  | ⬜     |
+| 6.11 | **The Archive Importer**     | Mass import tool for migrating movie lists                   | ✅     |
+| 6.12 | **Bug Report System**        | In-app bug reporting with admin dashboard                    | ✅     |
+| 6.13 | **The Oracle**               | Conversational AI Librarian using personal logs              | ✅     |
+| 6.14 | **The Matchmaker**           | Compare watch-lists & mood overlaps with friends             | ✅     |
+| 6.15 | **High-Speed AI Ensemble**   | Groq LPU integration for sub-500ms vibe-to-genre translation | ✅     |
 
 ### Deliverables
+
 - Social media integration for sharing logs
 - Calendar visualization for watch history
 - Cross-platform mobile application
@@ -272,14 +287,15 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 
 ### How It Works
 
-| Step | Description | Tech |
-|------|-------------|------|
-| **UI** | Text area for pasting lists + drag-and-drop zone for .txt files | React FileReader API |
-| **AI Parser** | Send raw text to Groq API, extract titles/years as JSON | Groq LPU (llama-3.3-70b-versatile) |
-| **Data Pipeline** | Loop through JSON, hit TMDB API for IDs/posters, batch upsert to Supabase | TMDB API + Supabase |
-| **UX** | Progress bar with Deep Ember styling during AI parsing | CSS animations |
+| Step              | Description                                                               | Tech                               |
+| ----------------- | ------------------------------------------------------------------------- | ---------------------------------- |
+| **UI**            | Text area for pasting lists + drag-and-drop zone for .txt files           | React FileReader API               |
+| **AI Parser**     | Send raw text to Groq API, extract titles/years as JSON                   | Groq LPU (llama-3.3-70b-versatile) |
+| **Data Pipeline** | Loop through JSON, hit TMDB API for IDs/posters, batch upsert to Supabase | TMDB API + Supabase                |
+| **UX**            | Progress bar with Deep Ember styling during AI parsing                    | CSS animations                     |
 
 ### User Flow
+
 1. User navigates to Library page and clicks "✨ Magic Import"
 2. Pastes text list from Letterboxd, notes, or any format
 3. Clicks "✨ Parse List" button
@@ -290,6 +306,7 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 8. Success screen shows imported/skipped/duplicates counts
 
 ### Technical Implementation
+
 - **ArchiveImporterModal** - 4-step modal: Input → Verifying → Review → Complete
 - **parseArchiveWithGroq()** - Groq API integration with system prompt engineering
 - **verifyBatchWithTMDB()** - Parallel TMDB fetching with Promise.all
@@ -302,6 +319,7 @@ GET /?apikey={key}&i={imdb_id}&plot=full
   - Select All / Deselect All quick actions
 
 ### Success Criteria
+
 - [x] Users can paste a text list and get parsed results
 - [x] AI correctly extracts 90%+ of movie titles
 - [x] TMDB verification fetches correct posters
@@ -318,14 +336,14 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 
 ### Features
 
-| Feature | Description | Status |
-|---------|-------------|--------|
-| **BugReportModal** | Sleek dark-themed modal for submitting bug reports | ✅ Complete |
-| **ReportBugButton** | Reusable button component (3 variants: button, icon, link) | ✅ Complete |
-| **BugList Admin Dashboard** | Admin-only bug management at `/admin/bugs` | ✅ Complete |
-| **Auto-Capture Context** | Automatically captures page URL and user info on submission | ✅ Complete |
-| **Status Management** | "Mark as Fixed" button, status dropdown, color-coded badges | ✅ Complete |
-| **Version Tracking** | Every bug report includes app version for tracking | ✅ Complete |
+| Feature                     | Description                                                 | Status      |
+| --------------------------- | ----------------------------------------------------------- | ----------- |
+| **BugReportModal**          | Sleek dark-themed modal for submitting bug reports          | ✅ Complete |
+| **ReportBugButton**         | Reusable button component (3 variants: button, icon, link)  | ✅ Complete |
+| **BugList Admin Dashboard** | Admin-only bug management at `/admin/bugs`                  | ✅ Complete |
+| **Auto-Capture Context**    | Automatically captures page URL and user info on submission | ✅ Complete |
+| **Status Management**       | "Mark as Fixed" button, status dropdown, color-coded badges | ✅ Complete |
+| **Version Tracking**        | Every bug report includes app version for tracking          | ✅ Complete |
 
 ### How It Works
 
@@ -379,14 +397,14 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 
 ### Bugs Fixed (v1.8.1 - The Anniversary Patch)
 
-| # | Bug | Severity | Component | Fix | Status |
-|---|-----|----------|-----------|-----|--------|
-| 1 | **Matchmaker 400/406 Errors** | High | `Supabase SQL` | Added explicit Foreign Keys connecting `friendships` to `profiles` table. | ✅ Fixed |
-| 2 | **Matchmaker White Screen** | Critical | `Matchmaker.jsx` | Added Optional Chaining (`?.`) and stable `ui-avatars.com` fallbacks to prevent crashes on null profiles. | ✅ Fixed |
-| 3 | **0% Synergy (Privacy Lock)** | High | `Supabase RLS` | Fixed RLS policy on `movie_logs` using `::uuid` casting to allow friends to view each other's libraries for comparison. | ✅ Fixed |
-| 4 | **Schema Naming Conflict** | High | `Database` | Reconciled `poster` vs `poster_path` by creating a Generated Virtual Column, and ensured `genres` column exists. | ✅ Fixed |
-| 5 | **Discover 'Add to List' 400** | High | `Discover.jsx` | Stripped `genres` from the insert payload to prevent Postgres type-casting rejections on quick-adds. | ✅ Fixed |
-| 6 | **Gemini Parsing Crash** | Medium | `AI API` | Switched from `gemini-1.5-flash-lite-preview` to stable `gemini-1.5-flash` to prevent 503 stream drops. | ✅ Fixed |
+| #   | Bug                            | Severity | Component        | Fix                                                                                                                     | Status   |
+| --- | ------------------------------ | -------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------- | -------- |
+| 1   | **Matchmaker 400/406 Errors**  | High     | `Supabase SQL`   | Added explicit Foreign Keys connecting `friendships` to `profiles` table.                                               | ✅ Fixed |
+| 2   | **Matchmaker White Screen**    | Critical | `Matchmaker.jsx` | Added Optional Chaining (`?.`) and stable `ui-avatars.com` fallbacks to prevent crashes on null profiles.               | ✅ Fixed |
+| 3   | **0% Synergy (Privacy Lock)**  | High     | `Supabase RLS`   | Fixed RLS policy on `movie_logs` using `::uuid` casting to allow friends to view each other's libraries for comparison. | ✅ Fixed |
+| 4   | **Schema Naming Conflict**     | High     | `Database`       | Reconciled `poster` vs `poster_path` by creating a Generated Virtual Column, and ensured `genres` column exists.        | ✅ Fixed |
+| 5   | **Discover 'Add to List' 400** | High     | `Discover.jsx`   | Stripped `genres` from the insert payload to prevent Postgres type-casting rejections on quick-adds.                    | ✅ Fixed |
+| 6   | **Gemini Parsing Crash**       | Medium   | `AI API`         | Switched from `gemini-1.5-flash-lite-preview` to stable `gemini-1.5-flash` to prevent 503 stream drops.                 | ✅ Fixed |
 
 ### The "Ghost Hunter" Fix
 
@@ -401,7 +419,8 @@ if (!movie || !movie.title) {
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
       <h2 className="text-4xl font-creepster text-accent mb-4">Signal Lost</h2>
       <p className="text-text-muted mb-8 max-w-md">
-        The archives have no record of this tape. It may have been corrupted, deleted, or it never existed at all.
+        The archives have no record of this tape. It may have been corrupted,
+        deleted, or it never existed at all.
       </p>
       <button onClick={handleBack} className="btn-primary">
         Return to Library
@@ -420,18 +439,18 @@ if (!movie || !movie.title) {
 ```javascript
 const handleSubmit = (e) => {
   e.preventDefault();
-  
+
   // Trim whitespace from search query
   const cleanQuery = tempSearch.trim();
-  
+
   // Reject empty queries - prevent searching whitespace
   if (!cleanQuery) {
-    setTempSearch('');
+    setTempSearch("");
     return;
   }
-  
+
   navigate(`/search?q=${encodeURIComponent(cleanQuery)}`);
-  setTempSearch('');
+  setTempSearch("");
   setIsSearchVisible(false);
   setIsMobileMenuOpen(false);
 };
@@ -446,11 +465,11 @@ $ git log --all --full-history -- .env
 # (empty output = secure)
 ```
 
-| File | Status | Risk |
-|------|--------|------|
-| `.env` | Never committed | ✅ Safe |
+| File           | Status                                 | Risk    |
+| -------------- | -------------------------------------- | ------- |
+| `.env`         | Never committed                        | ✅ Safe |
 | `.env.example` | Committed (template with placeholders) | ✅ Safe |
-| `debugEnv.js` | Removed (was dev-only utility) | ✅ Safe |
+| `debugEnv.js`  | Removed (was dev-only utility)         | ✅ Safe |
 
 ### Success Criteria
 
@@ -464,61 +483,20 @@ $ git log --all --full-history -- .env
 
 ## 🎯 Current Status
 
-**Phase**: Phase 6 Complete ✅
+**Phase**: Phase 7.1 + 7.2 + 7.3 core foundations shipped ✅
 
-**Current Version**: v1.9.6 - Movie Detail Crew Deep Links
+**Current Version**: v1.12.3 - Auth Persistence Fix
 
 **Completed Features**:
-- ✅ **The Matchmaker** (v1.8.0) - Fully operational social compatibility feature.
-  - Generates Synergy Scores, calculates "Gore Gap," and finds Common Ground.
-  - Cross-user database queries unlocked via strict RLS UUID casting.
-  - Fail-safe UI with optional chaining and fallback avatars.
-- ✅ **Universal Mood Palette** (v1.8.1) - Expanded from horror-focus to all genres (Romantic, Hilarious, Adrenaline-fueled, Cerebral, etc.).
-- ✅ **Social Hub Card** (v1.8.0) - Profile page entry point for friend management.
-- ✅ **Friends Carousel** (v1.8.0) - Horizontal scroll of friend chips with match scores.
-- ✅ **Discover Page Navigation** (v1.8.0) - Movie posters and titles are fully clickable via React Router.
-- ✅ **Oracle Stabilization** (v1.8.1) - Upgraded to stable Gemini Flash 1.5; bulletproofed Watchlist payload.
-- ✅ **Database Bouncer** (Phase 3.8) - Enforced `UNIQUE (user_id, tmdb_id)` constraint to permanently prevent duplicate logs.
-- ✅ **Native Mobile UX** (v1.7.0) - Replaced hamburger menu with fixed BottomNav (Home, Discover, Library, Profile).
-- ✅ **Watchlist Quick-Toggle** (v1.7.0) - Three-button action row (Eye icon for Watchlist, Primary Log, Folder for Lists).
-- ✅ **Magic Importer** (v1.5.0) - AI-powered bulk import with Groq LPU parsing
 
-**🤖 Oracle - AI Discovery (v1.3.2+)**:
-- ✅ **Oracle Page** (`/discover`) - Dedicated AI discovery interface
-- ✅ **Mood Bubbles** - 6 quick-select presets (Cozy, Adrenaline, Mind-Bending, Deep Cuts, Noir, Euphoric)
-- ✅ **Natural Language Input** - "A dark comedy for a rainy night"
-- ✅ **Rationale Display** - "Why Filmgraph Picked This" with cinematic analysis
-- ✅ **Vibe Check Tagline** - 5-7 word punchy descriptions
-- ✅ **TMDB Integration** - Auto-fetch posters and release years
-- ✅ **Reject & Reroll** (v1.3.5) - Reject suggestions and get instant alternatives
-- ✅ **Session Tracking** - Badge shows rejected movies count
-- ✅ **Dynamic System Prompt** - AI avoids rejected movies during session
-- ✅ **Deep Ember Theme** - Dark zinc backgrounds with amber/orange accents
-- ✅ **Database Schema** - recommendation_feedback table with RLS policies
-
-**📦 Magic Importer - Bulk Import (v1.5.0)**:
-- ✅ **ArchiveImporterModal** - 4-step workflow: Input → Verifying → Review → Complete
-- ✅ **Groq LPU Parsing** - llama-3.3-70b-versatile for ultra-fast text extraction
-- ✅ **Multi-Format Support** - Letterboxd, plain lists, numbered lists, notes
-- ✅ **TMDB Batch Verification** - Parallel fetching with Promise.all
-- ✅ **Smart Deduplication** - UPSERT with onConflict constraint
-- ✅ **Watch Status Selector** - Import as Watched or Want to Watch
-- ✅ **List Integration** - Optional add to custom list
-- ✅ **Review Grid** - Poster preview with select/deselect actions
-
-**Phase 6 Planned - AI Personality & Social**:
-- ✅ **The Oracle** (v1.3.2-v1.3.6) - Conversational AI Librarian with natural language vibe search
-  - ✅ Oracle page (`/discover`) with mood bubbles
-  - ✅ Natural language input with rationale display
-  - ✅ Reject & Reroll (v1.3.5)
-  - ✅ Session tracking with rejected movies count
-  - ✅ TMDB integration for posters and years
-- ✅ **The Matchmaker** (v1.8.0) - Social compatibility with mood overlaps
-  - ✅ Social Hub card on Profile page
-  - ✅ Friend invites by email
-  - ✅ Friendship request management (accept/decline/cancel)
-  - ✅ My Crew carousel with match scores
-  - ✅ Click-to-compare synergy reports
+- ✅ **Oracle Foundation** - Hybrid AI routing (Groq + Gemini), deterministic fallback behavior, and discovery stability.
+- ✅ **Oracle Guardrails** - Daily-budget controls via Supabase RPC + local fallback safeguards.
+- ✅ **PWA/Offline Core** - Service worker, cached app shell/API responses, IndexedDB queue, and reconnect sync.
+- ✅ **Collection Integrity Core** - Anti-double-buy checks for log/list flows with UPC groundwork in schema.
+- ✅ **Library UX Core** - Natural-language sort/filter parser integrated into library controls.
+- ✅ **Social Core** - Matchmaker, social hub, invites/requests, and synergy dashboard are live.
+- ✅ **Importer Core** - Magic Importer parsing, TMDB verification, dedupe, and batch save flow are live.
+- ✅ **Identity Core** - Username constraints, availability RPC, and username-first social invites shipped.
 
 ---
 
@@ -532,17 +510,17 @@ $ git log --all --full-history -- .env
 
 ### Features (Implemented in Oracle)
 
-| Feature | Description | Status |
-|---------|-------------|--------|
-| **Natural Language Search** | Ask by feeling, not genre | ✅ Implemented |
-| **Mood Bubbles** | 6 quick-select presets (Cozy, Adrenaline, Mind-Bending, Deep Cuts, Noir, Euphoric) | ✅ Implemented |
-| **Rationale Display** | "Why Filmgraph Picked This" with cinematic analysis | ✅ Implemented |
-| **Vibe Check** | Punchy 5-7 word taglines for each recommendation | ✅ Implemented |
-| **Reject & Reroll** | Reject entire batch and get new alternatives | ✅ Implemented |
-| **Session Tracking** | Badge showing rejected movies count | ✅ Implemented |
-| **Library Integration** | Watched, Watchlist, Add to List buttons | ✅ Implemented |
-| **Zero-Duplicate Guarantee** | AI never recommends movies you've already logged | ✅ Implemented |
-| **Personalized Context** | AI analyzes your high-rated films before recommending | ✅ Implemented |
+| Feature                      | Description                                                                        | Status         |
+| ---------------------------- | ---------------------------------------------------------------------------------- | -------------- |
+| **Natural Language Search**  | Ask by feeling, not genre                                                          | ✅ Implemented |
+| **Mood Bubbles**             | 6 quick-select presets (Cozy, Adrenaline, Mind-Bending, Deep Cuts, Noir, Euphoric) | ✅ Implemented |
+| **Rationale Display**        | "Why Filmgraph Picked This" with cinematic analysis                                | ✅ Implemented |
+| **Vibe Check**               | Punchy 5-7 word taglines for each recommendation                                   | ✅ Implemented |
+| **Reject & Reroll**          | Reject entire batch and get new alternatives                                       | ✅ Implemented |
+| **Session Tracking**         | Badge showing rejected movies count                                                | ✅ Implemented |
+| **Library Integration**      | Watched, Watchlist, Add to List buttons                                            | ✅ Implemented |
+| **Zero-Duplicate Guarantee** | AI never recommends movies you've already logged                                   | ✅ Implemented |
+| **Personalized Context**     | AI analyzes your high-rated films before recommending                              | ✅ Implemented |
 
 ### Technical Implementation
 
@@ -562,19 +540,19 @@ $ git log --all --full-history -- .env
 
 ### Features (Implemented)
 
-| Feature | Description | Example |
-|---------|-------------|---------|
-| **Social Hub Card** | Profile page entry point for friend management | "Social Hub" section with Manage Friends button |
-| **Friend Invites** | Search and invite users by email | "User not found" toast if email doesn't exist |
-| **Friendship Requests** | Incoming/outgoing request management | Accept, Decline, Cancel actions |
-| **My Crew** | List of accepted friends with match scores | Horizontal carousel of friend chips |
-| **Pending Requests** | Track sent requests awaiting response | Shows receiver name with Cancel button |
-| **Requests** | Incoming requests with accept/decline actions | Shows sender name with Accept/Decline |
-| **Synergy Score** | Randomized compatibility percentage | "70-100% Match" badge on each friend |
-| **Click-to-Compare** | Navigate to compatibility report | `/matchmaker/${friendId}` route |
-| **Deep Ember Theme** | Consistent dark aesthetic | Amber accents, zinc backgrounds |
-| **Font-creepster Headers** | Distinctive Creepster font | Applied to page title and section headers |
-| **Thumb-Friendly Tap Targets** | 48px minimum button heights | Mobile-optimized action buttons |
+| Feature                        | Description                                    | Example                                         |
+| ------------------------------ | ---------------------------------------------- | ----------------------------------------------- |
+| **Social Hub Card**            | Profile page entry point for friend management | "Social Hub" section with Manage Friends button |
+| **Friend Invites**             | Search and invite users by email               | "User not found" toast if email doesn't exist   |
+| **Friendship Requests**        | Incoming/outgoing request management           | Accept, Decline, Cancel actions                 |
+| **My Crew**                    | List of accepted friends with match scores     | Horizontal carousel of friend chips             |
+| **Pending Requests**           | Track sent requests awaiting response          | Shows receiver name with Cancel button          |
+| **Requests**                   | Incoming requests with accept/decline actions  | Shows sender name with Accept/Decline           |
+| **Synergy Score**              | Randomized compatibility percentage            | "70-100% Match" badge on each friend            |
+| **Click-to-Compare**           | Navigate to compatibility report               | `/matchmaker/${friendId}` route                 |
+| **Deep Ember Theme**           | Consistent dark aesthetic                      | Amber accents, zinc backgrounds                 |
+| **Font-creepster Headers**     | Distinctive Creepster font                     | Applied to page title and section headers       |
+| **Thumb-Friendly Tap Targets** | 48px minimum button heights                    | Mobile-optimized action buttons                 |
 
 ### How It Works
 
@@ -610,11 +588,11 @@ $ git log --all --full-history -- .env
 
 ### Overview
 
-| Component | Description | Status |
-|-----------|-------------|--------|
-| **Groq LPU Infrastructure** | Leverage Groq's Language Processing Unit hardware for ultra-low-latency inference | ✅ Complete (v1.4.0) |
-| **Llama 3 Integration** | Deploy Llama 3 models on Groq for sub-500ms vibe-to-genre translations | ✅ Complete (v1.4.0) |
-| **Hybrid AI Architecture** | Groq for fast pattern matching + Gemini for deep reasoning | ✅ Complete (v1.4.0) |
+| Component                     | Description                                                                         | Status               |
+| ----------------------------- | ----------------------------------------------------------------------------------- | -------------------- |
+| **Groq LPU Infrastructure**   | Leverage Groq's Language Processing Unit hardware for ultra-low-latency inference   | ✅ Complete (v1.4.0) |
+| **Llama 3 Integration**       | Deploy Llama 3 models on Groq for sub-500ms vibe-to-genre translations              | ✅ Complete (v1.4.0) |
+| **Hybrid AI Architecture**    | Groq for fast pattern matching + Gemini for deep reasoning                          | ✅ Complete (v1.4.0) |
 | **Multi-Model Orchestration** | Intelligent routing between Groq (fast) and Gemini (deep) based on query complexity | ✅ Complete (v1.4.0) |
 
 ### Technical Distinction
@@ -650,13 +628,13 @@ User Query → Groq LPU (llama-3.3-70b-versatile) → Genre IDs (300-600ms)
 
 ### Benefits
 
-| Benefit | Description |
-|---------|-------------|
-| **Speed** | Sub-500ms vibe translation vs. 2-3s with Gemini alone |
-| **Cost Efficiency** | Groq is cheaper for simple pattern matching |
-| **Scalability** | LPU hardware handles high concurrency |
-| **Best of Both Worlds** | Fast responses + deep reasoning when needed |
-| **Future-Proof** | Multi-model architecture allows easy model swaps |
+| Benefit                 | Description                                           |
+| ----------------------- | ----------------------------------------------------- |
+| **Speed**               | Sub-500ms vibe translation vs. 2-3s with Gemini alone |
+| **Cost Efficiency**     | Groq is cheaper for simple pattern matching           |
+| **Scalability**         | LPU hardware handles high concurrency                 |
+| **Best of Both Worlds** | Fast responses + deep reasoning when needed           |
+| **Future-Proof**        | Multi-model architecture allows easy model swaps      |
 
 ### Success Criteria
 
@@ -672,15 +650,18 @@ User Query → Groq LPU (llama-3.3-70b-versatile) → Genre IDs (300-600ms)
 ### 🔧 Technical Notes & Future Considerations
 
 #### Model ID Verification (March 2026)
+
 > **Current**: `llama-3.3-70b-versatile` is the production model.
 > **Watch**: Monitor Groq docs for `openai/gpt-oss-120b` — the newer production king may offer better latency/cost ratio for sub-500ms targets.
 
 #### Gemini 3.1 Flash Lite Preview Stability
+
 > **Status**: This model has shown 503 errors in production.
 > **Mitigation**: The hybrid orchestration includes automatic fallback to Gemini-only mode when Preview models fail.
 > **Long-term**: Consider migrating to stable Gemini 2.0 Flash for production reliability.
 
 #### Phase 6.14 "Matchmaker" — Technically Unlocked ✅
+
 > With Groq extracting Genre IDs from user queries, the Matchmaker feature (comparing two users' "Top 5 Extracted Genres") is now trivial to implement. The infrastructure is already in place.
 
 ---
@@ -706,36 +687,207 @@ User Query → Groq LPU (llama-3.3-70b-versatile) → Genre IDs (300-600ms)
 
 ## Phase 6.17: Collaborative Shared Lists 🤝
 
-**Status**: 📝 **Planned**
+**Status**: ✅ **Complete** (v1.10.1)
 
 **Goal**: Upgrade custom lists into multiplayer experiences where friends can co-curate movie collections in real-time.
 
 ### Tasks
 
-| # | Task | Description | Status |
-|---|------|-------------|--------|
-| 6.17.1 | **Database Schema** | Create `lists`, `list_members` (user_id, role), and `list_entries` (added_by) tables. | ⬜ |
-| 6.17.2 | **RLS Security** | Policy: `auth.uid()` must exist in `list_members` to view/edit the list. | ⬜ |
-| 6.17.3 | **Invite System** | Allow adding collaborators via UUID or nickname. | ⬜ |
-| 6.17.4 | **Action Menu Sync** | Shared lists appear dynamically in the "Add to List" modal. | ⬜ |
-| 6.17.5 | **Attribution UI** | Show the avatar of the specific user who added a movie to the shared list. | ⬜ |
-| 6.17.6 | **Real-Time Sync** | Use Supabase Realtime to update the list live when a friend adds a movie. | ⬜ |
+| #      | Task                 | Description                                                                           | Status |
+| ------ | -------------------- | ------------------------------------------------------------------------------------- | ------ |
+| 6.17.1 | **Database Schema**  | Extend existing `lists` + `list_items` with `list_members` and `list_items.added_by` attribution support. | ✅     |
+| 6.17.2 | **RLS Security**     | Policy: `auth.uid()` must exist in `list_members` to view/edit the list.              | ✅     |
+| 6.17.3 | **Invite System**    | Allow adding collaborators via UUID, email, or username.                              | ✅     |
+| 6.17.4 | **Action Menu Sync** | Shared lists appear dynamically in the "Add to List" modal.                           | ✅     |
+| 6.17.5 | **Attribution UI**   | Show per-item `added_by` identity text/profile metadata for who added each movie.     | ✅     |
+| 6.17.6 | **Real-Time Sync**   | Use Supabase Realtime to update the list live when a friend adds a movie.             | ✅     |
 
 ---
 
 ## Phase 6.18: Robust Search & Deep Discovery 🔍
 
-**Status**: 📝 **Planned**
+**Status**: ✅ **Complete** (v1.9.6)
 
 **Goal**: Expand the search engine to handle cast/crew and provide deep-linking across the entire TMDB filmography.
 
 ### Tasks
 
-| # | Task | Description | Status |
-|---|------|-------------|--------|
-| 6.18.1 | **Global Search Update** | Update search logic to hit `search/person` alongside movies. | ✅ |
-| 6.18.2 | **UI Categorization** | Visually separate "Movies" and "People" in search dropdowns/results. | ✅ |
-| 6.18.3 | **Advanced Person Profiles** | Enhance existing actor pages with full `person/{id}/movie_credits` endpoints. | ✅ |
-| 6.18.4 | **Smart Filtering** | Add genre toggles on actor pages (e.g., "Show Horror Only"). | ✅ |
-| 6.18.5 | **Deep Navigation** | Ensure all Cast/Crew names on Movie Details link to Person Profiles. | ✅ |
-| 6.18.6 | **"Logged" Indicators** | Add a visual badge on filmography grids showing which movies you've already logged. | ✅ |
+| #      | Task                         | Description                                                                         | Status |
+| ------ | ---------------------------- | ----------------------------------------------------------------------------------- | ------ |
+| 6.18.1 | **Global Search Update**     | Update search logic to hit `search/person` alongside movies.                        | ✅     |
+| 6.18.2 | **UI Categorization**        | Visually separate "Movies" and "People" in search dropdowns/results.                | ✅     |
+| 6.18.3 | **Advanced Person Profiles** | Enhance existing actor pages with full `person/{id}/movie_credits` endpoints.       | ✅     |
+| 6.18.4 | **Smart Filtering**          | Add genre toggles on actor pages (e.g., "Show Horror Only").                        | ✅     |
+| 6.18.5 | **Deep Navigation**          | Ensure all Cast/Crew names on Movie Details link to Person Profiles.                | ✅     |
+| 6.18.6 | **"Logged" Indicators**      | Add a visual badge on filmography grids showing which movies you've already logged. | ✅     |
+
+---
+
+## Phase 6.19: Username Foundation & Identity 🪪
+
+**Status**: ✅ **Complete** (v1.10.1)
+
+**Goal**: Establish consistent, human-readable identities for social and collaboration flows.
+
+### Tasks
+
+| #      | Task                          | Description                                                                                       | Status |
+| ------ | ----------------------------- | ------------------------------------------------------------------------------------------------- | ------ |
+| 6.19.1 | **Profiles Username Column**  | Add/normalize `profiles.username` values and enforce lowercase format constraints.               | ✅     |
+| 6.19.2 | **Uniqueness Enforcement**    | Add case-insensitive unique index for `profiles.username`.                                        | ✅     |
+| 6.19.3 | **Availability RPC**          | Add `is_username_available` RPC for frontend validation checks.                                   | ✅     |
+| 6.19.4 | **Registration Validation**   | Require valid unique username during sign-up flow.                                                | ✅     |
+| 6.19.5 | **Profile Edit Validation**   | Allow username edits with format/uniqueness validation and metadata sync.                         | ✅     |
+| 6.19.6 | **Shared List Invite Support**| Support inviting collaborators by username in addition to UUID/email.                             | ✅     |
+
+---
+
+## Phase 7: Monetization & Founders Plan 💸
+
+**Status**: 🛠️ **Planned**
+**Priority**: ⬇️ **Lowest (Deferred)**
+
+**Goal**: Document monetization direction while keeping execution deferred until core product quality, growth, and feature depth are stronger.
+
+> **Current Direction**: Monetization is intentionally deprioritized right now. Focus remains on product polish, reliability, discovery quality, and user growth.
+
+### The "100 User Rule"
+
+- **Zero Monetization**: No ads, no fees, and no paywalls until the platform reaches 100 active/concurrent users.
+- **Primary Focus**: Pure user growth and user-experience polish.
+
+### The Founders Pack (First 100 Users)
+
+- **Lifetime Pro**: First 100 users receive all future Pro features for $0 forever.
+- **Ad-Free Forever**: Founders never see ads, even after monetization launches.
+- **Founders Badge**: Unique badge/icon on profile and Oracle interface.
+- **Early Access**: Priority beta access for Barcode Scanner and Natural Language Sorting.
+
+### Post-100 Monetization
+
+- **One-Time Unlock**: New users pay a single $5-$10 unlock to remove ads and access Pro features.
+- **No Subscriptions**: Keep Filmgraph "buy once, own forever" to avoid subscription fatigue.
+
+### Pro Features to Gate (Post-100)
+
+- **Collection Integrity**: Anti-double-buy barcode scanner logic.
+- **Unlimited Oracle**: Unlimited natural language queries (free tier gets daily cap).
+- **Offline Database**: Full local cache for browsing library without signal.
+
+---
+
+## Phase 7.1: Oracle AI Infrastructure (Zero-Cost) 🤖
+
+**Status**: ✅ **Core Foundation Shipped** (v1.11.0+)
+**Priority**: 🔥 **High (Active Focus)**
+
+**Goal**: Ensure Oracle recommendations remain reliable, low-cost, and resilient under provider failures.
+
+### Tasks
+
+- **Primary Model**: Gemini 1.5 Flash for knowledge/database query reasoning.
+- **Secondary Model**: Groq for speed and instant UI response.
+- **Emergency Fallback**: OpenRouter model array for automatic failover when free tiers are rate-limited.
+- **Context Hydration**: Inject user history context (Top 20 / Last 5) into prompts for personalization.
+- **Cost Protection**: Hard $0 spending cap across all API dashboards.
+
+### Success Criteria
+
+- [x] Fallback ladder returns recommendations when primary provider is unavailable.
+- [x] Context hydration includes focused recent/favorite user history slices.
+- [x] Daily Oracle budget controls are enforced through database-backed checks.
+- [ ] Add provider analytics dashboard for response quality and failure trend tracking.
+
+---
+
+## Phase 7.2: PWA & Offline Features 📱
+
+**Status**: ✅ **Core Foundation Shipped** (v1.11.0+)
+**Priority**: 🔥 **High (Active Focus)**
+
+**Goal**: Deliver native-feeling reliability by keeping key flows usable during low or no connectivity.
+
+### Tasks
+
+- **Native Experience**: Full PWA transition with Add to Home Screen support.
+- **Barcode Scanning**: `html5-qrcode` integration for physical media UPC scans.
+- **Offline Mode**: Service Workers + IndexedDB for offline library access.
+- **Background Sync**: Queue movie logs offline and sync when connection returns.
+
+### Success Criteria
+
+- [x] Service worker caches app shell and critical API responses.
+- [x] Offline queue stores log actions and flushes when connectivity returns.
+- [x] Discovery and Library surfaces show clear offline-state messaging.
+- [x] Add install prompt UX and app-icon validation for full PWA polish.
+
+---
+
+## Phase 7.3: Vibe Filters & Collection Logic 🎭
+
+**Status**: ✅ **Core Foundation Shipped** (v1.11.0+)
+**Priority**: 🔥 **High (Active Focus)**
+
+**Goal**: Improve discovery precision and prevent duplicate collection actions before they happen.
+
+### Tasks
+
+- **Background Noise**: Low-stakes, rewatchable content lane.
+- **Lock In**: High-engagement titles that require full attention.
+- **Trash but Fun**: Guilty-pleasure mode.
+- **Dark/Weird Comedy**: Dedicated vibe lane for niche taste.
+- **Natural Language Sorting**: Complex Oracle queries (for example: "Under 90 mins, unwatched, dark comedy").
+- **Collection Integrity**: Anti-double-buy alerts during barcode scans.
+
+### Success Criteria
+
+- [x] Natural-language sort/filter parsing is available in library workflows.
+- [x] Anti-double-buy checks run before list/log write operations.
+- [x] UPC schema support exists to enforce per-user barcode uniqueness.
+- [x] Add live camera scanner flow wired into UPC duplicate checks.
+
+---
+
+## Phase 7.4: Porch Talk Protocol 🏆
+
+**Status**: 🛠️ **Planned**
+**Priority**: ⚪ **Medium**
+
+**Goal**: Create competitive group-viewing interactions that connect personal picks and consensus outcomes.
+
+### Tasks
+
+- **Playoff Bracket Grid**: Competitive movie matchup bracket with voting.
+- **Dual Results**: Separate personal-bracket outcomes and overall group consensus.
+- **Integration**: Direct link flow from `kuhlshit.com` to Filmgraph marathon page.
+- **Leaderboard**: Consensus picks and "spooky season" stats based on ratings.
+
+### Success Criteria
+
+- [ ] Users can create and vote in bracket rounds.
+- [ ] Personal and group totals are stored and rendered separately.
+- [ ] Leaderboard updates from aggregate rating and vote data.
+
+---
+
+## Phase 7.5: Upcoming Technical Goals ⚙️
+
+**Status**: 🛠️ **Planned**
+**Priority**: 🔥 **High (Active Focus)**
+
+**Goal**: Complete the remaining platform work needed for scanner-first mobile logging and resilient discovery.
+
+### Tasks
+
+- **PWA Transition**: Deliver Add to Home Screen native-feel experience without app-store overhead.
+- **Barcode Scanner Integration**: Implement with `html5-qrcode` or `quagga2`.
+- **API Lookups**: Auto-populate movie metadata from UPC scans via OMDb/TMDB.
+- **Mobile Hardware Access**: Browser camera access optimized for fast logging.
+
+### Success Criteria
+
+- [x] Scanner can detect UPC and resolve movie metadata from external APIs.
+- [x] Scanner includes fallback path when native `BarcodeDetector` is unavailable.
+- [ ] Mobile camera flow is stable across supported browsers/devices.
+- [x] Scanner-to-log flow integrates with anti-double-buy checks.
+- [x] Scanner entry is discoverable from primary Library actions (next to Magic Import).

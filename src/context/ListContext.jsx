@@ -1,7 +1,15 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 import { useUser } from './UserContext';
-import { getUserLists } from '../api/sharedLists';
+import {
+  addMovieToList as addMovieToSharedList,
+  canEditRole,
+  createList as createSharedList,
+  getUserLists,
+  inviteListMember,
+  removeListMember,
+  updateListMemberRole,
+} from '../api/sharedLists';
 
 const ListContext = createContext(null);
 
@@ -14,6 +22,21 @@ export function ListProvider({ children }) {
   const [lists, setLists] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const getListById = useCallback(
+    (listId) => lists.find((list) => list.id === listId) || null,
+    [lists]
+  );
+
+  const isListOwner = useCallback(
+    (listId) => getListById(listId)?.membership?.role === 'owner',
+    [getListById]
+  );
+
+  const canEditList = useCallback(
+    (listId) => canEditRole(getListById(listId)?.membership?.role),
+    [getListById]
+  );
 
   /**
    * Fetch all lists for the current user
@@ -64,33 +87,36 @@ export function ListProvider({ children }) {
     }
 
     try {
-      const { data, error: insertError } = await supabase
-        .from('lists')
-        .insert({
-          user_id: user.id,
-          name: name.trim(),
-          description: description.trim(),
-          is_public: isPublic,
-        })
-        .select()
-        .single();
-
+      const { data, error: insertError } = await createSharedList(
+        user.id,
+        name.trim(),
+        description.trim()
+      );
       if (insertError) throw insertError;
-
-      const { error: memberError } = await supabase.from('list_members').insert({
-        list_id: data.id,
-        user_id: user.id,
-        role: 'owner',
-      });
-
-      if (memberError) {
-        await supabase.from('lists').delete().eq('id', data.id);
-        throw memberError;
-      }
 
       // Add the new list to state
       setLists((prev) => [
-        { ...data, list_items: [], membership: { role: 'owner', joined_at: new Date().toISOString() } },
+        {
+          ...data,
+          is_public: isPublic,
+          list_members: [
+            {
+              list_id: data.id,
+              user_id: user.id,
+              role: 'owner',
+              joined_at: new Date().toISOString(),
+              profile: {
+                id: user.id,
+                email: user.email || null,
+                username: user.username || null,
+                display_name: user.username || user.email?.split('@')[0] || null,
+                avatar_url: null,
+              },
+            },
+          ],
+          list_items: [],
+          membership: { role: 'owner', joined_at: new Date().toISOString() },
+        },
         ...prev,
       ]);
 
@@ -177,34 +203,20 @@ export function ListProvider({ children }) {
     }
 
     try {
-      // Check if movie already exists in the list
-      const { data: existing, error: checkError } = await supabase
-        .from('list_items')
-        .select('id')
-        .eq('list_id', listId)
-        .eq('tmdb_id', movie.tmdb_id)
-        .single();
-
-      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
-        throw checkError;
+      if (!canEditList(listId)) {
+        throw new Error('You have view-only access to this list.');
       }
 
-      if (existing) {
+      if (isMovieInList(listId, movie.tmdb_id)) {
         throw new Error('This movie is already in the list.');
       }
 
-      const { data, error: insertError } = await supabase
-        .from('list_items')
-        .insert({
-          list_id: listId,
-          tmdb_id: movie.tmdb_id,
-          title: movie.title,
-          poster_path: movie.poster_path,
-          added_by: user.id,
-        })
-        .select()
-        .single();
-
+      const { data, error: insertError } = await addMovieToSharedList(
+        listId,
+        movie.tmdb_id,
+        user.id,
+        movie
+      );
       if (insertError) throw insertError;
 
       // Update the list in state to include the new item
@@ -234,6 +246,9 @@ export function ListProvider({ children }) {
     }
 
     try {
+      if (!canEditList(listId)) {
+        throw new Error('You have view-only access to this list.');
+      }
       const { error: deleteError } = await supabase
         .from('list_items')
         .delete()
@@ -259,6 +274,35 @@ export function ListProvider({ children }) {
       console.error('Failed to remove movie from list:', err);
       throw err;
     }
+  };
+
+  const inviteCollaborator = async (listId, identifier, role = 'editor') => {
+    if (!user?.id) throw new Error('You must be logged in to invite collaborators.');
+
+    const { data, error: inviteError } = await inviteListMember(listId, identifier, role);
+    if (inviteError) throw inviteError;
+    await fetchLists();
+    return data;
+  };
+
+  const changeCollaboratorRole = async (listId, memberUserId, role) => {
+    if (!user?.id) throw new Error('You must be logged in to change roles.');
+    if (!isListOwner(listId)) throw new Error('Only list owners can change roles.');
+
+    const { data, error: roleError } = await updateListMemberRole(listId, memberUserId, role);
+    if (roleError) throw roleError;
+    await fetchLists();
+    return data;
+  };
+
+  const removeCollaborator = async (listId, memberUserId) => {
+    if (!user?.id) throw new Error('You must be logged in to remove collaborators.');
+    if (!isListOwner(listId)) throw new Error('Only list owners can remove collaborators.');
+
+    const { error: removeError } = await removeListMember(listId, memberUserId);
+    if (removeError) throw removeError;
+    await fetchLists();
+    return true;
   };
 
   /**
@@ -288,12 +332,18 @@ export function ListProvider({ children }) {
     lists,
     isLoading,
     error,
+    getListById,
+    isListOwner,
+    canEditList,
     fetchLists,
     createList,
     deleteList,
     updateList,
     addMovieToList,
     removeMovieFromList,
+    inviteCollaborator,
+    changeCollaboratorRole,
+    removeCollaborator,
     isMovieInList,
     getListsContainingMovie,
   };

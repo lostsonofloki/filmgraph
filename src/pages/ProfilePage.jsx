@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
 import { getSupabase } from '../supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
+import { isUsernameAvailable, isValidUsername, normalizeUsername } from '../api/usernames';
 import {
   BarChart,
   Bar,
@@ -64,6 +65,7 @@ function ProfilePage() {
   const { user, updateUser, logout } = useUser();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
+  const [username, setUsername] = useState(user?.username || '');
   const [displayName, setDisplayName] = useState(user?.username || '');
   const [bio, setBio] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -94,9 +96,11 @@ function ProfilePage() {
         const supabase = getSupabase();
         const { data } = await supabase
           .from('profiles')
-          .select('display_name, bio, avatar_url')
+          .select('display_name, username, bio, avatar_url')
           .eq('id', user.id)
           .maybeSingle();
+        if (data?.username) setUsername(data.username);
+        if (data?.display_name) setDisplayName(data.display_name);
         if (data?.bio) setBio(data.bio);
         if (data?.avatar_url) setAvatarUrl(data.avatar_url);
       } catch (err) {
@@ -325,6 +329,11 @@ function ProfilePage() {
   };
 
   const handleSave = async () => {
+    const normalizedUsername = normalizeUsername(username);
+    if (!isValidUsername(normalizedUsername)) {
+      setError('Username must be 3-24 chars: lowercase letters, numbers, underscore.');
+      return;
+    }
     if (!displayName.trim()) {
       setError('Display name cannot be empty');
       return;
@@ -334,12 +343,21 @@ function ProfilePage() {
     setSuccess('');
     try {
       const supabase = getSupabase();
-      await updateUser({ username: displayName });
+      if (normalizedUsername !== (user?.username || '').toLowerCase()) {
+        const { data: available, error: usernameError } = await isUsernameAvailable(
+          normalizedUsername,
+          user.id
+        );
+        if (usernameError) throw usernameError;
+        if (!available) throw new Error('That username is already taken.');
+      }
+      await updateUser({ username: normalizedUsername, display_name: displayName.trim() });
       const { error: profileError } = await supabase
         .from('profiles')
         .upsert({
           id: user.id,
-          display_name: displayName,
+          username: normalizedUsername,
+          display_name: displayName.trim(),
           bio: bio || null,
           updated_at: new Date().toISOString(),
         });
@@ -355,6 +373,7 @@ function ProfilePage() {
   };
 
   const handleCancel = () => {
+    setUsername(user?.username || '');
     setDisplayName(user?.username || '');
     setBio('');
     setIsEditing(false);
@@ -420,6 +439,17 @@ function ProfilePage() {
             </>
           ) : (
             <div className="profile-edit-form">
+              <div className="form-group">
+                <label htmlFor="username">Username</label>
+                <input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                  placeholder="your_username"
+                  disabled={isSaving}
+                />
+              </div>
               <div className="form-group">
                 <label htmlFor="displayName">Display Name</label>
                 <input

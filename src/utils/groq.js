@@ -38,8 +38,9 @@ Your ONLY task is to map a user's mood/vibe description to relevant TMDB genre I
 Available TMDB Genres:
 ${GENRE_LIST}
 
-Return ONLY a valid JSON array of genre IDs (numbers). NO text, NO explanation.
-Example: [18, 878] for "a thoughtful sci-fi drama"`;
+Return ONLY a valid JSON object with this exact shape:
+{"genre_ids":[18,878]}
+NO text, NO explanation.`;
 
   const userMessage = `Map this vibe to genre IDs: "${vibe}"`;
 

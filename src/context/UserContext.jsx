@@ -1,10 +1,19 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { getSupabase } from '../supabaseClient';
+import { getSupabase, setAuthStoragePreference } from '../supabaseClient';
 
 const UserContext = createContext(null);
 
 // Store the current supabase client reference
 let currentSupabase = null;
+
+const toUserShape = (authUser) => ({
+  id: authUser.id,
+  email: authUser.email,
+  username:
+    authUser.user_metadata?.username ||
+    authUser.user_metadata?.display_name ||
+    authUser.email?.split('@')[0],
+});
 
 /**
  * UserProvider - Provides user authentication state to the app
@@ -27,11 +36,7 @@ export function UserProvider({ children }) {
     // Get initial session
     currentSupabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email,
-          username: session.user.user_metadata?.username || session.user.email?.split('@')[0],
-        });
+        setUser(toUserShape(session.user));
       }
       setIsLoading(false);
     });
@@ -42,11 +47,7 @@ export function UserProvider({ children }) {
       const isTemporary = window.sessionStorage.getItem('filmgraph_temp_session') === 'true';
 
       if (event === 'SIGNED_IN' && session?.user) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email,
-          username: session.user.user_metadata?.username || session.user.email?.split('@')[0],
-        });
+        setUser(toUserShape(session.user));
         if (isTemporary) {
           console.log('🔐 Temporary session active (will expire on tab close)');
         }
@@ -54,11 +55,7 @@ export function UserProvider({ children }) {
         setUser(null);
         window.sessionStorage.removeItem('filmgraph_temp_session');
       } else if (session?.user) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email,
-          username: session.user.user_metadata?.username || session.user.email?.split('@')[0],
-        });
+        setUser(toUserShape(session.user));
       } else {
         setUser(null);
       }
@@ -75,26 +72,18 @@ export function UserProvider({ children }) {
    * @param {boolean} rememberMe - Use localStorage (true) or sessionStorage (false)
    */
   const login = async (email, password, rememberMe = true) => {
+    setAuthStoragePreference(rememberMe);
     const supabase = getSupabase();
 
-    // Use persistSession option to control session persistence
-    // If rememberMe is false, session will be cleared when browser/tab closes
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
-      options: {
-        persistSession: rememberMe
-      }
     });
 
     if (error) throw error;
 
     if (data.user) {
-      setUser({
-        id: data.user.id,
-        email: data.user.email,
-        username: data.user.user_metadata?.username || data.user.email?.split('@')[0],
-      });
+      setUser(toUserShape(data.user));
 
       // Store flag for temporary session tracking
       if (!rememberMe) {
@@ -114,6 +103,7 @@ export function UserProvider({ children }) {
     if (currentSupabase) {
       await currentSupabase.auth.signOut();
     }
+    setAuthStoragePreference(true);
     setUser(null);
   };
 
@@ -124,7 +114,7 @@ export function UserProvider({ children }) {
     if (!currentSupabase) throw new Error('Supabase client not initialized');
     
     const { error } = await currentSupabase.auth.updateUser({
-      data: { username: updates.username },
+      data: { username: updates.username, display_name: updates.display_name || updates.username },
     });
 
     if (error) throw error;

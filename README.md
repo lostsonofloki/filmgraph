@@ -143,6 +143,8 @@ Filmgraph/
 - TMDB API Key ([Get it free](https://www.themoviedb.org/settings/api))
 - OMDb API Key ([Get it free](http://www.omdbapi.com/apikey.aspx)) - Already configured
 - Gemini API Key ([Get it free](https://aistudio.google.com/app/apikey)) - For AI features
+- Groq API Key ([Get it free](https://console.groq.com/keys)) - For fast genre extraction
+- OpenRouter API Key ([Get it](https://openrouter.ai/keys)) - Emergency AI fallback
 
 ### Installation
 
@@ -161,6 +163,8 @@ cp .env.example .env
 # VITE_SUPABASE_URL=your_supabase_project_url
 # VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 # VITE_GEMINI_API_KEY=your_gemini_api_key
+# VITE_GROQ_API_KEY=your_groq_api_key
+# VITE_OPENROUTER_API_KEY=your_openrouter_api_key
 
 # Start the development server
 npm run dev

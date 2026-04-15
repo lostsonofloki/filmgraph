@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
+import { useLists } from '../context/ListContext';
 import { useToast } from '../context/ToastContext';
+import { inviteListMember } from '../api/sharedLists';
 import { getSupabase } from '../supabaseClient';
 import { getPosterUrl } from '../api/tmdb';
 import './SynergyDashboard.css';
@@ -139,11 +141,13 @@ function SynergyDashboard() {
   const { friendId } = useParams();
   const navigate = useNavigate();
   const { user } = useUser();
+  const { createList } = useLists();
   const toast = useToast();
   
   const [friend, setFriend] = useState(null);
   const [synergyData, setSynergyData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCreatingSharedList, setIsCreatingSharedList] = useState(false);
   const [activeTab, setActiveTab] = useState('overview'); // overview, shared, genres
 
   const fetchSynergyData = useCallback(async () => {
@@ -192,6 +196,34 @@ function SynergyDashboard() {
     }
   }, [friendId, user?.id, fetchSynergyData]);
 
+  const handleCreateSharedList = async () => {
+    if (!friendId || !friend) return;
+
+    try {
+      setIsCreatingSharedList(true);
+
+      const friendLabel = friend.display_name || friend.username || 'Friend';
+      const myLabel = user?.display_name || user?.username || 'You';
+      const listName = `${myLabel} + ${friendLabel}`;
+      const listDescription = `Shared list created from Compatibility Report.`;
+
+      const createdList = await createList(listName, listDescription);
+
+      if (friendId !== user?.id) {
+        const { error: inviteError } = await inviteListMember(createdList.id, friendId, 'editor');
+        if (inviteError) throw inviteError;
+      }
+
+      toast.success(`Shared list created with ${friendLabel}.`);
+      navigate(`/library?list=${createdList.id}`);
+    } catch (err) {
+      console.error('Create shared list error:', err);
+      toast.error(err.message || 'Failed to create shared list.');
+    } finally {
+      setIsCreatingSharedList(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="synergy-dashboard">
@@ -229,11 +261,19 @@ function SynergyDashboard() {
             Back
           </button>
           <div className="synergy-title-section">
-            <h1 className="synergy-title font-creepster">Compatibility Report</h1>
+            <h1 className="synergy-title">Compatibility Report</h1>
             <p className="synergy-subtitle">
               You & {friend.display_name || friend.username}
             </p>
           </div>
+          <button
+            className="create-shared-list-btn"
+            type="button"
+            onClick={handleCreateSharedList}
+            disabled={isCreatingSharedList}
+          >
+            {isCreatingSharedList ? 'Creating...' : 'Create Shared List'}
+          </button>
         </div>
 
         {/* Compatibility Score Card */}

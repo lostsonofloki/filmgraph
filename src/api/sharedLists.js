@@ -55,6 +55,53 @@ export async function createList(userId, name, description = '') {
   return { data: { ...list, list_items: [] }, error: null };
 }
 
+const EDITOR_ROLES = new Set(['owner', 'editor']);
+const VALID_ROLES = new Set(['owner', 'editor', 'viewer']);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isJoinedAtColumnError(error) {
+  const message = String(error?.message || '').toLowerCase();
+  const details = String(error?.details || '').toLowerCase();
+  return message.includes('joined_at') || details.includes('joined_at');
+}
+
+/**
+ * True if role can mutate list items.
+ * @param {string | null | undefined} role
+ * @returns {boolean}
+ */
+export function canEditRole(role) {
+  return EDITOR_ROLES.has(role);
+}
+
+/**
+ * Resolve a collaborator by UUID, email, or username.
+ * @param {string} identifier
+ * @returns {Promise<{ data: object | null, error: Error | null }>}
+ */
+export async function resolveProfileByIdentifier(identifier) {
+  const supabase = getSupabase();
+  const raw = (identifier || '').trim();
+  if (!raw) {
+    return { data: null, error: new Error('Enter an email, username, or user ID.') };
+  }
+
+  const isUuid = UUID_RE.test(raw);
+  let query = supabase.from('profiles').select('id, email, username, display_name, avatar_url');
+  if (isUuid) {
+    query = query.eq('id', raw);
+  } else if (raw.includes('@')) {
+    query = query.eq('email', raw.toLowerCase());
+  } else {
+    query = query.eq('username', raw);
+  }
+
+  const { data, error } = await query.maybeSingle();
+  if (error) return { data: null, error };
+  if (!data) return { data: null, error: new Error('User not found.') };
+  return { data, error: null };
+}
+
 /**
  * All lists the user can access via `list_members`, with items embedded like ListContext.
  *
@@ -64,10 +111,19 @@ export async function createList(userId, name, description = '') {
 export async function getUserLists(userId) {
   const supabase = getSupabase();
 
-  const { data: memberships, error: memError } = await supabase
+  let { data: memberships, error: memError } = await supabase
     .from('list_members')
     .select('list_id, role, joined_at')
     .eq('user_id', userId);
+
+  if (memError && isJoinedAtColumnError(memError)) {
+    const fallback = await supabase
+      .from('list_members')
+      .select('list_id, role')
+      .eq('user_id', userId);
+    memberships = (fallback.data || []).map((m) => ({ ...m, joined_at: null }));
+    memError = fallback.error;
+  }
 
   if (memError) {
     console.error('sharedLists.getUserLists memberships:', memError);
@@ -106,12 +162,182 @@ export async function getUserLists(userId) {
     return { data: null, error: listsError };
   }
 
-  const enriched = (lists || []).map((list) => ({
-    ...list,
-    membership: metaByListId[list.id] || null,
-  }));
+  let { data: membersData, error: membersError } = await supabase
+    .from('list_members')
+    .select('list_id, user_id, role, joined_at')
+    .in('list_id', ids);
+
+  if (membersError && isJoinedAtColumnError(membersError)) {
+    const fallback = await supabase
+      .from('list_members')
+      .select('list_id, user_id, role')
+      .in('list_id', ids);
+    membersData = (fallback.data || []).map((m) => ({ ...m, joined_at: null }));
+    membersError = fallback.error;
+  }
+
+  if (membersError) {
+    console.error('sharedLists.getUserLists members:', membersError);
+    return { data: null, error: membersError };
+  }
+
+  const profileIds = [
+    ...new Set(
+      (membersData || [])
+        .map((m) => m.user_id)
+        .concat((lists || []).flatMap((list) => (list.list_items || []).map((i) => i.added_by)))
+        .filter(Boolean)
+    ),
+  ];
+
+  let profileMap = {};
+  if (profileIds.length > 0) {
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, email, username, display_name, avatar_url')
+      .in('id', profileIds);
+    if (profilesError) {
+      console.error('sharedLists.getUserLists profiles:', profilesError);
+      return { data: null, error: profilesError };
+    }
+    profileMap = Object.fromEntries((profilesData || []).map((p) => [p.id, p]));
+  }
+
+  const membersByList = (membersData || []).reduce((acc, member) => {
+    const listMembers = acc[member.list_id] || [];
+    listMembers.push({
+      ...member,
+      profile: profileMap[member.user_id] || null,
+    });
+    acc[member.list_id] = listMembers;
+    return acc;
+  }, {});
+
+  const enriched = (lists || []).map((list) => {
+    const listItems = (list.list_items || []).map((item) => ({
+      ...item,
+      added_by_profile: item.added_by ? profileMap[item.added_by] || null : null,
+    }));
+    return {
+      ...list,
+      list_items: listItems,
+      list_members: membersByList[list.id] || [],
+      membership: metaByListId[list.id] || null,
+    };
+  });
 
   return { data: enriched, error: null };
+}
+
+/**
+ * List collaborators for a specific list.
+ * @param {string} listId
+ * @returns {Promise<{ data: Array | null, error: Error | null }>}
+ */
+export async function getListMembers(listId) {
+  const supabase = getSupabase();
+  const { data: membersData, error } = await supabase
+    .from('list_members')
+    .select('list_id, user_id, role, joined_at')
+    .eq('list_id', listId);
+  if (error) return { data: null, error };
+
+  const memberIds = [...new Set((membersData || []).map((m) => m.user_id).filter(Boolean))];
+  if (memberIds.length === 0) return { data: [], error: null };
+
+  const { data: profilesData, error: profilesError } = await supabase
+    .from('profiles')
+    .select('id, email, username, display_name, avatar_url')
+    .in('id', memberIds);
+  if (profilesError) return { data: null, error: profilesError };
+
+  const profileMap = Object.fromEntries((profilesData || []).map((p) => [p.id, p]));
+  return {
+    data: (membersData || []).map((member) => ({
+      ...member,
+      profile: profileMap[member.user_id] || null,
+    })),
+    error: null,
+  };
+}
+
+/**
+ * Invite a collaborator by UUID/email/username.
+ * @param {string} listId
+ * @param {string} identifier
+ * @param {'editor'|'viewer'} [role='editor']
+ * @returns {Promise<{ data: object | null, error: Error | null }>}
+ */
+export async function inviteListMember(listId, identifier, role = 'editor') {
+  const supabase = getSupabase();
+  const normalizedRole = VALID_ROLES.has(role) ? role : 'editor';
+  if (normalizedRole === 'owner') {
+    return { data: null, error: new Error('Owner role cannot be invited.') };
+  }
+
+  const { data: profile, error: profileError } = await resolveProfileByIdentifier(identifier);
+  if (profileError) return { data: null, error: profileError };
+
+  const { error: upsertError } = await supabase.from('list_members').upsert(
+    {
+      list_id: listId,
+      user_id: profile.id,
+      role: normalizedRole,
+    },
+    { onConflict: 'list_id,user_id' }
+  );
+  if (upsertError) return { data: null, error: upsertError };
+
+  return {
+    data: {
+      list_id: listId,
+      user_id: profile.id,
+      role: normalizedRole,
+      profile,
+    },
+    error: null,
+  };
+}
+
+/**
+ * Change a collaborator role.
+ * @param {string} listId
+ * @param {string} memberUserId
+ * @param {'editor'|'viewer'} role
+ * @returns {Promise<{ data: object | null, error: Error | null }>}
+ */
+export async function updateListMemberRole(listId, memberUserId, role) {
+  const supabase = getSupabase();
+  if (!VALID_ROLES.has(role) || role === 'owner') {
+    return { data: null, error: new Error('Invalid role update.') };
+  }
+
+  const { data, error } = await supabase
+    .from('list_members')
+    .update({ role })
+    .eq('list_id', listId)
+    .eq('user_id', memberUserId)
+    .select('list_id, user_id, role, joined_at')
+    .single();
+  if (error) return { data: null, error };
+  return { data, error: null };
+}
+
+/**
+ * Remove a collaborator from a list.
+ * @param {string} listId
+ * @param {string} memberUserId
+ * @returns {Promise<{ data: boolean, error: Error | null }>}
+ */
+export async function removeListMember(listId, memberUserId) {
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from('list_members')
+    .delete()
+    .eq('list_id', listId)
+    .eq('user_id', memberUserId);
+  if (error) return { data: false, error };
+  return { data: true, error: null };
 }
 
 /**

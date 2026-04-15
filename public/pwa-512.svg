@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Filmgraph icon">
+  <rect width="512" height="512" rx="96" fill="#0a0a0a" />
+  <rect x="72" y="72" width="368" height="368" rx="64" fill="#991b1b" />
+  <path d="M148 330h216v38H148z" fill="#f97316" />
+  <path d="M256 156l72 144H184z" fill="#fff" />
+</svg>

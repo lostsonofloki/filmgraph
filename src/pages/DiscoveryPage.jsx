@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
+import { useLists } from '../context/ListContext';
 import { useToast } from '../context/ToastContext';
 import { getSupabase } from '../supabaseClient';
 import { getHybridRecommendation, BASE_SYSTEM_PROMPT } from '../utils/gemini';
+import { canUseOracle, recordOracleUse } from '../utils/oracleBudget';
 import { fetchTMDBMovie } from '../api/tmdb';
 import { Link } from 'react-router-dom';
 import LogMovieModal from '../components/LogMovieModal';
@@ -19,6 +21,7 @@ const MOOD_PRESETS = [
 
 function DiscoveryPage() {
   const { user } = useUser();
+  const { lists, addMovieToList, isMovieInList, canEditList } = useLists();
   const toast = useToast();
   const [selectedMood, setSelectedMood] = useState(null);
   const [tempPrompt, setTempPrompt] = useState('');
@@ -33,7 +36,18 @@ function DiscoveryPage() {
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [selectedMovieForModal, setSelectedMovieForModal] = useState(null);
   const [isListDropdownOpen, setIsListDropdownOpen] = useState(false);
-  const [userLists, setUserLists] = useState([]);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   /**
    * Optimized History Fetch - Watched + To-Watch + Custom Lists
@@ -46,12 +60,21 @@ function DiscoveryPage() {
       const supabase = getSupabase();
 
       // Parallel execution for sub-500ms data prep
-      const [libraryResult, listItemsResult] = await Promise.all([
-        // Bucket 1 & 2: Watched and To-Watch from movie_logs
+      const [watchedResult, recentToWatchResult, listItemsResult] = await Promise.all([
+        // Top 20 watched titles for profile hydration
         supabase
           .from('movie_logs')
           .select('title, watch_status, rating')
           .eq('user_id', user.id),
+
+        // Last 5 to-watch titles for "intent" context
+        supabase
+          .from('movie_logs')
+          .select('title, created_at')
+          .eq('user_id', user.id)
+          .eq('watch_status', 'to-watch')
+          .order('created_at', { ascending: false })
+          .limit(5),
 
         // Bucket 3: Every title from every custom list the user owns
         // Uses a "Join" - selecting titles where the parent list belongs to the user
@@ -61,7 +84,8 @@ function DiscoveryPage() {
           .eq('lists.user_id', user.id)
       ]);
 
-      const logs = libraryResult.data || [];
+      const logs = watchedResult.data || [];
+      const recentToWatch = recentToWatchResult.data || [];
       const listItems = listItemsResult.data || [];
 
       // 1. Every title the user has ever touched (for the "Banned" list)
@@ -74,15 +98,17 @@ function DiscoveryPage() {
       // Only send high-rated Watched movies and Custom List entries to the AI
       const positiveWatched = logs
         .filter(l => l.watch_status === 'watched' && (l.rating >= 4 || !l.rating))
+        .slice(0, 20)
         .map(l => l.title);
       
       const curatedTitles = listItems.map(i => i.title);
+      const recentToWatchTitles = recentToWatch.map((m) => m.title).filter(Boolean);
 
-      const tasteProfile = [...new Set([...positiveWatched, ...curatedTitles])];
+      const tasteProfile = [...new Set([...positiveWatched, ...recentToWatchTitles, ...curatedTitles])];
       
       // Set deduplication is O(n) - keeps it fast
       const userTasteContext = tasteProfile.length > 0
-        ? `User's Curated Favorites: ${tasteProfile.slice(0, 40).join(', ')}`
+        ? `TopWatched20: ${positiveWatched.join(', ')}\nLastToWatch5: ${recentToWatchTitles.join(', ')}\nCuratedLists: ${curatedTitles.slice(0, 20).join(', ')}`
         : 'No history found.';
 
       console.log(`📚 Oracle Memory: ${allKnownTitles.length} titles banned, ${tasteProfile.length} in taste profile`);
@@ -93,25 +119,6 @@ function DiscoveryPage() {
       return { allKnownTitles: [], userTasteContext: '' };
     }
   };
-
-  // Fetch user's custom lists
-  useEffect(() => {
-    const fetchLists = async () => {
-      if (!user?.id) return;
-      try {
-        const supabase = getSupabase();
-        const { data } = await supabase
-          .from('lists')
-          .select('id, name, description')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-        setUserLists(data || []);
-      } catch (err) {
-        console.error('Error fetching lists:', err);
-      }
-    };
-    fetchLists();
-  }, [user?.id]);
 
   const handleMoodSelect = (mood) => {
     setSelectedMood(mood);
@@ -138,6 +145,11 @@ function DiscoveryPage() {
     setTmdbResults([]);
 
     try {
+      const budget = await canUseOracle(user?.id);
+      if (!budget.allowed) {
+        throw new Error('Daily Oracle limit reached for free tier. Try again tomorrow.');
+      }
+
       // Fetch user's entire movie history in parallel
       const { allKnownTitles, userTasteContext } = await fetchUserMovieHistory();
 
@@ -172,6 +184,7 @@ function DiscoveryPage() {
       
       // Keep ALL results (including nulls) to preserve index alignment
       setTmdbResults(tmdbResponses);
+      await recordOracleUse(user?.id);
 
     } catch (err) {
       console.error('Discovery error:', err);
@@ -215,6 +228,11 @@ function DiscoveryPage() {
   return (
     <div className="discovery-page">
       <div className="discovery-container">
+        {!isOnline && (
+          <div className="error" style={{ marginBottom: '12px' }}>
+            Offline mode: Oracle requests may be limited until your connection returns.
+          </div>
+        )}
         <div className="discovery-header">
           <div className="oracle-icon">🔮</div>
           <h1>Oracle</h1>
@@ -423,7 +441,7 @@ function DiscoveryPage() {
                         <button
                           onClick={() => setIsListDropdownOpen(!isListDropdownOpen)}
                           className="lib-action-btn"
-                          disabled={userLists.length === 0}
+                          disabled={lists.length === 0}
                         >
                           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
@@ -432,22 +450,22 @@ function DiscoveryPage() {
                           </svg>
                           Add to List
                         </button>
-                        {isListDropdownOpen && userLists.length > 0 && (
+                        {isListDropdownOpen && lists.length > 0 && (
                           <div className="list-dropdown" style={{ right: 0, overflow: 'visible', zIndex: 9999 }}>
-                            {userLists.map((list) => (
+                            {lists.map((list) => {
+                              const isInList = isMovieInList(list.id, movieTmdb?.id);
+                              const isReadOnly = !canEditList(list.id);
+                              return (
                               <button
                                 key={list.id}
                                 onClick={async () => {
+                                  if (!movieTmdb?.id || isInList || isReadOnly) return;
                                   try {
-                                    const supabase = getSupabase();
-                                    const { error } = await supabase.from('list_items').insert({
-                                      list_id: list.id,
+                                    await addMovieToList(list.id, {
                                       tmdb_id: movieTmdb.id,
                                       title: movieTmdb.title,
                                       poster_path: movieTmdb.poster_path,
-                                      added_by: user.id,
                                     });
-                                    if (error) throw error;
                                     toast.success(`Added to ${list.name}`);
                                     setIsListDropdownOpen(false);
                                   } catch (err) {
@@ -456,10 +474,12 @@ function DiscoveryPage() {
                                   }
                                 }}
                                 className="list-dropdown-item"
+                                disabled={isInList || isReadOnly}
                               >
                                 {list.name}
+                                {isInList ? ' • Added' : isReadOnly ? ' • Viewer' : ''}
                               </button>
-                            ))}
+                            )})}
                           </div>
                         )}
                       </div>

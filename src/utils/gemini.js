@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { fetchGroqGenres, TMDB_GENRES } from './groq';
 
-// Initialize Gemini AI with v1beta endpoint for Gemini 3 Preview models
+// Initialize Gemini AI client
 
 /**
  * Base system prompt for the Oracle
@@ -44,14 +44,179 @@ if (!apiKey) {
   console.error('❌ VITE_GEMINI_API_KEY is not configured!');
 }
 
-// Use v1beta API endpoint required for Gemini 3 Preview models
-const genAI = new GoogleGenerativeAI(apiKey);
+const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
-// Gemini 3.1 Flash Lite Preview - March 2026 workhorse model (15 RPM limit)
-const MODEL_NAME = "gemini-3.1-flash-lite-preview";
+// Keep a model ladder because Google model availability can change per key/project.
+const GEMINI_MODEL_CANDIDATES = [
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite',
+  'gemini-1.5-flash-latest',
+  'gemini-1.5-pro-latest',
+];
 
 // Cache TTL: 24 hours in milliseconds
 const CACHE_TTL = 24 * 60 * 60 * 1000;
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const OPENROUTER_MODELS = [
+  'google/gemini-2.0-flash-001',
+  'meta-llama/llama-3.3-70b-instruct',
+  'openai/gpt-4o-mini',
+];
+
+const toErrorString = (error) => String(error?.message || error || '').toLowerCase();
+
+const isRetryableGeminiError = (error) => {
+  const raw = toErrorString(error);
+  return (
+    raw.includes('404') ||
+    raw.includes('429') ||
+    raw.includes('500') ||
+    raw.includes('503') ||
+    raw.includes('high demand') ||
+    raw.includes('overloaded') ||
+    raw.includes('not found') ||
+    raw.includes('not supported')
+  );
+};
+
+const parseJsonResponse = (responseText) => {
+  const cleanJson = String(responseText || '').replace(/```json\s*|\s*```/g, '').trim();
+  return JSON.parse(cleanJson);
+};
+
+const runOpenRouterWithFallback = async (prompt, generationConfig, validator) => {
+  const openRouterApiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+  if (!openRouterApiKey) {
+    throw new Error('OpenRouter fallback unavailable: missing VITE_OPENROUTER_API_KEY');
+  }
+
+  let lastError;
+
+  for (let i = 0; i < OPENROUTER_MODELS.length; i += 1) {
+    const modelName = OPENROUTER_MODELS[i];
+    try {
+      const response = await fetch(OPENROUTER_API_URL, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${openRouterApiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': window.location.origin,
+          'X-Title': 'Filmgraph Oracle',
+        },
+        body: JSON.stringify({
+          model: modelName,
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: 'Return valid JSON only.' },
+            { role: 'user', content: prompt },
+          ],
+          temperature: generationConfig?.temperature ?? 0.9,
+          max_tokens: generationConfig?.maxOutputTokens ?? 1200,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenRouter error ${response.status}`);
+      }
+
+      const data = await response.json();
+      const message = data?.choices?.[0]?.message?.content;
+      const parsed = parseJsonResponse(message);
+      if (validator) validator(parsed);
+      return { parsed, modelUsed: modelName };
+    } catch (error) {
+      lastError = error;
+      if (i === OPENROUTER_MODELS.length - 1) {
+        throw error;
+      }
+      console.warn(`⚠️ OpenRouter model failed (${modelName}). Trying next model.`);
+    }
+  }
+
+  throw lastError || new Error('No OpenRouter model available');
+};
+
+const runGeminiWithFallback = async (prompt, generationConfig, validator) => {
+  if (!genAI) {
+    throw new Error('Gemini unavailable: missing VITE_GEMINI_API_KEY');
+  }
+
+  let lastError;
+
+  for (let i = 0; i < GEMINI_MODEL_CANDIDATES.length; i += 1) {
+    const modelName = GEMINI_MODEL_CANDIDATES[i];
+
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig,
+      });
+
+      const result = await model.generateContentStream(prompt);
+      const chunks = [];
+      for await (const chunk of result.stream) {
+        chunks.push(chunk.text());
+      }
+
+      const parsed = parseJsonResponse(chunks.join(''));
+      if (validator) validator(parsed);
+
+      return { parsed, modelUsed: modelName };
+    } catch (error) {
+      lastError = error;
+      if (i === GEMINI_MODEL_CANDIDATES.length - 1 || !isRetryableGeminiError(error)) {
+        throw error;
+      }
+      console.warn(`⚠️ Gemini model failed (${modelName}). Trying next model.`);
+    }
+  }
+
+  throw lastError || new Error('No Gemini model available');
+};
+
+const getLocalVibeCheck = (vibe) => {
+  const trimmed = String(vibe || '').trim();
+  if (!trimmed) return 'Tailored pick for your mood';
+  const words = trimmed.split(/\s+/).slice(0, 7).join(' ');
+  return `${words}${words.length < trimmed.length ? '...' : ''}`;
+};
+
+const buildTmdbFallbackRecommendations = async (vibe, genreIds, rejectedTitles = []) => {
+  const tmdbApiKey = import.meta.env.VITE_TMDB_API_KEY;
+  if (!tmdbApiKey) {
+    throw new Error('TMDB fallback unavailable: missing VITE_TMDB_API_KEY');
+  }
+
+  const rejected = new Set(rejectedTitles.map((t) => String(t || '').toLowerCase()));
+  const uniqueGenreIds = (genreIds || []).filter(Boolean);
+  const genreParam = uniqueGenreIds.length > 0 ? `&with_genres=${uniqueGenreIds.join('|')}` : '';
+  const page = 1 + Math.floor(Math.random() * 3);
+
+  const response = await fetch(
+    `https://api.themoviedb.org/3/discover/movie?api_key=${tmdbApiKey}&include_adult=false&sort_by=vote_average.desc&vote_count.gte=300&page=${page}${genreParam}`
+  );
+
+  if (!response.ok) {
+    throw new Error(`TMDB fallback failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const picks = (data?.results || [])
+    .filter((movie) => movie?.title && !rejected.has(String(movie.title).toLowerCase()))
+    .slice(0, 5)
+    .map((movie) => ({
+      title: movie.title,
+      year: movie.release_date?.split('-')[0] ? Number(movie.release_date.split('-')[0]) : null,
+      rationale: `Gemini is currently unavailable, so this pick is sourced from TMDB based on your vibe and genre fit. ${movie.title} has strong audience reception and should align with your current request.`,
+      vibeCheck: getLocalVibeCheck(vibe),
+    }));
+
+  if (picks.length === 0) {
+    throw new Error('TMDB fallback returned no usable results');
+  }
+
+  return picks;
+};
 
 /**
  * Get AI-powered movie recommendations with caching
@@ -108,16 +273,6 @@ export const getMovieRecommendations = async ({
   // Combine banished IDs and library IDs into one exclusion list
   const excludedIds = [...new Set([...banishedIds, ...libraryIds])];
 
-  // Initialize Gemini model with minimal thinking for speed
-  const model = genAI.getGenerativeModel({
-    model: MODEL_NAME,
-    generationConfig: {
-      temperature: 0.7,
-      maxOutputTokens: 1000,
-      responseMimeType: 'application/json',
-    },
-  });
-
   const exclusionNote = excludedIds.length > 0
     ? `\n\nSTRICT CONSTRAINT - DO NOT suggest these TMDB IDs: [${excludedIds.join(',')}]. User already has these or rejected them.`
     : '';
@@ -144,14 +299,19 @@ Format:
 [{"title":"Movie Name","year":2023,"vibeCheck":"One-sentence mood description"}]`;
 
   try {
-    const result = await model.generateContentStream(prompt);
-    const chunks = [];
-    for await (const chunk of result.stream) {
-      chunks.push(chunk.text());
-    }
-
-    const responseText = chunks.join('');
-    const recommendations = JSON.parse(responseText);
+    const { parsed: recommendations } = await runGeminiWithFallback(
+      prompt,
+      {
+        temperature: 0.7,
+        maxOutputTokens: 1000,
+        responseMimeType: 'application/json',
+      },
+      (parsed) => {
+        if (!Array.isArray(parsed)) {
+          throw new Error('Invalid response format from Gemini');
+        }
+      }
+    );
 
     // Cache the results
     if (supabase && userId) {
@@ -243,15 +403,6 @@ export const verifyRecommendation = async (title, year) => {
  * @returns {Promise<Object>} - Mood analysis and patterns
  */
 export const analyzeMoodPatterns = async (movieLogs) => {
-  const model = genAI.getGenerativeModel({
-    model: MODEL_NAME,
-    generationConfig: {
-      temperature: 0.7,
-      maxOutputTokens: 500,
-      responseMimeType: 'application/json',
-    },
-  });
-
   const moodData = movieLogs
     .filter(m => m.moods && m.moods.length > 0)
     .slice(0, 20)
@@ -269,12 +420,20 @@ Return JSON with these exact keys:
 {"dominant_category":"emotional|vibe|intellectual","horror_palate":"description of their core aesthetic across all genres","surprising_observation":"insight about their viewing patterns","curators_note":"diverse film advice referencing multiple genres they enjoy"}`;
 
   try {
-    const result = await model.generateContentStream(prompt);
-    const chunks = [];
-    for await (const chunk of result.stream) {
-      chunks.push(chunk.text());
-    }
-    return JSON.parse(chunks.join(''));
+    const { parsed } = await runGeminiWithFallback(
+      prompt,
+      {
+        temperature: 0.7,
+        maxOutputTokens: 500,
+        responseMimeType: 'application/json',
+      },
+      (result) => {
+        if (!result || typeof result !== 'object' || Array.isArray(result)) {
+          throw new Error('Invalid mood analysis format from Gemini');
+        }
+      }
+    );
+    return parsed;
   } catch (error) {
     console.error('Error analyzing mood patterns:', error);
     return null;
@@ -294,15 +453,6 @@ export const discoverMovies = async ({
   userContext,
   systemPrompt,
 }) => {
-  const model = genAI.getGenerativeModel({
-    model: MODEL_NAME,
-    generationConfig: {
-      temperature: 0.9,
-      maxOutputTokens: 500,
-      responseMimeType: 'application/json',
-    },
-  });
-
   const prompt = `${systemPrompt}
 
 USER CONTEXT:
@@ -317,15 +467,20 @@ Format:
 {"title":"Exact Movie Title","year":2023,"rationale":"2-3 sentences explaining why this matches their mood","vibeCheck":"5-7 word punchy tagline"}`;
 
   try {
-    const result = await model.generateContentStream(prompt);
-    const chunks = [];
-    for await (const chunk of result.stream) {
-      chunks.push(chunk.text());
-    }
-
-    const responseText = chunks.join('');
-    const cleanJson = responseText.replace(/```json\s*|\s*```/g, '').trim();
-    return JSON.parse(cleanJson);
+    const { parsed } = await runGeminiWithFallback(
+      prompt,
+      {
+        temperature: 0.9,
+        maxOutputTokens: 500,
+        responseMimeType: 'application/json',
+      },
+      (result) => {
+        if (!result || typeof result !== 'object' || Array.isArray(result)) {
+          throw new Error('Invalid Oracle response format from Gemini');
+        }
+      }
+    );
+    return parsed;
   } catch (error) {
     console.error('Error in Oracle discovery:', error);
     throw new Error('The Oracle is silent. Please try again.');
@@ -370,16 +525,6 @@ export const getHybridRecommendation = async (vibe, options = {}) => {
   } catch (groqError) {
     console.warn('⚠️ Groq failed, falling back to Gemini-only mode:', groqError.message);
   }
-
-  // Step 2: Gemini deep reasoning with (optional) genre context
-  const model = genAI.getGenerativeModel({
-    model: MODEL_NAME,
-    generationConfig: {
-      temperature: 0.9,
-      maxOutputTokens: 1500,
-      responseMimeType: 'application/json',
-    },
-  });
 
   const genreContext = groqSuccess && genreIds.length > 0
     ? `\n\nEXTRACTED GENRE IDS: [${genreIds.join(', ')}]
@@ -427,30 +572,78 @@ Format:
 }`;
 
   try {
-    const result = await model.generateContentStream(prompt);
-    const chunks = [];
-    for await (const chunk of result.stream) {
-      chunks.push(chunk.text());
-    }
-
-    const responseText = chunks.join('');
-    const cleanJson = responseText.replace(/```json\s*|\s*```/g, '').trim();
-    const parsed = JSON.parse(cleanJson);
-
-    if (!parsed || !Array.isArray(parsed.recommendations) || parsed.recommendations.length === 0) {
-      throw new Error('Invalid response format from Gemini');
-    }
+    const { parsed, modelUsed } = await runGeminiWithFallback(
+      prompt,
+      {
+        temperature: 0.9,
+        maxOutputTokens: 1500,
+        responseMimeType: 'application/json',
+      },
+      (result) => {
+        if (!result || !Array.isArray(result.recommendations) || result.recommendations.length === 0) {
+          throw new Error('Invalid response format from Gemini');
+        }
+      }
+    );
 
     return {
       recommendations: parsed.recommendations,
       _meta: {
+        provider: 'gemini',
         groqUsed: groqSuccess,
         genreIds: genreIds,
+        modelUsed,
         latency: groqSuccess ? `${Math.round(performance.now() - startTime)}ms` : 'fallback',
       },
     };
   } catch (error) {
     console.error('❌ Hybrid recommendation failed:', error.message);
-    throw new Error('The Oracle is silent. Please try again.');
+
+    try {
+      const { parsed, modelUsed } = await runOpenRouterWithFallback(
+        prompt,
+        {
+          temperature: 0.9,
+          maxOutputTokens: 1500,
+        },
+        (result) => {
+          if (!result || !Array.isArray(result.recommendations) || result.recommendations.length === 0) {
+            throw new Error('Invalid response format from OpenRouter');
+          }
+        }
+      );
+
+      return {
+        recommendations: parsed.recommendations,
+        _meta: {
+          provider: 'openrouter',
+          groqUsed: groqSuccess,
+          genreIds,
+          modelUsed,
+          latency: `${Math.round(performance.now() - startTime)}ms`,
+          fallbackReason: 'gemini_unavailable',
+        },
+      };
+    } catch (openRouterError) {
+      console.warn('⚠️ OpenRouter fallback failed:', openRouterError.message);
+    }
+
+    try {
+      const fallbackRecommendations = await buildTmdbFallbackRecommendations(vibe, genreIds, rejectedTitles);
+      return {
+        recommendations: fallbackRecommendations,
+        _meta: {
+          provider: 'tmdb',
+          groqUsed: groqSuccess,
+          genreIds,
+          modelUsed: 'tmdb-fallback',
+          latency: `${Math.round(performance.now() - startTime)}ms`,
+          fallbackReason: 'gemini_unavailable',
+        },
+      };
+    } catch (fallbackError) {
+      console.error('❌ TMDB fallback failed:', fallbackError.message);
+      throw new Error('The Oracle is silent. Please try again.');
+    }
   }
 };

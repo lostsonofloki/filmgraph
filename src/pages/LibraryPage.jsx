@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { useLists } from '../context/ListContext';
+import { useToast } from '../context/ToastContext';
 import { getSupabase } from '../supabaseClient';
 import LogMovieModal from '../components/LogMovieModal';
 import MovieCard from '../components/MovieCard';
@@ -9,6 +10,7 @@ import CreateListModal from '../components/CreateListModal';
 import ArchiveImporterModal from '../components/ArchiveImporterModal';
 import { MovieGridSkeleton } from '../components/Skeleton';
 import { runPosterMigration } from '../utils/posterMigration';
+import { parseLibraryQuery } from '../utils/naturalLanguageSort';
 import './LibraryPage.css';
 
 const SORT_OPTIONS = [
@@ -20,7 +22,18 @@ const SORT_OPTIONS = [
 function LibraryPage() {
   const { user, isAuthenticated } = useUser();
   const navigate = useNavigate();
-  const { lists, fetchLists, removeMovieFromList } = useLists();
+  const location = useLocation();
+  const toast = useToast();
+  const {
+    lists,
+    fetchLists,
+    removeMovieFromList,
+    inviteCollaborator,
+    changeCollaboratorRole,
+    removeCollaborator,
+    isListOwner,
+    canEditList,
+  } = useLists();
   const [activeTab, setActiveTab] = useState('watched');
   const [movies, setMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,9 +44,50 @@ function LibraryPage() {
   const [selectedMood, setSelectedMood] = useState('');
   const [sortBy, setSortBy] = useState('date_newest');
   const [showCreateListModal, setShowCreateListModal] = useState(false);
+  const [showScanModal, setShowScanModal] = useState(false);
   const [selectedList, setSelectedList] = useState(null);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [naturalQuery, setNaturalQuery] = useState('');
   const [isMigratingPosters, setIsMigratingPosters] = useState(false);
+  const [collaboratorInput, setCollaboratorInput] = useState('');
+  const [collaboratorRole, setCollaboratorRole] = useState('editor');
+  const [isInvitingCollaborator, setIsInvitingCollaborator] = useState(false);
+  const [collabActionLoading, setCollabActionLoading] = useState('');
+  const [parsedQuery, setParsedQuery] = useState(parseLibraryQuery(''));
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    const parsed = parseLibraryQuery(naturalQuery);
+    setParsedQuery(parsed);
+
+    if (parsed.sortBy) {
+      setSortBy(parsed.sortBy);
+    }
+
+    if (parsed.status && parsed.status !== activeTab) {
+      setActiveTab(parsed.status);
+      setSelectedList(null);
+    }
+
+    if (parsed.mood) {
+      setSelectedMood(parsed.mood);
+    }
+
+    if (parsed.searchText) {
+      setSearchQuery(parsed.searchText);
+    }
+  }, [naturalQuery, activeTab]);
 
   const fetchMovies = useCallback(async () => {
     if (!user?.id) return;
@@ -66,6 +120,52 @@ function LibraryPage() {
     fetchMovies();
   }, [isAuthenticated, navigate, fetchMovies]);
 
+  useEffect(() => {
+    if (!selectedList?.id) return;
+    const latest = lists.find((list) => list.id === selectedList.id);
+    if (latest) {
+      setSelectedList(latest);
+    } else {
+      setSelectedList(null);
+    }
+  }, [lists, selectedList?.id]);
+
+  useEffect(() => {
+    const requestedListId = new URLSearchParams(location.search).get('list');
+    if (!requestedListId || lists.length === 0) return;
+
+    const requestedList = lists.find((list) => list.id === requestedListId);
+    if (!requestedList) return;
+
+    setSelectedList(requestedList);
+    setActiveTab('lists');
+    navigate('/library', { replace: true });
+  }, [location.search, lists, navigate]);
+
+  useEffect(() => {
+    if (activeTab !== 'lists' || !selectedList?.id) return;
+    const supabase = getSupabase();
+    const channel = supabase
+      .channel(`shared-list-${selectedList.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'list_items',
+          filter: `list_id=eq.${selectedList.id}`,
+        },
+        async () => {
+          await fetchLists();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeTab, selectedList?.id, fetchLists]);
+
   const handleEdit = (e, movie) => {
     e.stopPropagation();
     setEditingMovie(movie);
@@ -92,28 +192,6 @@ function LibraryPage() {
     }
   };
 
-  const handleCreateList = async (name, description) => {
-    try {
-      const supabase = getSupabase();
-      const { error } = await supabase
-        .from('lists')
-        .insert({
-          user_id: user.id,
-          name,
-          description,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      setShowCreateListModal(false);
-      fetchLists();
-    } catch (err) {
-      console.error('Error creating list:', err);
-      setError('Failed to create list.');
-    }
-  };
-
   const handleDeleteList = async (listId) => {
     if (!confirm('Delete this list?')) return;
     try {
@@ -121,14 +199,61 @@ function LibraryPage() {
       await supabase.from('list_items').delete().eq('list_id', listId);
       await supabase.from('lists').delete().eq('id', listId);
       fetchLists();
+      setSelectedList(null);
+      toast.success('List deleted.');
     } catch (err) {
       console.error('Error deleting list:', err);
+      toast.error('Failed to delete list.');
     }
   };
 
   const handleViewList = (list) => {
     setSelectedList(list);
     setActiveTab('lists');
+  };
+
+  const handleInviteCollaborator = async () => {
+    if (!selectedList?.id || !collaboratorInput.trim()) return;
+    try {
+      setIsInvitingCollaborator(true);
+      await inviteCollaborator(selectedList.id, collaboratorInput.trim(), collaboratorRole);
+      setCollaboratorInput('');
+      toast.success('Collaborator added.');
+    } catch (err) {
+      console.error('Invite collaborator error:', err);
+      toast.error(err.message || 'Failed to invite collaborator.');
+    } finally {
+      setIsInvitingCollaborator(false);
+    }
+  };
+
+  const handleRemoveCollaborator = async (memberUserId) => {
+    if (!selectedList?.id) return;
+    if (!confirm('Remove this collaborator from the list?')) return;
+    try {
+      setCollabActionLoading(`remove-${memberUserId}`);
+      await removeCollaborator(selectedList.id, memberUserId);
+      toast.success('Collaborator removed.');
+    } catch (err) {
+      console.error('Remove collaborator error:', err);
+      toast.error(err.message || 'Failed to remove collaborator.');
+    } finally {
+      setCollabActionLoading('');
+    }
+  };
+
+  const handleRoleChange = async (memberUserId, role) => {
+    if (!selectedList?.id) return;
+    try {
+      setCollabActionLoading(`role-${memberUserId}`);
+      await changeCollaboratorRole(selectedList.id, memberUserId, role);
+      toast.success(`Role updated to ${role}.`);
+    } catch (err) {
+      console.error('Role change error:', err);
+      toast.error(err.message || 'Failed to update role.');
+    } finally {
+      setCollabActionLoading('');
+    }
   };
 
   const handleRefreshPosters = async () => {
@@ -152,9 +277,12 @@ function LibraryPage() {
   };
 
   const filteredMovies = movies.filter((movie) => {
-    const matchesSearch = movie.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const normalizedSearch = (parsedQuery.searchText || searchQuery).toLowerCase();
+    const matchesSearch = movie.title.toLowerCase().includes(normalizedSearch);
     const matchesMood = !selectedMood || (movie.moods && movie.moods.includes(selectedMood));
-    return matchesSearch && matchesMood;
+    const runtimeValue = Number(movie.runtime_minutes || movie.runtime || 0);
+    const matchesRuntime = !parsedQuery.maxRuntime || !runtimeValue || runtimeValue <= parsedQuery.maxRuntime;
+    return matchesSearch && matchesMood && matchesRuntime;
   });
 
   const sortedMovies = [...filteredMovies].sort((a, b) => {
@@ -191,6 +319,20 @@ function LibraryPage() {
               ✨ Magic Import
             </button>
             <button
+              className="btn-scan"
+              onClick={() => setShowScanModal(true)}
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M4 7V5a1 1 0 0 1 1-1h2" />
+                <path d="M20 7V5a1 1 0 0 0-1-1h-2" />
+                <path d="M4 17v2a1 1 0 0 0 1 1h2" />
+                <path d="M20 17v2a1 1 0 0 1-1 1h-2" />
+                <path d="M7 12h10" />
+                <path d="M9 9v6" />
+              </svg>
+              📷 Scan Barcode
+            </button>
+            <button
               className="create-list-btn"
               onClick={() => setShowCreateListModal(true)}
             >
@@ -210,6 +352,12 @@ function LibraryPage() {
           </div>
         </div>
 
+        {!isOnline && (
+          <div className="error" style={{ marginBottom: '16px' }}>
+            Offline mode active: you can browse cached content and queued movie logs will sync later.
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="library-tabs">
           <button
@@ -228,7 +376,7 @@ function LibraryPage() {
             className={`tab ${activeTab === 'lists' ? 'active' : ''}`}
             onClick={() => setActiveTab('lists')}
           >
-            My Lists ({lists.length})
+            Lists ({lists.length})
           </button>
         </div>
 
@@ -245,16 +393,93 @@ function LibraryPage() {
                     ← Back to Lists
                   </button>
                   <h2>{selectedList.name}</h2>
-                  <button
-                    className="delete-list-btn"
-                    onClick={() => handleDeleteList(selectedList.id)}
-                  >
-                    Delete List
-                  </button>
+                  {isListOwner(selectedList.id) && (
+                    <button
+                      className="delete-list-btn"
+                      onClick={() => handleDeleteList(selectedList.id)}
+                    >
+                      Delete List
+                    </button>
+                  )}
                 </div>
                 {selectedList.description && (
                   <p className="text-sm text-zinc-500 mb-6">{selectedList.description}</p>
                 )}
+                <div className="list-collab-panel">
+                  <div className="list-collab-header">
+                    <h3>Collaborators</h3>
+                    <span>
+                      Role: <strong>{selectedList.membership?.role || 'viewer'}</strong>
+                    </span>
+                  </div>
+
+                  {isListOwner(selectedList.id) && (
+                    <div className="list-collab-invite">
+                      <input
+                        type="text"
+                        value={collaboratorInput}
+                        onChange={(e) => setCollaboratorInput(e.target.value)}
+                        placeholder="Invite by email, username, or UUID"
+                        className="collab-input"
+                      />
+                      <select
+                        value={collaboratorRole}
+                        onChange={(e) => setCollaboratorRole(e.target.value)}
+                        className="collab-role-select"
+                      >
+                        <option value="editor">Editor</option>
+                        <option value="viewer">Viewer</option>
+                      </select>
+                      <button
+                        className="collab-invite-btn"
+                        disabled={isInvitingCollaborator || !collaboratorInput.trim()}
+                        onClick={handleInviteCollaborator}
+                      >
+                        {isInvitingCollaborator ? 'Inviting...' : 'Invite'}
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="collab-members">
+                    {(selectedList.list_members || []).map((member) => {
+                      const isMe = member.user_id === user?.id;
+                      const displayName =
+                        member.profile?.display_name ||
+                        member.profile?.username ||
+                        member.profile?.email ||
+                        (isMe ? 'You' : member.user_id);
+                      const memberLoading =
+                        collabActionLoading === `remove-${member.user_id}` ||
+                        collabActionLoading === `role-${member.user_id}`;
+                      return (
+                        <div key={member.user_id} className="collab-member-chip">
+                          <span className="collab-member-name">{displayName}</span>
+                          <span className={`collab-role collab-role-${member.role}`}>{member.role}</span>
+                          {isListOwner(selectedList.id) && member.role !== 'owner' && (
+                            <>
+                              <select
+                                className="collab-member-role-select"
+                                value={member.role}
+                                disabled={memberLoading}
+                                onChange={(e) => handleRoleChange(member.user_id, e.target.value)}
+                              >
+                                <option value="editor">Editor</option>
+                                <option value="viewer">Viewer</option>
+                              </select>
+                              <button
+                                className="collab-remove-btn"
+                                disabled={memberLoading}
+                                onClick={() => handleRemoveCollaborator(member.user_id)}
+                              >
+                                {memberLoading ? '...' : 'Remove'}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   {selectedList.list_items && selectedList.list_items.length > 0 ? (
                     selectedList.list_items.map((item) => (
@@ -271,14 +496,23 @@ function LibraryPage() {
                           <p className="text-xs font-medium text-zinc-300 line-clamp-1 group-hover:text-orange-500 transition-colors">
                             {item.title}
                           </p>
+                          <p className="list-item-added-by">
+                            Added by{' '}
+                            {item.added_by_profile?.display_name ||
+                              item.added_by_profile?.username ||
+                              item.added_by_profile?.email ||
+                              (item.added_by === user?.id ? 'You' : 'Unknown')}
+                          </p>
                         </div>
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded-lg">
-                          <button
-                            className="px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded hover:bg-red-700 transition-colors"
-                            onClick={() => removeMovieFromList(selectedList.id, item.tmdb_id)}
-                          >
-                            Remove
-                          </button>
+                          {canEditList(selectedList.id) && (
+                            <button
+                              className="px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded hover:bg-red-700 transition-colors"
+                              onClick={() => removeMovieFromList(selectedList.id, item.tmdb_id)}
+                            >
+                              Remove
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))
@@ -298,6 +532,13 @@ function LibraryPage() {
                           {list.list_items?.length || 0} movies
                         </span>
                       </div>
+                      <p className="list-membership-meta">
+                        {list.membership?.role === 'owner'
+                          ? 'Owner'
+                          : list.membership?.role === 'editor'
+                          ? 'Shared • Editor'
+                          : 'Shared • Viewer'}
+                      </p>
                       {list.description && (
                         <p className="list-card-description">{list.description}</p>
                       )}
@@ -343,6 +584,13 @@ function LibraryPage() {
           <>
             {/* Filters */}
             <div className="library-filters">
+              <input
+                type="text"
+                placeholder='Natural sort: "under 90 mins, unwatched, dark, highest rated"'
+                value={naturalQuery}
+                onChange={(e) => setNaturalQuery(e.target.value)}
+                className="search-input"
+              />
               <input
                 type="text"
                 placeholder="Search your library..."
@@ -420,7 +668,10 @@ function LibraryPage() {
       {showCreateListModal && (
         <CreateListModal
           onClose={() => setShowCreateListModal(false)}
-          onCreateList={handleCreateList}
+          onSuccess={() => {
+            setShowCreateListModal(false);
+            toast.success('List created.');
+          }}
         />
       )}
 
@@ -431,6 +682,19 @@ function LibraryPage() {
           onImportComplete={(stats) => {
             console.log('📦 Import complete:', stats);
             fetchMovies(); // Refresh library to show newly imported movies
+          }}
+        />
+      )}
+
+      {/* Barcode Scanner Modal */}
+      {showScanModal && (
+        <LogMovieModal
+          movie={null}
+          onClose={() => setShowScanModal(false)}
+          onSaved={() => {
+            setShowScanModal(false);
+            toast.success('Scanned movie added to your library.');
+            fetchMovies();
           }}
         />
       )}

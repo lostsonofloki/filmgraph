@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">FilmGraph</string>
+    <string name="title_activity_main">FilmGraph</string>
+    <string name="package_name">com.filmgraph.app</string>
+    <string name="custom_url_scheme">com.filmgraph.app</string>
+</resources>

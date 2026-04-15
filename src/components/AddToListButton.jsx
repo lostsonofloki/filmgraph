@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useLists } from '../context/ListContext';
 import { useUser } from '../context/UserContext';
 import { useToast } from '../context/ToastContext';
+import { checkDuplicateInCollection } from '../utils/collectionIntegrity';
 import CreateListModal from './CreateListModal';
 import './AddToListButton.css';
 
@@ -12,8 +13,15 @@ import './AddToListButton.css';
  * @param {'default' | 'icon'} variant - Button variant ('default' shows text, 'icon' shows icon only)
  */
 function AddToListButton({ movie, className = '', variant = 'default' }) {
-  const { isAuthenticated } = useUser();
-  const { lists, isLoading, addMovieToList, isMovieInList, getListsContainingMovie } = useLists();
+  const { isAuthenticated, user } = useUser();
+  const {
+    lists,
+    isLoading,
+    addMovieToList,
+    isMovieInList,
+    getListsContainingMovie,
+    canEditList,
+  } = useLists();
   const toast = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -47,6 +55,17 @@ function AddToListButton({ movie, className = '', variant = 'default' }) {
 
     try {
       setIsAdding(listId);
+      const duplicateCheck = await checkDuplicateInCollection({
+        userId: user?.id,
+        tmdbId: movie.tmdb_id,
+      });
+
+      if (duplicateCheck.isDuplicate) {
+        toast.error(`Anti-Double-Buy: ${duplicateCheck.reasons.join(' + ')}`);
+        setIsOpen(false);
+        return;
+      }
+
       await addMovieToList(listId, movie);
       toast.success(`Added to ${list.name}!`);
       setIsOpen(false);
@@ -136,17 +155,22 @@ function AddToListButton({ movie, className = '', variant = 'default' }) {
                 <div className="add-to-list-items">
                   {lists.map((list) => {
                     const isInList = isMovieInList(list.id, movie?.tmdb_id);
+                    const isReadOnly = !canEditList(list.id);
                     return (
                       <button
                         key={list.id}
-                        className={`add-to-list-item ${isInList ? 'in-list' : ''}`}
+                        className={`add-to-list-item ${isInList ? 'in-list' : ''} ${isReadOnly ? 'read-only' : ''}`}
                         onClick={() => !isInList && handleAddToList(list.id)}
-                        disabled={isInList || isAdding === list.id}
+                        disabled={isInList || isAdding === list.id || isReadOnly}
+                        title={isReadOnly ? 'View-only list' : undefined}
                       >
                         <span className="list-name">{list.name}</span>
                         <span className="list-count">
                           {list.list_items?.length || 0} movies
                         </span>
+                        {isReadOnly && (
+                          <span className="list-role-badge">Viewer</span>
+                        )}
                         {isInList ? (
                           <svg className="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M20 6L9 17l-5-5" />

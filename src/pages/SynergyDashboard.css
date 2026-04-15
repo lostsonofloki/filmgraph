@@ -48,12 +48,39 @@
   flex: 1;
 }
 
+.create-shared-list-btn {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  min-height: 44px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.create-shared-list-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(249, 115, 22, 0.35);
+}
+
+.create-shared-list-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .synergy-title {
+  font-family: Inter, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   font-size: 32px;
   font-weight: 700;
   color: #f97316;
   margin: 0;
-  text-shadow: 0 0 20px rgba(249, 115, 22, 0.3);
+  letter-spacing: -0.01em;
+  text-shadow: 0 0 12px rgba(249, 115, 22, 0.2);
 }
 
 .synergy-subtitle {
@@ -511,6 +538,10 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+  }
+
+  .create-shared-list-btn {
+    width: 100%;
   }
 
   .synergy-title {

@@ -244,6 +244,14 @@
   cursor: default;
 }
 
+.add-to-list-item.read-only {
+  opacity: 0.75;
+}
+
+.add-to-list-item.read-only .list-name {
+  color: #d4d4d8;
+}
+
 .add-to-list-item.in-list {
   background-color: rgba(21, 128, 61, 0.1);
   color: #4ade80;
@@ -271,6 +279,17 @@
 
 .add-to-list-item.in-list .list-count {
   color: #86efac;
+}
+
+.list-role-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #a5b4fc;
+  background: rgba(99, 102, 241, 0.2);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 999px;
+  padding: 2px 6px;
+  flex-shrink: 0;
 }
 
 .check-icon {

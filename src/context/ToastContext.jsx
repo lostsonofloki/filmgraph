@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import './Toast.css';
 
@@ -6,9 +6,11 @@ const ToastContext = createContext(null);
 
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
+  const toastCounterRef = useRef(0);
 
   const addToast = useCallback((message, type = 'success', duration = 3000) => {
-    const id = Date.now();
+    toastCounterRef.current += 1;
+    const id = `${Date.now()}-${toastCounterRef.current}`;
     setToasts((prev) => [...prev, { id, message, type }]);
 
     setTimeout(() => {

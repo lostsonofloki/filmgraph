@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../supabaseClient';
+import { isUsernameAvailable, isValidUsername, normalizeUsername } from '../api/usernames';
 import './RegisterPage.css';
 
 /**
@@ -8,6 +9,7 @@ import './RegisterPage.css';
  */
 function RegisterPage() {
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -20,8 +22,14 @@ function RegisterPage() {
     setSuccess('');
 
     // Validation
-    if (!email || !password) {
+    if (!email || !username || !password) {
       setError('Please fill in all fields');
+      return;
+    }
+
+    const normalizedUsername = normalizeUsername(username);
+    if (!isValidUsername(normalizedUsername)) {
+      setError('Username must be 3-24 chars: lowercase letters, numbers, underscore.');
       return;
     }
 
@@ -46,11 +54,25 @@ function RegisterPage() {
 
     try {
       console.log('Attempting sign up with email:', email);
+
+      const { data: available, error: usernameCheckError } = await isUsernameAvailable(normalizedUsername);
+      if (usernameCheckError) {
+        throw usernameCheckError;
+      }
+      if (!available) {
+        setError('That username is already taken.');
+        return;
+      }
       
       // Sign up with Supabase Auth
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            username: normalizedUsername,
+          },
+        },
       });
 
       console.log('Sign up response:', { data, error: signUpError });
@@ -72,8 +94,19 @@ function RegisterPage() {
       }
 
       if (data.user) {
+        const { error: profileError } = await supabase.from('profiles').upsert({
+          id: data.user.id,
+          email,
+          username: normalizedUsername,
+          display_name: normalizedUsername,
+          updated_at: new Date().toISOString(),
+        });
+        if (profileError) {
+          throw profileError;
+        }
         setSuccess('Account created! Please check your email to confirm your account.');
         setEmail('');
+        setUsername('');
         setPassword('');
         setConfirmPassword('');
       }
@@ -115,6 +148,22 @@ function RegisterPage() {
                 <span>{success}</span>
               </div>
             )}
+
+            <div className="form-group">
+              <label htmlFor="username" className="form-label">
+                Username
+              </label>
+              <input
+                id="username"
+                type="text"
+                className="form-input"
+                placeholder="your_username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                disabled={isSubmitting}
+                autoComplete="username"
+              />
+            </div>
 
             <div className="form-group">
               <label htmlFor="email" className="form-label">

@@ -7,6 +7,155 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.12.3] - April 15, 2026
+
+### 🐛 Fixed
+- **Auth persistence / unexpected logout**
+  - Fixed Remember Me behavior by wiring auth persistence to a deterministic storage preference used by the Supabase storage adapter.
+  - Removed unsupported `persistSession` login option usage from sign-in flow and centralized storage preference handling.
+  - Default logout now resets preference back to local persistence for the next login session.
+
+### ✅ Quality
+- Targeted lint passes for auth/session files.
+- Production build succeeds (`npm run build`).
+
+---
+
+## [1.12.2] - April 15, 2026
+
+### 🛠️ Changed
+- **Scanner discoverability**
+  - Added a primary `📷 Scan Barcode` CTA in the Library header, directly beside `✨ Magic Import`.
+  - CTA opens `LogMovieModal` in scan-first mode so users can immediately scan and save from the main Library action row.
+- **Scan flow validation**
+  - Added a guard in `LogMovieModal` to prevent saving placeholder entries before a valid movie is identified via scanner/lookup.
+
+---
+
+## [1.12.1] - April 15, 2026
+
+### 🛠️ Changed
+- **Scanner compatibility hardening**
+  - Added browser fallback scanner path in `src/components/LogMovieModal.jsx`: use native `BarcodeDetector` when available, and automatically fall back to `html5-qrcode` when unavailable or when native startup fails.
+  - Improved scanner lifecycle cleanup (camera stream + timer + fallback scanner stop/clear) to prevent stuck sessions on mobile.
+  - Preserved existing UPC lookup + anti-double-buy integration for both scanner modes.
+
+### 📦 Dependencies
+- Added `html5-qrcode` as scanner fallback dependency.
+
+---
+
+## [1.12.0] - April 15, 2026
+
+### 🚀 Added
+- **PWA install polish**
+  - Added install-prompt UX flow via `beforeinstallprompt` handling (`src/pwa/useInstallPrompt.js`) and app-level install CTA (`src/App.jsx`).
+  - Upgraded manifest metadata in `public/manifest.json` and added dedicated app icons (`public/pwa-192.svg`, `public/pwa-512.svg`).
+  - Added icon links in `index.html` for stronger installability signals.
+- **Scanner MVP + UPC pipeline**
+  - Added live camera barcode scanning in `LogMovieModal` using `BarcodeDetector` + rear-camera constraints where available.
+  - Added UPC lookup pipeline (`src/api/upc.js`) that resolves barcode data and pre-fills movie context via TMDB search.
+  - Wired scanner/lookup output into existing anti-double-buy and UPC integrity save flow.
+
+### 🛠️ Changed
+- **Roadmap progress sync**
+  - Marked PWA install polish and scanner-integrated anti-double-buy milestones complete in Phase 7 sections.
+
+---
+
+## [1.11.1] - April 15, 2026
+
+### 🛠️ Changed
+- **AI provider hardening**
+  - Tightened Groq genre-extraction response contract to strict JSON object shape for better parser reliability.
+  - Hardened Gemini initialization path to fail clearly when key is missing, allowing fallback flow to proceed deterministically.
+- **Environment setup docs**
+  - Added `VITE_OPENROUTER_API_KEY` to `.env.example`.
+  - Updated `README.md` prerequisites and setup snippet for Groq + OpenRouter key requirements.
+- **Infrastructure activation**
+  - Applied Phase 7.1 and 7.3 database migrations in Supabase (`oracle_daily_budget`, `movie_logs_upc_integrity`) and verified resulting objects.
+  - Added `VITE_OPENROUTER_API_KEY` to Vercel Production and Development environments.
+
+---
+
+## [1.11.0] - April 15, 2026
+
+### 🚀 Added
+- **Phase 7.1 Oracle hardening**
+  - Added provider fallback ladder beyond Gemini with OpenRouter emergency fallback in `src/utils/gemini.js`.
+  - Added Oracle budget utility `src/utils/oracleBudget.js` with Supabase RPC-first checks and local fallback counters.
+  - Added Supabase migration `20260415170000_oracle_daily_budget.sql` for daily usage tracking + authenticated RPCs.
+- **Phase 7.2 PWA + offline foundation**
+  - Added service worker `public/sw.js` with app-shell caching and TMDB/OMDb API cache fallback.
+  - Added service worker registration via `src/pwa/registerServiceWorker.js` and app bootstrap integration.
+  - Added IndexedDB-backed queue `src/utils/offlineQueue.js` for offline movie-log writes with auto flush on reconnect.
+- **Phase 7.3 discovery + collection integrity**
+  - Added natural-language library query parsing in `src/utils/naturalLanguageSort.js` and integrated it into `LibraryPage`.
+  - Added anti-double-buy checks in `AddToListButton` and `LogMovieModal` via `src/utils/collectionIntegrity.js`.
+  - Added UPC integrity migration `20260415173000_movie_logs_upc_integrity.sql` and optional UPC field in log modal.
+
+### 🛠️ Changed
+- **Discovery context hydration**
+  - Oracle request context now prioritizes Top 20 watched + Last 5 to-watch + curated list items before prompt assembly.
+- **Offline UX**
+  - Library and Discovery now display offline-state messaging for clearer behavior when disconnected.
+- **Sync behavior**
+  - App root now attempts queued-log flush on startup and when network connectivity returns.
+
+---
+
+## [1.10.1] - April 15, 2026
+
+### 🚀 Added
+- **Username foundation for social/collaboration flows**
+  - Added migration `20260415143000_username_foundation.sql` to enforce `profiles.username` consistency.
+  - Backfills missing usernames, enforces lowercase/format validation, and adds a case-insensitive unique index.
+  - Added RPC `is_username_available(p_username, p_exclude_user_id)` for frontend availability checks.
+
+### 🛠️ Changed
+- **Registration**
+  - Sign-up now includes a required `username` field.
+  - Validates username format and checks availability before account creation.
+  - Persists username in both `auth.user_metadata` and `profiles`.
+- **Profile Settings**
+  - Added editable username field alongside display name.
+  - Username updates now validate format + uniqueness before save.
+- **Utilities**
+  - Added `src/api/usernames.js` with normalization/validation/availability helpers.
+
+### ✅ Quality
+- Lint passes cleanly (`npm run lint`)
+- Production build succeeds (`npm run build`)
+
+---
+
+## [1.10.0] - April 15, 2026
+
+### 🚀 Added
+- **Phase 6.17 MVP — Collaborative Shared Lists**
+  - **Invite system (owner-only)**: owners can invite collaborators by UUID, email, or username from list detail.
+  - **Role model**: collaborators support `owner`, `editor`, and `viewer` permissions with role update/remove controls.
+  - **Membership-aware list loading**: shared lists now appear across Library and Add-to-List flows (not just owned lists).
+  - **Attribution metadata**: list items include `added_by` profile context for per-item “Added by …” display.
+  - **Realtime sync**: active shared list auto-refreshes when collaborators mutate `list_items`.
+
+### 🛠️ Changed
+- **ListContext now shared-aware**
+  - Added role helpers (`isListOwner`, `canEditList`) and collaborator actions (`inviteCollaborator`, `changeCollaboratorRole`, `removeCollaborator`).
+  - List creation and item mutation paths now use shared-list API patterns and role checks.
+- **Library UI**
+  - Added collaborators panel in list detail with invite input, role badges, role editing, and removal actions.
+  - “My Lists” tab label updated to **Lists** and list cards now indicate owner/shared role context.
+- **Action Menu Sync**
+  - `AddToListButton` and Oracle discovery quick-add now include shared lists.
+  - Viewer-role lists are visible but disabled for edits with explicit viewer indicators.
+
+### ✅ Quality
+- Lint passes cleanly (`npm run lint`)
+- Production build succeeds (`npm run build`)
+
+---
+
 ## [1.9.6] - April 15, 2026
 
 ### 🚀 Added

@@ -1,6 +1,6 @@
 {
   "name": "filmgraph",
-  "version": "1.9.6",
+  "version": "1.12.3",
   "description": "**Your Personal Movie Logging & Visualization Platform**",
   "type": "module",
   "scripts": {
@@ -14,15 +14,19 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/core": "^8.3.0",
     "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.99.3",
     "@vercel/analytics": "^2.0.1",
+    "html5-qrcode": "^2.3.8",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.13.1",
     "recharts": "^3.8.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.3.0",
     "@eslint/js": "^9.39.4",
     "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.2.2",

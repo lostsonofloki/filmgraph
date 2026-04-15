@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useUser } from '../context/UserContext';
 import { getSupabase } from '../supabaseClient';
 import RatingSlider from './RatingSlider';
+import { enqueueMovieLog } from '../utils/offlineQueue';
+import { checkDuplicateInCollection } from '../utils/collectionIntegrity';
+import { lookupMovieByUpc } from '../api/upc';
 import './LogMovieModal.css';
 import { createPortal } from 'react-dom';
 
@@ -52,15 +55,154 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
   const [selectedMoods, setSelectedMoods] = useState(existingLog?.moods || []);
   const [notes, setNotes] = useState(existingLog?.review || '');
   const [watchStatus, setWatchStatus] = useState(existingLog?.watch_status || 'watched');
+  const [sourceUpc, setSourceUpc] = useState(existingLog?.source_upc || '');
+  const [lookupResult, setLookupResult] = useState(null);
+  const [isLookingUpUpc, setIsLookingUpUpc] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [scannerMode, setScannerMode] = useState('native');
+  const [scannerError, setScannerError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   const isEditing = !!existingLog;
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const scanTimerRef = useRef(null);
+  const html5ScannerRef = useRef(null);
+  const scannerRegionIdRef = useRef(`upc-scanner-${Math.random().toString(36).slice(2, 9)}`);
+  const scannerSupported = typeof window !== 'undefined' && 'BarcodeDetector' in window;
+  const effectiveMovie = lookupResult?.tmdbMovie || movie;
 
   // Safety defaults
-  const movieTitle = movie?.title || 'Loading...';
-  const moviePoster = movie?.poster_path || '';
-  const movieYear = movie?.release_date?.split('-')[0] || null;
+  const movieTitle = effectiveMovie?.title || lookupResult?.sourceTitle || 'Loading...';
+  const moviePoster = effectiveMovie?.poster_path || '';
+  const movieYear = effectiveMovie?.release_date?.split('-')[0] || null;
+
+  const stopScanner = () => {
+    if (scanTimerRef.current) {
+      window.clearInterval(scanTimerRef.current);
+      scanTimerRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (html5ScannerRef.current) {
+      html5ScannerRef.current
+        .stop()
+        .catch(() => {
+          // Scanner may already be stopped.
+        })
+        .finally(() => {
+          html5ScannerRef.current?.clear().catch(() => {});
+          html5ScannerRef.current = null;
+        });
+    }
+    setIsScannerOpen(false);
+  };
+
+  useEffect(() => () => stopScanner(), []);
+
+  const startHtml5QrcodeScanner = async () => {
+    const { Html5Qrcode } = await import('html5-qrcode');
+    const scanner = new Html5Qrcode(scannerRegionIdRef.current);
+    html5ScannerRef.current = scanner;
+    setScannerMode('html5');
+    setIsScannerOpen(true);
+
+    await scanner.start(
+      { facingMode: 'environment' },
+      {
+        fps: 8,
+        qrbox: { width: 260, height: 140 },
+        aspectRatio: 1.777,
+      },
+      (decodedText) => {
+        const rawValue = String(decodedText || '').replace(/[^\d]/g, '');
+        if (rawValue.length < 8) return;
+        setSourceUpc(rawValue);
+        stopScanner();
+      },
+      () => {
+        // Ignore per-frame decode failures.
+      }
+    );
+  };
+
+  const startScanner = async () => {
+    setScannerError('');
+
+    if (!window.isSecureContext) {
+      setScannerError('Camera scanning requires HTTPS or localhost.');
+      return;
+    }
+
+    try {
+      if (!scannerSupported) {
+        await startHtml5QrcodeScanner();
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+      });
+      streamRef.current = stream;
+      setScannerMode('native');
+      setIsScannerOpen(true);
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+
+      const detector = new window.BarcodeDetector({
+        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'],
+      });
+
+      scanTimerRef.current = window.setInterval(async () => {
+        if (!videoRef.current) return;
+        try {
+          const detected = await detector.detect(videoRef.current);
+          if (!detected || detected.length === 0) return;
+          const rawValue = String(detected[0]?.rawValue || '').replace(/[^\d]/g, '');
+          if (rawValue.length < 8) return;
+          setSourceUpc(rawValue);
+          stopScanner();
+        } catch (_detectError) {
+          // Keep scanning.
+        }
+      }, 450);
+    } catch (scanError) {
+      // Fall back to html5-qrcode when native detector setup fails.
+      try {
+        await startHtml5QrcodeScanner();
+      } catch (fallbackError) {
+        setScannerError(
+          fallbackError?.message ||
+            scanError?.message ||
+            'Failed to start camera scanner.'
+        );
+        stopScanner();
+      }
+    }
+  };
+
+  const handleLookupUpc = async () => {
+    setError('');
+    setIsLookingUpUpc(true);
+    try {
+      const result = await lookupMovieByUpc(sourceUpc);
+      setLookupResult(result);
+      if (!result.tmdbMovie) {
+        setError('UPC found, but no TMDB match. You can still save with manual movie context.');
+      }
+    } catch (lookupError) {
+      setLookupResult(null);
+      setError(lookupError.message || 'UPC lookup failed.');
+    } finally {
+      setIsLookingUpUpc(false);
+    }
+  };
 
   const handleMoodToggle = (moodId) => {
     setSelectedMoods((prev) =>
@@ -80,8 +222,12 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
         throw new Error('You must be logged in to log movies.');
       }
 
-      const genreNames = movie?.genres 
-        ? movie.genres.map(g => typeof g === 'string' ? g : g.name) 
+      if (!effectiveMovie?.title) {
+        throw new Error('Scan or look up a barcode first so Filmgraph can identify the movie.');
+      }
+
+      const genreNames = effectiveMovie?.genres
+        ? effectiveMovie.genres.map(g => typeof g === 'string' ? g : g.name)
         : [];
 
       const finalGenres = Array.isArray(genreNames) ? genreNames : [];
@@ -98,6 +244,7 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
         genres: finalGenres,
         review: notes || null,
         watch_status: watchStatus,
+        source_upc: sourceUpc.trim() || null,
       };
 
       let result;
@@ -127,7 +274,17 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
           result = data?.[0];
         }
       } else {
-        movieData.tmdb_id = movie?.id || null;
+        const duplicateCheck = await checkDuplicateInCollection({
+          userId: user.id,
+          tmdbId: effectiveMovie?.id,
+          sourceUpc,
+        });
+        if (duplicateCheck.isDuplicate) {
+          throw new Error(`Anti-Double-Buy: ${duplicateCheck.reasons.join(' + ')}`);
+        }
+
+        movieData.tmdb_id = effectiveMovie?.id || null;
+        movieData.source_upc = sourceUpc.trim() || null;
         const { data, error: insertError } = await supabase
           .from('movie_logs')
           .insert(movieData)
@@ -138,6 +295,41 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
 
       onSaved?.(result);
     } catch (err) {
+      const message = String(err?.message || '');
+      const isNetworkError =
+        !navigator.onLine ||
+        message.toLowerCase().includes('failed to fetch') ||
+        message.toLowerCase().includes('network');
+
+      if (!isEditing && isNetworkError) {
+        try {
+          const queuedPayload = {
+            user_id: user.id,
+            tmdb_id: effectiveMovie?.id || null,
+            title: movieTitle,
+            year: movieYear ? parseInt(movieYear, 10) : null,
+            rating: rating > 0 ? parseFloat(rating.toFixed(1)) : null,
+            moods: selectedMoods.length > 0 ? selectedMoods : null,
+            genres: Array.isArray(effectiveMovie?.genres)
+              ? effectiveMovie.genres.map((g) => (typeof g === 'string' ? g : g.name)).filter(Boolean)
+              : [],
+            review: notes || null,
+            watch_status: watchStatus,
+            source_upc: sourceUpc.trim() || null,
+          };
+          await enqueueMovieLog(queuedPayload);
+          onSaved?.({
+            ...queuedPayload,
+            id: `offline-${Date.now()}`,
+            offline_pending: true,
+          });
+          onClose?.();
+          return;
+        } catch (_queueError) {
+          // Fall through to standard error path
+        }
+      }
+
       setError(err.message || 'Failed to log movie.');
     } finally {
       setIsSubmitting(false);
@@ -182,7 +374,7 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
         </div>
 
         <form onSubmit={handleSubmit} style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {movie && (
+          {(movie || lookupResult) && (
             <div style={{ display: 'flex', gap: '16px', padding: '16px', backgroundColor: '#121212', borderRadius: '8px' }}>
               {moviePoster && (
                 <img src={`https://image.tmdb.org/t/p/w92${moviePoster}`} alt={movieTitle} loading="lazy" style={{ width: '80px', height: '120px', objectFit: 'cover', borderRadius: '4px' }} />
@@ -238,6 +430,62 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '8px' }}>Barcode (UPC)</label>
+            <input
+              type="text"
+              value={sourceUpc}
+              onChange={(e) => setSourceUpc(e.target.value.replace(/[^\d]/g, ''))}
+              placeholder="Scan or paste UPC"
+              style={{ width: '100%', padding: '12px', backgroundColor: '#121212', border: '1px solid #2a2a2a', borderRadius: '6px', color: '#ffffff', fontSize: '14px' }}
+              disabled={isSubmitting}
+            />
+            <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={startScanner}
+                disabled={isSubmitting || isScannerOpen}
+                style={{ padding: '8px 10px', borderRadius: '6px', border: 'none', backgroundColor: '#1d4ed8', color: '#fff', fontSize: '12px', cursor: 'pointer' }}
+              >
+                {isScannerOpen ? 'Scanner Running...' : 'Scan Barcode'}
+              </button>
+              <button
+                type="button"
+                onClick={handleLookupUpc}
+                disabled={isSubmitting || isLookingUpUpc || !sourceUpc.trim()}
+                style={{ padding: '8px 10px', borderRadius: '6px', border: 'none', backgroundColor: '#065f46', color: '#fff', fontSize: '12px', cursor: 'pointer' }}
+              >
+                {isLookingUpUpc ? 'Looking up...' : 'Lookup UPC'}
+              </button>
+              {isScannerOpen && (
+                <button
+                  type="button"
+                  onClick={stopScanner}
+                  style={{ padding: '8px 10px', borderRadius: '6px', border: 'none', backgroundColor: '#7f1d1d', color: '#fff', fontSize: '12px', cursor: 'pointer' }}
+                >
+                  Stop Scanner
+                </button>
+              )}
+            </div>
+            {scannerError && (
+              <p style={{ marginTop: '8px', color: '#f87171', fontSize: '12px' }}>{scannerError}</p>
+            )}
+            {lookupResult?.tmdbMovie && (
+              <p style={{ marginTop: '8px', color: '#34d399', fontSize: '12px' }}>
+                UPC matched: {lookupResult.tmdbMovie.title} ({lookupResult.tmdbMovie.release_date?.split('-')[0] || 'N/A'})
+              </p>
+            )}
+            {isScannerOpen && (
+              <div style={{ marginTop: '8px', border: '1px solid #2a2a2a', borderRadius: '8px', overflow: 'hidden' }}>
+                {scannerMode === 'native' ? (
+                  <video ref={videoRef} muted playsInline style={{ width: '100%', maxHeight: '220px', backgroundColor: '#000' }} />
+                ) : (
+                  <div id={scannerRegionIdRef.current} style={{ width: '100%', minHeight: '220px', backgroundColor: '#000' }} />
+                )}
+              </div>
+            )}
           </div>
 
           <div>

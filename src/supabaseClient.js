@@ -3,23 +3,33 @@ import { createClient } from '@supabase/supabase-js';
 // Check for environment variables with both prefixes (Vite and Create React App)
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
+const AUTH_STORAGE_PREF_KEY = 'filmgraph_auth_storage';
+
+const getPreferredStorage = () => {
+  const preference = window.localStorage.getItem(AUTH_STORAGE_PREF_KEY);
+  return preference === 'session' ? window.sessionStorage : window.localStorage;
+};
+
+export const setAuthStoragePreference = (useLocalStorage = true) => {
+  if (useLocalStorage) {
+    window.localStorage.setItem(AUTH_STORAGE_PREF_KEY, 'local');
+  } else {
+    window.localStorage.setItem(AUTH_STORAGE_PREF_KEY, 'session');
+  }
+};
 
 // Custom storage wrapper for dynamic persistence (localStorage vs sessionStorage)
 class SupabaseStorageAdapter {
-  constructor(useLocalStorage = true) {
-    this.storage = useLocalStorage ? window.localStorage : window.sessionStorage;
-  }
-
   getItem(key) {
-    return this.storage.getItem(key);
+    return getPreferredStorage().getItem(key);
   }
 
   setItem(key, value) {
-    this.storage.setItem(key, value);
+    getPreferredStorage().setItem(key, value);
   }
 
   removeItem(key) {
-    this.storage.removeItem(key);
+    getPreferredStorage().removeItem(key);
   }
 }
 
@@ -34,7 +44,7 @@ if (supabaseUrl && supabaseAnonKey) {
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: true,
-        storage: new SupabaseStorageAdapter(true), // Default: localStorage
+        storage: new SupabaseStorageAdapter(),
       },
     });
   } catch (error) {
@@ -61,13 +71,15 @@ export const createSupabaseWithStorage = (useLocalStorage = true) => {
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error('Supabase configuration missing');
   }
+
+  setAuthStoragePreference(useLocalStorage);
   
   return createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
-      storage: new SupabaseStorageAdapter(useLocalStorage),
+      storage: new SupabaseStorageAdapter(),
     },
   });
 };

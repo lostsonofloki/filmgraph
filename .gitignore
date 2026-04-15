@@ -42,3 +42,13 @@ coverage/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+.vercel
+
+# Android / Capacitor (local SDK path + Gradle caches + build outputs)
+android/.gradle/
+android/local.properties
+android/app/build/
+android/capacitor-cordova-android-plugins/build/
+
+# Capacitor copies `npm run build` output here — contains baked-in VITE_* secrets; regenerate with `npx cap sync`
+android/app/src/main/assets/public/
