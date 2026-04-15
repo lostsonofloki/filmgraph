@@ -12,7 +12,7 @@ import './AddToListButton.css';
  * @param {'default' | 'icon'} variant - Button variant ('default' shows text, 'icon' shows icon only)
  */
 function AddToListButton({ movie, className = '', variant = 'default' }) {
-  const { user, isAuthenticated } = useUser();
+  const { isAuthenticated } = useUser();
   const { lists, isLoading, addMovieToList, isMovieInList, getListsContainingMovie } = useLists();
   const toast = useToast();
   const [isOpen, setIsOpen] = useState(false);

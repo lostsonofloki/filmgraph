@@ -137,6 +137,7 @@ function ArchiveImporterModal({ onClose, onImportComplete }) {
           tmdb_id: movie.tmdb.id,
           title: movie.tmdb.title,
           poster_path: movie.tmdb.poster_path,
+          added_by: user.id,
         }));
 
         // Batch insert into list_items (ignore duplicates)
@@ -296,6 +297,7 @@ The Matrix (1999)`}
                         <img
                           src={`https://image.tmdb.org/t/p/w92${movie.tmdb.poster_path}`}
                           alt={movie.tmdb.title}
+                          loading="lazy"
                         />
                       ) : (
                         <div className="poster-placeholder">No Poster</div>

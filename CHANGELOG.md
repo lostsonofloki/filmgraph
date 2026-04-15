@@ -7,6 +7,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.9.6] - April 15, 2026
+
+### 🚀 Added
+- **Phase 6.18.5 — Crew deep navigation on Movie Detail**
+  - **Hero**: “Directed by” and “Written by” lines with links to `/actor/:id` (deduped from TMDB `credits.crew`)
+  - **Behind the camera**: New section for featured roles (Director of Photography, Editor, Original Music Composer, Production Design) with the same poster grid + links as Cast
+- Cast section was already linked; this completes person-profile navigation for key crew
+
+---
+
+## [1.9.5] - April 15, 2026
+
+### 🧰 Added
+- **ESLint** (flat `eslint.config.js`) for Vite + React: `eslint`, `@eslint/js`, `eslint-plugin-react`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`, `globals`
+- **Scripts**: `npm run lint` / `npm run lint:fix`
+- **Lint scope**: `src/` only; build output, `node_modules`, `scripts/`, and `*.config.js` ignored
+
+### 🐛 Fixed (found by lint)
+- **Header.jsx** — Added missing `useNavigate` import; merged duplicate `onClick` on mobile Oracle button
+- **DiscoveryPage.jsx** — Removed invalid conditional `useToast()` call (hooks must run unconditionally)
+- **OracleOverlay.jsx** — Dropped unused default React import (JSX runtime)
+
+---
+
+## [1.9.4] - April 14, 2026
+
+### 🐛 Fixed
+- **Supabase `/lists` HTTP 500** — RLS on `lists` and `list_members` was still mutually recursive (`lists` queried `list_members`, owner policy on `list_members` queried `lists`). Replaced those checks with `SECURITY DEFINER` helpers (`list_owned_by_user`, `user_is_member_of_list`, `user_can_edit_shared_list`) so membership/ownership checks do not re-enter RLS. Updated `list_items` policy to use the same pattern.
+- **Movie detail log noise** — Removed the `console.log` for the normal “no log yet” case; `userLog` is now cleared with `setUserLog(null)` when there is no row.
+
+### ℹ️ Notes (not app bugs)
+- **React DevTools** — Browser hint only; optional install.
+- **Vercel Analytics (dev)** — Expected: debug mode does not send events in development.
+- **Google Analytics `g/collect` failed** — Common on `localhost` (ad blockers, privacy extensions, or network). Does not affect core app behavior.
+
+---
+
+## [1.9.3] - April 14, 2026
+
+### 🚀 Added
+- **Actor Filmography Filters (Phase 6.18.4)** — Smart filtering on person profile pages:
+  - **Genre chips** — Only genres present in this actor’s loaded credits; multi-select uses OR logic (match any selected genre).
+  - **Decade chips** — Filter by release decade (Pre-1970 through 2030s) when applicable.
+  - **Logged only** — Show credits you’ve already logged (requires sign-in).
+  - **Clear filters** — One control to reset genre, decade, and logged-only state.
+  - **Sticky filter bar** — On viewports ≤768px, filters stick to the top while scrolling the grid (solid background, no bleed-through).
+- **Larger credit sample** — Filmography list increased from 40 to 150 TMDB cast entries (poster + popularity sorted) so filters have more to work with.
+
+---
+
+## [1.9.2] - April 14, 2026
+
+### 🛠️ Changed
+- **Footer Credits Link** - Updated `Developed by Josh Jenkins` to link directly to Linktree: `https://linktr.ee/sonofloke`
+- **Roadmap Sync (Phase 6.18)** - Marked completed items now reflected in code:
+  - 6.18.2 UI Categorization (Movies vs People search results)
+  - 6.18.3 Advanced Person Profiles (`person/{id}/movie_credits`)
+  - 6.18.6 Logged Indicators on actor filmography cards
+
+### 🐛 Fixed
+- **Supabase Lists 500 Error** - Resolved recursive RLS policy issue on `list_members` that caused `/rest/v1/lists` to intermittently return HTTP 500
+- **List Query Payload Regression** - Restored `added_at` selection in `list_items` query now that schema is verified
+- **Lists Update Payload** - Removed non-existent `updated_at` write from list updates to prevent schema mismatch failures
+
+---
+
 ## [1.9.1] - April 14, 2026
 
 ### 📊 Added

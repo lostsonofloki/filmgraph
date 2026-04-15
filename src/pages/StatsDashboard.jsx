@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { getSupabase } from '../supabaseClient';
@@ -70,7 +70,6 @@ const MOOD_CATEGORIES = {
 function StatsDashboard() {
   const { user, isAuthenticated } = useUser();
   const navigate = useNavigate();
-  const [movies, setMovies] = useState([]);
   const [ratingsData, setRatingsData] = useState([]);
   const [genreData, setGenreData] = useState([]);
   const [moodData, setMoodData] = useState([]);
@@ -78,37 +77,7 @@ function StatsDashboard() {
   const [totalMovies, setTotalMovies] = useState(0);
   const [avgRating, setAvgRating] = useState(0);
 
-  useEffect(() => {
-    if (!isAuthenticated || !user?.id) {
-      navigate('/login');
-      return;
-    }
-
-    fetchMovies();
-  }, [user, isAuthenticated, navigate]);
-
-  const fetchMovies = async () => {
-    try {
-      setIsLoading(true);
-      const supabase = getSupabase();
-
-      const { data, error } = await supabase
-        .from('movie_logs')
-        .select('*')
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      setMovies(data || []);
-      calculateStats(data);
-    } catch (err) {
-      console.error('Error fetching movies:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const calculateStats = (data) => {
+  const calculateStats = useCallback((data) => {
     if (!data || data.length === 0) {
       setTotalMovies(0);
       setAvgRating(0);
@@ -190,7 +159,36 @@ function StatsDashboard() {
       .sort((a, b) => b.value - a.value);
 
     setMoodData(moodArray);
-  };
+  }, []);
+
+  const fetchMovies = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const supabase = getSupabase();
+
+      const { data, error } = await supabase
+        .from('movie_logs')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      calculateStats(data);
+    } catch (err) {
+      console.error('Error fetching movies:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id, calculateStats]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) {
+      navigate('/login');
+      return;
+    }
+
+    fetchMovies();
+  }, [user, isAuthenticated, navigate, fetchMovies]);
 
   if (!isAuthenticated) {
     return null;

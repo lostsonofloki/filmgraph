@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import FilmgraphLogo from './FilmgraphLogo';
 import './Header.css';
@@ -161,7 +161,16 @@ function Header({ onOracleClick }) {
             <Link to="/" className={`mobile-nav-link ${isActive('/') ? 'active' : ''}`} onClick={() => setIsMobileMenuOpen(false)}>Trending</Link>
             <Link to="/library" className={`mobile-nav-link ${isActive('/library') ? 'active' : ''}`} onClick={() => setIsMobileMenuOpen(false)}>Library</Link>
             <Link to="/history" className={`mobile-nav-link ${isActive('/history') ? 'active' : ''}`} onClick={() => setIsMobileMenuOpen(false)}>History</Link>
-            <button onClick={onOracleClick} className="mobile-oracle-btn" onClick={() => setIsMobileMenuOpen(false)}>✨ Oracle</button>
+            <button
+              type="button"
+              className="mobile-oracle-btn"
+              onClick={() => {
+                onOracleClick?.();
+                setIsMobileMenuOpen(false);
+              }}
+            >
+              ✨ Oracle
+            </button>
             
             {isAuthenticated ? (
               <div className="mobile-auth">

@@ -65,7 +65,7 @@ function MovieCard({ movie, isLibraryCard = false, onEdit, onDelete }) {
                   <>
                     <button
                       onClick={(e) => handleActionClick(e, 'edit')}
-                      className="p-3 bg-zinc-900/90 hover:bg-orange-600 rounded-xl transition-all duration-200 group/btn shadow-xl border border-zinc-800 hover:border-orange-400 min-w-[40px] min-h-[40px] flex items-center justify-center"
+                      className="p-3 bg-zinc-900/90 hover:bg-orange-600 rounded-xl transition-all duration-200 group/btn shadow-xl border border-zinc-800 hover:border-orange-400 min-w-[44px] min-h-[44px] flex items-center justify-center"
                       title="Edit Log"
                     >
                       <svg className="w-5 h-5 text-zinc-400 group-hover/btn:text-white transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -85,7 +85,7 @@ function MovieCard({ movie, isLibraryCard = false, onEdit, onDelete }) {
 
                     <button
                       onClick={(e) => handleActionClick(e, 'delete')}
-                      className="p-3 bg-zinc-900/90 hover:bg-red-600 rounded-xl transition-all duration-200 group/btn shadow-xl border border-zinc-800 hover:border-red-400 min-w-[40px] min-h-[40px] flex items-center justify-center"
+                      className="p-3 bg-zinc-900/90 hover:bg-red-600 rounded-xl transition-all duration-200 group/btn shadow-xl border border-zinc-800 hover:border-red-400 min-w-[44px] min-h-[44px] flex items-center justify-center"
                       title="Delete"
                     >
                       <svg className="w-5 h-5 text-zinc-400 group-hover/btn:text-white transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -109,7 +109,7 @@ function MovieCard({ movie, isLibraryCard = false, onEdit, onDelete }) {
                         e.stopPropagation();
                         setShowModal(true);
                       }}
-                      className="p-3 bg-zinc-900/90 hover:bg-orange-600 rounded-xl transition-all duration-200 group/btn shadow-xl border border-zinc-800 hover:border-orange-400 min-w-[40px] min-h-[40px] flex items-center justify-center"
+                      className="p-3 bg-zinc-900/90 hover:bg-orange-600 rounded-xl transition-all duration-200 group/btn shadow-xl border border-zinc-800 hover:border-orange-400 min-w-[44px] min-h-[44px] flex items-center justify-center"
                       title="Log Movie"
                     >
                       <svg className="w-5 h-5 text-zinc-400 group-hover/btn:text-white transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

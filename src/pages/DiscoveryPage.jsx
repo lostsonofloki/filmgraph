@@ -19,20 +19,13 @@ const MOOD_PRESETS = [
 
 function DiscoveryPage() {
   const { user } = useUser();
-  let toast;
-  try {
-    toast = useToast();
-  } catch (e) {
-    console.warn('ToastContext not available:', e);
-    toast = { success: () => {}, error: () => {} };
-  }
+  const toast = useToast();
   const [selectedMood, setSelectedMood] = useState(null);
   const [tempPrompt, setTempPrompt] = useState('');
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [recommendations, setRecommendations] = useState([]);
   const [tmdbResults, setTmdbResults] = useState([]);
   const [error, setError] = useState('');
-  const [userFavorites, setUserFavorites] = useState([]);
   const [rejectedIds, setRejectedIds] = useState([]);
   const [rejectedTitles, setRejectedTitles] = useState([]);
   
@@ -101,27 +94,6 @@ function DiscoveryPage() {
     }
   };
 
-  useEffect(() => {
-    const fetchFavorites = async () => {
-      if (!user?.id) return;
-      try {
-        const supabase = getSupabase();
-        const { data } = await supabase
-          .from('movie_logs')
-          .select('title, tmdb_id, moods, rating')
-          .eq('user_id', user.id)
-          .eq('watch_status', 'watched')
-          .gte('rating', 4.5)
-          .order('rating', { ascending: false })
-          .limit(10);
-        setUserFavorites(data || []);
-      } catch (err) {
-        console.error('Error fetching favorites:', err);
-      }
-    };
-    fetchFavorites();
-  }, [user?.id]);
-
   // Fetch user's custom lists
   useEffect(() => {
     const fetchLists = async () => {
@@ -157,7 +129,7 @@ function DiscoveryPage() {
     }
   };
 
-  const handleDiscover = async (additionalRejectedIds = [], additionalRejectedTitles = []) => {
+  const handleDiscover = async (_additionalRejectedIds = [], additionalRejectedTitles = []) => {
     if (!tempPrompt.trim()) return;
 
     setIsDiscovering(true);
@@ -316,6 +288,7 @@ function DiscoveryPage() {
                           <img
                             src={`https://image.tmdb.org/t/p/w500${movieTmdb.poster_path}`}
                             alt={rec.title}
+                            loading="lazy"
                             className="rec-poster"
                           />
                         ) : (
@@ -334,6 +307,7 @@ function DiscoveryPage() {
                           <img
                             src={`https://image.tmdb.org/t/p/w500${movieTmdb.poster_path}`}
                             alt={rec.title}
+                            loading="lazy"
                             className="rec-poster"
                           />
                         ) : (
@@ -470,7 +444,8 @@ function DiscoveryPage() {
                                       list_id: list.id,
                                       tmdb_id: movieTmdb.id,
                                       title: movieTmdb.title,
-                                      poster_path: movieTmdb.poster_path
+                                      poster_path: movieTmdb.poster_path,
+                                      added_by: user.id,
                                     });
                                     if (error) throw error;
                                     toast.success(`Added to ${list.name}`);

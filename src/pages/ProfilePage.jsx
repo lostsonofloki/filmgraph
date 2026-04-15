@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
 import { getSupabase } from '../supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
-import { useToast } from '../context/ToastContext';
 import {
   BarChart,
   Bar,

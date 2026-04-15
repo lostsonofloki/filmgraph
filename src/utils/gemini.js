@@ -100,7 +100,7 @@ export const getMovieRecommendations = async ({
         }
         console.log('⏰ Cache expired, fetching fresh recommendations');
       }
-    } catch (err) {
+    } catch (_err) {
       console.log('No cache found, fetching fresh recommendations');
     }
   }

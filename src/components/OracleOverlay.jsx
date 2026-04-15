@@ -1,5 +1,3 @@
-import React from 'react';
-
 const OracleOverlay = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 

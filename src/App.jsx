@@ -194,7 +194,6 @@ function Header() {
 // ============================================
 function AppContent() {
   const location = useLocation();
-  const { user } = useUser();
   const isAuthPage = ['/login', '/register', '/update-password'].includes(location.pathname);
 
   return (

@@ -101,6 +101,49 @@ const MOOD_COLORS = {
 };
 
 // Mood categories
+const FEATURED_CREW_JOBS = new Set([
+  'Director of Photography',
+  'Editor',
+  'Original Music Composer',
+  'Production Design',
+]);
+
+/** @param {Array<{ id: number }>} entries */
+function dedupeCrewById(entries) {
+  const seen = new Set();
+  return entries.filter((e) => {
+    if (seen.has(e.id)) return false;
+    seen.add(e.id);
+    return true;
+  });
+}
+
+/** @param {Array<{ id: number, job?: string, department?: string }>|undefined} crew */
+function pickDirectors(crew) {
+  if (!crew?.length) return [];
+  return dedupeCrewById(crew.filter((c) => c.job === 'Director' || c.job === 'Co-Director'));
+}
+
+/** @param {Array<{ id: number, job?: string, department?: string }>|undefined} crew */
+function pickWriters(crew) {
+  if (!crew?.length) return [];
+  return dedupeCrewById(
+    crew.filter(
+      (c) =>
+        c.department === 'Writing' ||
+        ['Screenplay', 'Writer', 'Story', 'Novel'].includes(c.job)
+    )
+  );
+}
+
+/** @param {Array<{ id: number, job?: string }>|undefined} crew */
+function pickFeaturedCrew(crew, heroIds) {
+  if (!crew?.length) return [];
+  return dedupeCrewById(
+    crew.filter((c) => FEATURED_CREW_JOBS.has(c.job) && !heroIds.has(c.id))
+  ).slice(0, 12);
+}
+
 const MOOD_CATEGORIES = {
   bittersweet: 'emotional',
   heartwarming: 'emotional',
@@ -183,7 +226,7 @@ function MovieDetail() {
 
     fetchMovieData();
     window.scrollTo(0, 0);
-  }, [id]);
+  }, [id, navigate]);
 
   // Fetch user's log for this movie
   useEffect(() => {
@@ -206,7 +249,7 @@ function MovieDetail() {
         } else if (data) {
           setUserLog(data);
         } else {
-          console.log('No user log found for this movie');
+          setUserLog(null);
         }
       } catch (err) {
         console.error('Error fetching user log:', err);
@@ -327,6 +370,12 @@ function MovieDetail() {
   const posterUrl = getPosterUrl(movie.poster_path, 'w500');
   const rtNumeric = rtScore ? parseInt(rtScore) : null;
 
+  const crewList = movie.credits?.crew || [];
+  const directors = pickDirectors(crewList);
+  const writers = pickWriters(crewList);
+  const heroPersonIds = new Set([...directors, ...writers].map((p) => p.id));
+  const featuredCrew = pickFeaturedCrew(crewList, heroPersonIds);
+
   return (
     <>
       <div className="movie-detail-page">
@@ -334,7 +383,7 @@ function MovieDetail() {
         <div className="movie-hero">
           {backdropUrl ? (
             <div className="hero-backdrop pointer-events-none">
-              <img src={backdropUrl} alt={movie.title} />
+              <img src={backdropUrl} alt={movie.title} loading="lazy" />
               <div className="hero-overlay"></div>
             </div>
           ) : (
@@ -353,7 +402,7 @@ function MovieDetail() {
           <div className="hero-content">
             <div className="hero-poster">
               {posterUrl ? (
-                <img src={posterUrl} alt={movie.title} />
+                <img src={posterUrl} alt={movie.title} loading="lazy" />
               ) : (
                 <div className="no-poster">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
@@ -413,6 +462,37 @@ function MovieDetail() {
                 ))}
               </div>
 
+              {(directors.length > 0 || writers.length > 0) && (
+                <div className="crew-hero-lines">
+                  {directors.length > 0 && (
+                    <p className="crew-hero-row">
+                      <span className="crew-hero-label">Directed by</span>
+                      {directors.map((person, index) => (
+                        <span key={person.id}>
+                          {index > 0 && ', '}
+                          <Link to={`/actor/${person.id}`} className="crew-hero-link">
+                            {person.name}
+                          </Link>
+                        </span>
+                      ))}
+                    </p>
+                  )}
+                  {writers.length > 0 && (
+                    <p className="crew-hero-row">
+                      <span className="crew-hero-label">Written by</span>
+                      {writers.map((person, index) => (
+                        <span key={person.id}>
+                          {index > 0 && ', '}
+                          <Link to={`/actor/${person.id}`} className="crew-hero-link">
+                            {person.name}
+                          </Link>
+                        </span>
+                      ))}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Where to Watch Section */}
               {watchProviders && (
                 <div className="watch-providers-section">
@@ -431,6 +511,7 @@ function MovieDetail() {
                           <img
                             src={`https://image.tmdb.org/t/p/w92${provider.logo_path}`}
                             alt={provider.provider_name}
+                            loading="lazy"
                             className="provider-logo"
                           />
                           <span className="provider-tooltip">{provider.provider_name}</span>
@@ -451,6 +532,7 @@ function MovieDetail() {
                               <img
                                 src={`https://image.tmdb.org/t/p/w92${provider.logo_path}`}
                                 alt={provider.provider_name}
+                                loading="lazy"
                                 className="provider-logo"
                               />
                               <span className="provider-tooltip">{provider.provider_name} (Rent)</span>
@@ -469,6 +551,7 @@ function MovieDetail() {
                               <img
                                 src={`https://image.tmdb.org/t/p/w92${provider.logo_path}`}
                                 alt={provider.provider_name}
+                                loading="lazy"
                                 className="provider-logo"
                               />
                               <span className="provider-tooltip">{provider.provider_name} (Buy)</span>
@@ -582,13 +665,43 @@ function MovieDetail() {
                     <div className="cast-card">
                       <div className="cast-image">
                         {getProfileUrl(actor.profile_path) ? (
-                          <img src={getProfileUrl(actor.profile_path)} alt={actor.name} />
+                          <img src={getProfileUrl(actor.profile_path)} alt={actor.name} loading="lazy" />
                         ) : (
                           <div className="no-cast-image" />
                         )}
                       </div>
                       <p className="cast-name">{actor.name}</p>
                       <p className="cast-character">{actor.character}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {featuredCrew.length > 0 && (
+          <section className="detail-section dark-section">
+            <div className="section-content">
+              <h2 className="section-title">Behind the camera</h2>
+              <p className="crew-section-subtitle">Director of photography, editing, music, and design</p>
+              <div className="cast-grid">
+                {featuredCrew.map((person) => (
+                  <Link
+                    key={`${person.id}-${person.job}`}
+                    to={`/actor/${person.id}`}
+                    className="cast-card-link"
+                  >
+                    <div className="cast-card">
+                      <div className="cast-image">
+                        {getProfileUrl(person.profile_path) ? (
+                          <img src={getProfileUrl(person.profile_path)} alt={person.name} loading="lazy" />
+                        ) : (
+                          <div className="no-cast-image" />
+                        )}
+                      </div>
+                      <p className="cast-name">{person.name}</p>
+                      <p className="cast-character">{person.job}</p>
                     </div>
                   </Link>
                 ))}
@@ -611,7 +724,7 @@ function MovieDetail() {
                   >
                     <div className="rec-poster">
                       {getPosterUrl(rec.poster_path) ? (
-                        <img src={getPosterUrl(rec.poster_path)} alt={rec.title} />
+                        <img src={getPosterUrl(rec.poster_path)} alt={rec.title} loading="lazy" />
                       ) : (
                         <div className="no-poster-small">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
@@ -639,7 +752,7 @@ function MovieDetail() {
         <LogMovieModal
           movie={movie}
           existingLog={editingLog}
-          onClose={() => setShowLogModal(false)}
+          onClose={handleModalClose}
           onSaved={handleModalSaved}
         />
       )}

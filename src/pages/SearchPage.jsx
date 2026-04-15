@@ -87,6 +87,7 @@ function SearchPage() {
       setLastQuery(initialQuery);
       handleSearch(initialQuery);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Sync from URL only; filter state is intentionally excluded to avoid re-fetch loops
   }, [initialQuery, initialGenres]);
 
   // Handle discover mode when filters change
@@ -94,6 +95,7 @@ function SearchPage() {
     if (searchMode === 'discover') {
       handleDiscover();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Filter-driven discover; searchMode/handleDiscover omitted to avoid double-fetch with URL effect
   }, [selectedGenre, sortBy, selectedYear]);
 
   const handleSearch = async (query) => {

@@ -466,7 +466,7 @@ $ git log --all --full-history -- .env
 
 **Phase**: Phase 6 Complete ✅
 
-**Current Version**: v1.8.1 - The Matchmaker & Universal Stability
+**Current Version**: v1.9.6 - Movie Detail Crew Deep Links
 
 **Completed Features**:
 - ✅ **The Matchmaker** (v1.8.0) - Fully operational social compatibility feature.
@@ -734,8 +734,8 @@ User Query → Groq LPU (llama-3.3-70b-versatile) → Genre IDs (300-600ms)
 | # | Task | Description | Status |
 |---|------|-------------|--------|
 | 6.18.1 | **Global Search Update** | Update search logic to hit `search/person` alongside movies. | ✅ |
-| 6.18.2 | **UI Categorization** | Visually separate "Movies" and "People" in search dropdowns/results. | ⬜ |
-| 6.18.3 | **Advanced Person Profiles** | Enhance existing actor pages with full `person/{id}/movie_credits` endpoints. | ⬜ |
-| 6.18.4 | **Smart Filtering** | Add genre toggles on actor pages (e.g., "Show Horror Only"). | ⬜ |
-| 6.18.5 | **Deep Navigation** | Ensure all Cast/Crew names on Movie Details link to Person Profiles. | ⬜ |
-| 6.18.6 | **"Logged" Indicators** | Add a visual badge on filmography grids showing which movies you've already logged. | ⬜ |
+| 6.18.2 | **UI Categorization** | Visually separate "Movies" and "People" in search dropdowns/results. | ✅ |
+| 6.18.3 | **Advanced Person Profiles** | Enhance existing actor pages with full `person/{id}/movie_credits` endpoints. | ✅ |
+| 6.18.4 | **Smart Filtering** | Add genre toggles on actor pages (e.g., "Show Horror Only"). | ✅ |
+| 6.18.5 | **Deep Navigation** | Ensure all Cast/Crew names on Movie Details link to Person Profiles. | ✅ |
+| 6.18.6 | **"Logged" Indicators** | Add a visual badge on filmography grids showing which movies you've already logged. | ✅ |

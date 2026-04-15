@@ -1,5 +1,4 @@
 import { getSupabase } from '../supabaseClient';
-import { fetchTMDBMovie } from '../api/tmdb';
 
 /**
  * Migration: Fix poster_path for movies imported before v1.8.2

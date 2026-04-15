@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { useLists } from '../context/ListContext';
@@ -11,38 +11,6 @@ import { MovieGridSkeleton } from '../components/Skeleton';
 import { runPosterMigration } from '../utils/posterMigration';
 import './LibraryPage.css';
 
-const MOOD_CATEGORIES = {
-  bittersweet: 'emotional',
-  heartwarming: 'emotional',
-  tearjerker: 'emotional',
-  uplifting: 'emotional',
-  bleak: 'emotional',
-  atmospheric: 'vibe',
-  dark: 'vibe',
-  gritty: 'vibe',
-  neon: 'vibe',
-  tense: 'vibe',
-  whimsical: 'vibe',
-  gory: 'vibe',
-  eerie: 'vibe',
-  claustrophobic: 'vibe',
-  campy: 'vibe',
-  dread: 'vibe',
-  'jump-scary': 'vibe',
-  psychological: 'intellectual',
-  mindbending: 'intellectual',
-  challenging: 'intellectual',
-  philosophical: 'intellectual',
-  slowburn: 'intellectual',
-  complex: 'intellectual',
-};
-
-const GENRES = [
-  'Horror', 'Sci-Fi', 'Action', 'Comedy', 'Drama', 'Thriller',
-  'Romance', 'Fantasy', 'Adventure', 'Animation', 'Crime',
-  'Documentary', 'Mystery', 'War', 'Western',
-];
-
 const SORT_OPTIONS = [
   { id: 'date_newest', label: 'Newest' },
   { id: 'date_oldest', label: 'Oldest' },
@@ -52,7 +20,7 @@ const SORT_OPTIONS = [
 function LibraryPage() {
   const { user, isAuthenticated } = useUser();
   const navigate = useNavigate();
-  const { lists, fetchLists, addMovieToList, removeMovieFromList, deleteList } = useLists();
+  const { lists, fetchLists, removeMovieFromList } = useLists();
   const [activeTab, setActiveTab] = useState('watched');
   const [movies, setMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,15 +35,7 @@ function LibraryPage() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [isMigratingPosters, setIsMigratingPosters] = useState(false);
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
-    fetchMovies();
-  }, [user?.id, activeTab]);
-
-  const fetchMovies = async () => {
+  const fetchMovies = useCallback(async () => {
     if (!user?.id) return;
     setIsLoading(true);
     setError('');
@@ -96,7 +56,15 @@ function LibraryPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.id, activeTab]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    fetchMovies();
+  }, [isAuthenticated, navigate, fetchMovies]);
 
   const handleEdit = (e, movie) => {
     e.stopPropagation();
@@ -127,7 +95,7 @@ function LibraryPage() {
   const handleCreateList = async (name, description) => {
     try {
       const supabase = getSupabase();
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('lists')
         .insert({
           user_id: user.id,
@@ -295,6 +263,7 @@ function LibraryPage() {
                           <img
                             src={`https://image.tmdb.org/t/p/w300${item.poster_path}`}
                             alt={item.title}
+                            loading="lazy"
                             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                           />
                         </div>
@@ -338,6 +307,7 @@ function LibraryPage() {
                             key={item.id}
                             src={`https://image.tmdb.org/t/p/w92${item.poster_path}`}
                             alt={item.title}
+                            loading="lazy"
                           />
                         ))}
                       </div>

@@ -51,24 +51,26 @@
   height: 20px;
 }
 
-/* Link Variant - Matches Footer About button */
+/* Link Variant — neutral chip (footer / secondary actions) */
 .report-bug-link {
-  background: none;
-  border: none;
-  color: #f9a84b;
-  font-size: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #a1a1aa;
+  font-size: 13px;
   font-weight: 500;
-  padding: 8px 16px;
-  border: 1px solid rgba(249, 168, 75, 0.3);
+  padding: 6px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
   text-decoration: none;
 }
 
 .report-bug-link:hover {
-  background: rgba(249, 168, 75, 0.1);
-  border-color: #f9a84b;
-  color: #f56505;
+  color: #e4e4e7;
+  border-color: rgba(249, 168, 75, 0.45);
+  background: rgba(249, 168, 75, 0.06);
   text-decoration: none;
 }

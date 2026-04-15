@@ -185,7 +185,7 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
           {movie && (
             <div style={{ display: 'flex', gap: '16px', padding: '16px', backgroundColor: '#121212', borderRadius: '8px' }}>
               {moviePoster && (
-                <img src={`https://image.tmdb.org/t/p/w92${moviePoster}`} alt={movieTitle} style={{ width: '80px', height: '120px', objectFit: 'cover', borderRadius: '4px' }} />
+                <img src={`https://image.tmdb.org/t/p/w92${moviePoster}`} alt={movieTitle} loading="lazy" style={{ width: '80px', height: '120px', objectFit: 'cover', borderRadius: '4px' }} />
               )}
               <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#ffffff', margin: '0 0 4px 0' }}>{movieTitle}</h3>

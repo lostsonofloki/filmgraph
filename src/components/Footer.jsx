@@ -16,7 +16,16 @@ function Footer() {
     <footer className="footer">
       <div className="footer-content">
         <p className="footer-dedication">
-          Developed by Josh Jenkins. Dedicated to{' '}
+          Developed by{' '}
+          <a
+            href="https://linktr.ee/sonofloke"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="footer-credit-link"
+          >
+            Josh Jenkins
+          </a>
+          . Dedicated to{' '}
           <span className="footer-highlight-name">Rachel Banks (Racheepi)</span> on our{' '}
           <span className="footer-highlight-anniversary">7th Anniversary</span> — March 2026. Thanks for surviving seven years of nightmares and adventures with me.
         </p>

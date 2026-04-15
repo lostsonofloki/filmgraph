@@ -78,14 +78,6 @@ function TrendingMovies() {
     setUseDiscover(false);
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    const query = e.target.search.value.trim();
-    if (query) {
-      navigate(`/search?q=${encodeURIComponent(query)}`);
-    }
-  };
-
   return (
     <div className="trending-page">
       <div className="trending-header">

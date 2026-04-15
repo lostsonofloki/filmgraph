@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { getSupabase } from '../supabaseClient';
@@ -13,38 +13,6 @@ function WatchHistory() {
   const [movies, setMovies] = useState([]);
   const [groupedMovies, setGroupedMovies] = useState({});
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if (!isAuthenticated || !user?.id) {
-      navigate('/login');
-      return;
-    }
-
-    fetchMovies();
-  }, [user, isAuthenticated, navigate]);
-
-  const fetchMovies = async () => {
-    try {
-      setIsLoading(true);
-      const supabase = getSupabase();
-
-      const { data, error } = await supabase
-        .from('movie_logs')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('watch_status', 'watched')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      setMovies(data || []);
-      groupMoviesByMonth(data || []);
-    } catch (err) {
-      console.error('Error fetching movies:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const groupMoviesByMonth = (data) => {
     const grouped = {};
@@ -74,6 +42,38 @@ function WatchHistory() {
 
     setGroupedMovies(sortedGrouped);
   };
+
+  const fetchMovies = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const supabase = getSupabase();
+
+      const { data, error } = await supabase
+        .from('movie_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('watch_status', 'watched')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setMovies(data || []);
+      groupMoviesByMonth(data || []);
+    } catch (err) {
+      console.error('Error fetching movies:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) {
+      navigate('/login');
+      return;
+    }
+
+    fetchMovies();
+  }, [user, isAuthenticated, navigate, fetchMovies]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -135,7 +135,7 @@ function WatchHistory() {
             </div>
             <div className="timeline-divider"></div>
             <div className="timeline-movies">
-              {monthMovies.map((movie, index) => (
+              {monthMovies.map((movie) => (
                 <div
                   key={movie.id}
                   className="timeline-entry"
@@ -154,6 +154,7 @@ function WatchHistory() {
                               ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` 
                               : movie.poster} 
                             alt={movie.title} 
+                            loading="lazy"
                           />
                         ) : (
                           <div className="no-poster">

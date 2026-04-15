@@ -4,7 +4,7 @@
  */
 
 // Application Version
-export const APP_VERSION = '1.9.1';
+export const APP_VERSION = '1.9.6';
 
 // Theme Colors
 export const THEME_COLORS = {
@@ -27,6 +27,7 @@ export const SUPABASE_TABLES = {
   MOVIE_LOGS: 'movie_logs',
   LISTS: 'lists',
   LIST_ITEMS: 'list_items',
+  LIST_MEMBERS: 'list_members',
   BUG_REPORTS: 'bug_reports',
   RECOMMENDATION_FEEDBACK: 'recommendation_feedback',
 };

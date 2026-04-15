@@ -61,6 +61,7 @@
   align-items: center;
   gap: 8px;
   padding: 20px 16px;
+  min-height: 44px;
   background: #171717;
   border: 1px solid #262626;
   border-radius: 16px;
@@ -151,6 +152,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
+  min-height: 44px;
   background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
   color: #ffffff;
   border: none;
@@ -380,6 +382,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
+  min-height: 44px;
   background: #171717;
   color: #fbbf24;
   border: 1px solid #b45309;
@@ -430,6 +433,7 @@
   display: block;
   width: 100%;
   padding: 12px 16px;
+  min-height: 44px;
   background: transparent;
   color: #d4d4d4;
   border: none;
@@ -469,6 +473,7 @@
 .tmdb-link {
   display: inline-block;
   padding: 10px 20px;
+  min-height: 44px;
   background: #262626;
   color: #ffffff;
   text-decoration: none;
@@ -488,6 +493,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
+  min-height: 44px;
   background: #171717;
   color: #fca5a5;
   border: 1px solid #dc2626;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '../context/UserContext';
 import { useToast } from '../context/ToastContext';
 import { getSupabase } from '../supabaseClient';
@@ -23,12 +23,7 @@ function MatchmakerPage() {
   const [friends, setFriends] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch all friendship data on mount
-  useEffect(() => {
-    fetchFriendships();
-  }, [user?.id]);
-
-  const fetchFriendships = async () => {
+  const fetchFriendships = useCallback(async () => {
     if (!user?.id) return;
 
     try {
@@ -125,7 +120,12 @@ function MatchmakerPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.id, toast]);
+
+  // Fetch all friendship data on mount
+  useEffect(() => {
+    fetchFriendships();
+  }, [fetchFriendships]);
 
   const sendMatchRequest = async () => {
     if (!inviteEmail.trim()) {
@@ -171,7 +171,7 @@ function MatchmakerPage() {
       }
 
       // Create friendship request
-      const { data, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('friendships')
         .insert({
           sender_id: user.id,

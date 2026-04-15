@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 import { useUser } from './UserContext';
+import { getUserLists } from '../api/sharedLists';
 
 const ListContext = createContext(null);
 
@@ -28,20 +29,7 @@ export function ListProvider({ children }) {
       setIsLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
-        .from('lists')
-        .select(`
-          *,
-          list_items (
-            id,
-            tmdb_id,
-            title,
-            poster_path,
-            added_at
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      const { data, error: fetchError } = await getUserLists(user.id);
 
       if (fetchError) throw fetchError;
 
@@ -89,9 +77,20 @@ export function ListProvider({ children }) {
 
       if (insertError) throw insertError;
 
+      const { error: memberError } = await supabase.from('list_members').insert({
+        list_id: data.id,
+        user_id: user.id,
+        role: 'owner',
+      });
+
+      if (memberError) {
+        await supabase.from('lists').delete().eq('id', data.id);
+        throw memberError;
+      }
+
       // Add the new list to state
       setLists((prev) => [
-        { ...data, list_items: [] },
+        { ...data, list_items: [], membership: { role: 'owner', joined_at: new Date().toISOString() } },
         ...prev,
       ]);
 
@@ -143,7 +142,6 @@ export function ListProvider({ children }) {
         .from('lists')
         .update({
           ...updates,
-          updated_at: new Date().toISOString(),
         })
         .eq('id', listId)
         .eq('user_id', user.id)
@@ -202,6 +200,7 @@ export function ListProvider({ children }) {
           tmdb_id: movie.tmdb_id,
           title: movie.title,
           poster_path: movie.poster_path,
+          added_by: user.id,
         })
         .select()
         .single();

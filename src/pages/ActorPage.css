@@ -179,7 +179,112 @@
 .filmography-subtitle {
   font-size: 14px;
   color: #71717a;
-  margin: 0 0 32px 0;
+  margin: 0 0 16px 0;
+}
+
+/* Filmography filters (sticky on small screens) */
+.actor-filmography-filters {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #0a0a0a;
+  padding: 12px 0 16px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #27272a;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.45);
+}
+
+.actor-filter-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.actor-filter-row:last-child {
+  margin-bottom: 0;
+}
+
+.actor-filter-row--tight {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.actor-filter-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #71717a;
+}
+
+.actor-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.actor-filter-chip {
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #d4d4d8;
+  background: #18181b;
+  border: 1px solid #3f3f46;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.actor-filter-chip:hover {
+  border-color: #f97316;
+  color: #fafafa;
+}
+
+.actor-filter-chip.is-active {
+  background: rgba(249, 115, 22, 0.18);
+  border-color: #f97316;
+  color: #fb923c;
+}
+
+.actor-filter-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.actor-filter-chip--toggle {
+  border-radius: 10px;
+}
+
+.actor-filter-clear {
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #a1a1aa;
+  background: transparent;
+  border: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.actor-filter-clear:hover {
+  color: #f97316;
+}
+
+.filmography-empty {
+  font-size: 15px;
+  color: #a1a1aa;
+  margin: 24px 0 0;
+  padding: 20px;
+  text-align: center;
+  border: 1px dashed #3f3f46;
+  border-radius: 12px;
+  background: #171717;
 }
 
 /* Filmography Grid */
@@ -220,23 +325,25 @@
 /* Watched Badge */
 .watched-badge {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 26px;
-  height: 26px;
-  background: rgba(249, 115, 22, 0.92);
-  border-radius: 50%;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  background: rgba(10, 10, 10, 0.72);
+  backdrop-filter: blur(2px);
+  border: 1px solid rgba(249, 115, 22, 0.5);
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #0a0a0a;
-  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.5);
+  color: #fb923c;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
   z-index: 3;
 }
 
 .watched-badge svg {
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
 }
 
 .film-card-info {
@@ -273,6 +380,17 @@
 }
 
 /* Responsive */
+@media (min-width: 769px) {
+  .actor-filmography-filters {
+    position: static;
+    box-shadow: none;
+    border-bottom: none;
+    padding-top: 0;
+    padding-bottom: 8px;
+    margin-bottom: 24px;
+  }
+}
+
 @media (max-width: 768px) {
   .actor-header-content {
     flex-direction: column;

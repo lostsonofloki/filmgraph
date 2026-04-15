@@ -1,10 +1,135 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { useToast } from '../context/ToastContext';
 import { getSupabase } from '../supabaseClient';
 import { getPosterUrl } from '../api/tmdb';
 import './SynergyDashboard.css';
+
+/**
+ * Calculate compatibility metrics between two users
+ * @param {Array} myLogs
+ * @param {Array} friendLogs
+ */
+function calculateSynergy(myLogs, friendLogs) {
+  const friendMoviesMap = new Map(friendLogs.map((m) => [String(m.tmdb_id), m]));
+
+  const sharedMovies = [];
+  myLogs?.forEach((myMovie) => {
+    if (!myMovie || !myMovie.tmdb_id) return;
+    const myMovieId = String(myMovie.tmdb_id);
+    const friendMovie = friendMoviesMap.get(myMovieId);
+
+    const myWatched = String(myMovie.watch_status || '').toLowerCase() === 'watched';
+    const friendWatched = String(friendMovie?.watch_status || '').toLowerCase() === 'watched';
+
+    if (friendMovie && myWatched && friendWatched) {
+      sharedMovies.push({
+        tmdb_id: myMovie.tmdb_id,
+        title: myMovie.title,
+        poster_path: myMovie.poster_path,
+        myRating: myMovie.rating || 0,
+        theirRating: friendMovie.rating || 0,
+        difference: Math.abs((myMovie.rating || 0) - (friendMovie.rating || 0)),
+      });
+    }
+  });
+
+  const myWatchlist = new Set(
+    myLogs
+      ?.filter((m) => m?.watch_status && String(m.watch_status).toLowerCase() === 'to-watch')
+      .map((m) => String(m.tmdb_id)) || []
+  );
+  const theirWatchlist = new Set(
+    friendLogs
+      ?.filter((m) => m?.watch_status && String(m.watch_status).toLowerCase() === 'to-watch')
+      .map((m) => String(m.tmdb_id)) || []
+  );
+
+  const sharedWatchlist = [];
+  const seenTmdbIds = new Set();
+
+  myLogs?.forEach((myMovie) => {
+    if (!myMovie || !myMovie.tmdb_id) return;
+    const movieId = String(myMovie.tmdb_id);
+    if (myWatchlist.has(movieId) && theirWatchlist.has(movieId)) {
+      if (!seenTmdbIds.has(movieId)) {
+        sharedWatchlist.push({
+          tmdb_id: myMovie.tmdb_id,
+          title: myMovie.title,
+          poster_path: myMovie.poster_path,
+        });
+        seenTmdbIds.add(movieId);
+      }
+    }
+  });
+
+  const myGenres = {};
+  const friendGenres = {};
+
+  myLogs.forEach((movie) => {
+    if (movie.genres && Array.isArray(movie.genres)) {
+      movie.genres.forEach((genre) => {
+        myGenres[genre] = (myGenres[genre] || 0) + 1;
+      });
+    }
+  });
+
+  friendLogs.forEach((movie) => {
+    if (movie.genres && Array.isArray(movie.genres)) {
+      movie.genres.forEach((genre) => {
+        friendGenres[genre] = (friendGenres[genre] || 0) + 1;
+      });
+    }
+  });
+
+  const sharedGenres = [];
+  Object.keys(myGenres).forEach((genre) => {
+    if (friendGenres[genre]) {
+      sharedGenres.push({
+        genre,
+        myCount: myGenres[genre],
+        theirCount: friendGenres[genre],
+        total: myGenres[genre] + friendGenres[genre],
+      });
+    }
+  });
+  sharedGenres.sort((a, b) => b.total - a.total);
+
+  let compatibilityScore = 50;
+
+  if (sharedMovies.length > 0) {
+    const avgDifference =
+      sharedMovies.reduce((sum, m) => sum + m.difference, 0) / sharedMovies.length;
+    const agreementScore = Math.max(0, (5 - avgDifference) / 5) * 25;
+    compatibilityScore += agreementScore;
+  }
+
+  const watchlistOverlap =
+    sharedWatchlist.length / Math.max(myWatchlist.size, theirWatchlist.size, 1);
+  compatibilityScore += watchlistOverlap * 15;
+
+  const genreOverlap =
+    sharedGenres.length /
+    Math.max(Object.keys(myGenres).length, Object.keys(friendGenres).length, 1);
+  compatibilityScore += genreOverlap * 10;
+
+  compatibilityScore = Math.min(100, Math.round(compatibilityScore));
+
+  const greatDebates = sharedMovies
+    .filter((m) => m.difference >= 2.0)
+    .sort((a, b) => b.difference - a.difference);
+
+  return {
+    compatibilityScore,
+    sharedMovies,
+    sharedWatchlist,
+    sharedGenres: sharedGenres.slice(0, 5),
+    greatDebates,
+    myTotalMovies: myLogs.length,
+    theirTotalMovies: friendLogs.length,
+  };
+}
 
 /**
  * SynergyDashboard - Compare movie tastes with a friend
@@ -21,13 +146,7 @@ function SynergyDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview'); // overview, shared, genres
 
-  useEffect(() => {
-    if (friendId && user?.id) {
-      fetchSynergyData();
-    }
-  }, [friendId, user?.id]);
-
-  const fetchSynergyData = async () => {
+  const fetchSynergyData = useCallback(async () => {
     try {
       setIsLoading(true);
       const supabase = getSupabase();
@@ -65,139 +184,13 @@ function SynergyDashboard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [friendId, user?.id, toast]);
 
-  /**
-   * Calculate compatibility metrics between two users
-   */
-  const calculateSynergy = (myLogs, friendLogs) => {
-    // Create maps for quick lookup - normalize tmdb_id to string for comparison
-    const myMoviesMap = new Map(myLogs.map(m => [String(m.tmdb_id), m]));
-    const friendMoviesMap = new Map(friendLogs.map(m => [String(m.tmdb_id), m]));
-
-    // Find shared movies (both have watched status - regardless of rating)
-    const sharedMovies = [];
-    myLogs?.forEach(myMovie => {
-      if (!myMovie || !myMovie.tmdb_id) return;
-      const myMovieId = String(myMovie.tmdb_id);
-      const friendMovie = friendMoviesMap.get(myMovieId);
-      
-      // Check if both have watched status (case-insensitive)
-      const myWatched = String(myMovie.watch_status || '').toLowerCase() === 'watched';
-      const friendWatched = String(friendMovie?.watch_status || '').toLowerCase() === 'watched';
-      
-      if (friendMovie && myWatched && friendWatched) {
-        sharedMovies.push({
-          tmdb_id: myMovie.tmdb_id,
-          title: myMovie.title,
-          poster_path: myMovie.poster_path,
-          myRating: myMovie.rating || 0,
-          theirRating: friendMovie.rating || 0,
-          difference: Math.abs((myMovie.rating || 0) - (friendMovie.rating || 0)),
-        });
-      }
-    });
-
-    // Find shared watchlist (both want to watch) - with safe string comparison
-    const myWatchlist = new Set(
-      myLogs
-        ?.filter(m => m?.watch_status && String(m.watch_status).toLowerCase() === 'to-watch')
-        .map(m => String(m.tmdb_id)) || []
-    );
-    const theirWatchlist = new Set(
-      friendLogs
-        ?.filter(m => m?.watch_status && String(m.watch_status).toLowerCase() === 'to-watch')
-        .map(m => String(m.tmdb_id)) || []
-    );
-
-    const sharedWatchlist = [];
-    const seenTmdbIds = new Set();
-
-    myLogs?.forEach(myMovie => {
-      if (!myMovie || !myMovie.tmdb_id) return;
-      const movieId = String(myMovie.tmdb_id);
-      if (myWatchlist.has(movieId) && theirWatchlist.has(movieId)) {
-        if (!seenTmdbIds.has(movieId)) {
-          sharedWatchlist.push({
-            tmdb_id: myMovie.tmdb_id,
-            title: myMovie.title,
-            poster_path: myMovie.poster_path,
-          });
-          seenTmdbIds.add(movieId);
-        }
-      }
-    });
-
-    // Calculate genre overlap
-    const myGenres = {};
-    const friendGenres = {};
-    
-    myLogs.forEach(movie => {
-      if (movie.genres && Array.isArray(movie.genres)) {
-        movie.genres.forEach(genre => {
-          myGenres[genre] = (myGenres[genre] || 0) + 1;
-        });
-      }
-    });
-    
-    friendLogs.forEach(movie => {
-      if (movie.genres && Array.isArray(movie.genres)) {
-        movie.genres.forEach(genre => {
-          friendGenres[genre] = (friendGenres[genre] || 0) + 1;
-        });
-      }
-    });
-
-    // Find shared top genres
-    const sharedGenres = [];
-    Object.keys(myGenres).forEach(genre => {
-      if (friendGenres[genre]) {
-        sharedGenres.push({
-          genre,
-          myCount: myGenres[genre],
-          theirCount: friendGenres[genre],
-          total: myGenres[genre] + friendGenres[genre],
-        });
-      }
-    });
-    sharedGenres.sort((a, b) => b.total - a.total);
-
-    // Calculate compatibility score (0-100%)
-    let compatibilityScore = 50; // Base score
-    
-    // Factor 1: Rating agreement on shared movies (max +25%)
-    if (sharedMovies.length > 0) {
-      const avgDifference = sharedMovies.reduce((sum, m) => sum + m.difference, 0) / sharedMovies.length;
-      const agreementScore = Math.max(0, (5 - avgDifference) / 5) * 25;
-      compatibilityScore += agreementScore;
+  useEffect(() => {
+    if (friendId && user?.id) {
+      fetchSynergyData();
     }
-    
-    // Factor 2: Shared watchlist overlap (max +15%)
-    const watchlistOverlap = sharedWatchlist.length / Math.max(myWatchlist.size, theirWatchlist.size, 1);
-    compatibilityScore += watchlistOverlap * 15;
-    
-    // Factor 3: Genre similarity (max +10%)
-    const genreOverlap = sharedGenres.length / Math.max(Object.keys(myGenres).length, Object.keys(friendGenres).length, 1);
-    compatibilityScore += genreOverlap * 10;
-
-    // Cap at 100%
-    compatibilityScore = Math.min(100, Math.round(compatibilityScore));
-
-    // Find "The Great Debates" - movies with 2+ point rating difference
-    const greatDebates = sharedMovies
-      .filter(m => m.difference >= 2.0)
-      .sort((a, b) => b.difference - a.difference);
-
-    return {
-      compatibilityScore,
-      sharedMovies,
-      sharedWatchlist,
-      sharedGenres: sharedGenres.slice(0, 5), // Top 5
-      greatDebates,
-      myTotalMovies: myLogs.length,
-      theirTotalMovies: friendLogs.length,
-    };
-  };
+  }, [friendId, user?.id, fetchSynergyData]);
 
   if (isLoading) {
     return (
@@ -318,6 +311,7 @@ function SynergyDashboard() {
                         <img
                           src={getPosterUrl(debate.poster_path, 'w185')}
                           alt={debate.title}
+                          loading="lazy"
                           className="debate-poster"
                           onError={(e) => { e.target.src = 'https://ui-avatars.com/api/?name=?&background=7e22ce&color=fff&size=185'; }}
                         />
@@ -361,6 +355,7 @@ function SynergyDashboard() {
                       <img
                         src={getPosterUrl(movie.poster_path, 'w342')}
                         alt={movie.title}
+                        loading="lazy"
                         className="shared-poster"
                         onError={(e) => { e.target.src = 'https://ui-avatars.com/api/?name=?&background=7e22ce&color=fff&size=342'; }}
                       />
