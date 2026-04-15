@@ -172,11 +172,11 @@ function MovieCard({ movie, isLibraryCard = false, onEdit, onDelete }) {
           )}
         </div>
 
-        <div className="p-3 bg-zinc-950 border-t border-zinc-900">
-          <h3 className="text-white font-semibold text-sm line-clamp-1 mb-0.5 group-hover:text-orange-500 transition-colors">
+        <div className="movie-card-meta">
+          <h3 className="movie-card-meta-title group-hover:text-orange-400 transition-colors">
             {movie.title}
           </h3>
-          <p className="text-zinc-500 text-xs">{movie.year}</p>
+          <p className="movie-card-meta-year">{movie.year}</p>
         </div>
       </div>
 

@@ -266,8 +266,8 @@ function LibraryPage() {
 
     try {
       const stats = await runPosterMigration(user.id);
-      alert(`Poster refresh complete!\n\n✅ Fixed: ${stats.fixed}\n⏭️ Skipped: ${stats.skipped}\n❌ Errors: ${stats.errors}`);
-      fetchMovies(); // Refresh to show new posters
+      alert(`Poster refresh complete!\n\nFixed: ${stats.fixed}\nSkipped: ${stats.skipped}\nErrors: ${stats.errors}`);
+      fetchMovies();
     } catch (err) {
       console.error('Error refreshing posters:', err);
       setError('Failed to refresh posters.');
@@ -298,95 +298,125 @@ function LibraryPage() {
 
   const allMoods = [...new Set(movies.flatMap((m) => m.moods || []))];
 
+  const shelfCountLabel =
+    activeTab === 'lists'
+      ? `${lists.length} list${lists.length === 1 ? '' : 's'}`
+      : isLoading
+        ? 'Loading…'
+        : `${sortedMovies.length} shown · ${movies.length} in this shelf`;
+
   if (!isAuthenticated) return null;
 
   return (
     <div className="library-page">
       <div className="library-container">
-        {/* Header */}
-        <div className="library-header">
-          <h1>My Library</h1>
-          <div className="library-actions">
-            <button
-              className="btn-import"
-              onClick={() => setShowImportModal(true)}
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="17 8 12 3 7 8" />
-                <line x1="12" y1="3" x2="12" y2="15" />
-              </svg>
-              ✨ Magic Import
+        <header className="library-top">
+          <div className="library-top-text">
+            <div className="library-top-heading-row">
+              <h1 className="library-title">Library</h1>
+              <span className="library-count-pill" aria-live="polite">
+                {shelfCountLabel}
+              </span>
+            </div>
+            <p className="library-tagline">
+              Import, scan, search, and sort — everything in one place.
+            </p>
+          </div>
+
+          <div className="library-toolbar" role="toolbar" aria-label="Library quick actions">
+            <button type="button" className="library-tool library-tool--import" onClick={() => setShowImportModal(true)}>
+              <span className="library-tool-icon" aria-hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+              </span>
+              <span className="library-tool-label">Import</span>
+            </button>
+            <button type="button" className="library-tool library-tool--scan" onClick={() => setShowScanModal(true)}>
+              <span className="library-tool-icon" aria-hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 7V5a1 1 0 0 1 1-1h2" />
+                  <path d="M20 7V5a1 1 0 0 0-1-1h-2" />
+                  <path d="M4 17v2a1 1 0 0 0 1 1h2" />
+                  <path d="M20 17v2a1 1 0 0 1-1 1h-2" />
+                  <path d="M7 12h10" />
+                  <path d="M9 9v6" />
+                </svg>
+              </span>
+              <span className="library-tool-label">Scan</span>
+            </button>
+            <button type="button" className="library-tool library-tool--list" onClick={() => setShowCreateListModal(true)}>
+              <span className="library-tool-icon" aria-hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </span>
+              <span className="library-tool-label">New list</span>
             </button>
             <button
-              className="btn-scan"
-              onClick={() => setShowScanModal(true)}
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M4 7V5a1 1 0 0 1 1-1h2" />
-                <path d="M20 7V5a1 1 0 0 0-1-1h-2" />
-                <path d="M4 17v2a1 1 0 0 0 1 1h2" />
-                <path d="M20 17v2a1 1 0 0 1-1 1h-2" />
-                <path d="M7 12h10" />
-                <path d="M9 9v6" />
-              </svg>
-              📷 Scan Barcode
-            </button>
-            <button
-              className="create-list-btn"
-              onClick={() => setShowCreateListModal(true)}
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              Create List
-            </button>
-            <button
-              className="btn-secondary"
+              type="button"
+              className="library-tool library-tool--refresh"
               onClick={handleRefreshPosters}
               disabled={isMigratingPosters}
-              style={{ opacity: isMigratingPosters ? 0.5 : 1 }}
             >
-              {isMigratingPosters ? '⏳ Refreshing...' : '🖼️ Refresh Posters'}
+              <span className="library-tool-icon" aria-hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="M21 15l-5-5L5 21" />
+                </svg>
+              </span>
+              <span className="library-tool-label">{isMigratingPosters ? 'Fixing…' : 'Fix posters'}</span>
             </button>
           </div>
-        </div>
+        </header>
 
         {!isOnline && (
-          <div className="error" style={{ marginBottom: '16px' }}>
-            Offline mode active: you can browse cached content and queued movie logs will sync later.
+          <div className="library-offline-banner" role="status">
+            You’re offline — cached browsing works; queued logs will sync when you’re back online.
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="library-tabs">
+        <div className="library-tabs" role="tablist" aria-label="Library sections">
           <button
-            className={`tab ${activeTab === 'watched' ? 'active' : ''}`}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'watched'}
+            className={`library-tab ${activeTab === 'watched' ? 'library-tab--active' : ''}`}
             onClick={() => { setActiveTab('watched'); setSelectedList(null); }}
           >
             Watched
           </button>
           <button
-            className={`tab ${activeTab === 'to-watch' ? 'active' : ''}`}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'to-watch'}
+            className={`library-tab ${activeTab === 'to-watch' ? 'library-tab--active' : ''}`}
             onClick={() => { setActiveTab('to-watch'); setSelectedList(null); }}
           >
-            Want to Watch
+            Watchlist
           </button>
           <button
-            className={`tab ${activeTab === 'lists' ? 'active' : ''}`}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'lists'}
+            className={`library-tab ${activeTab === 'lists' ? 'library-tab--active' : ''}`}
             onClick={() => setActiveTab('lists')}
           >
-            Lists ({lists.length})
+            Lists
+            <span className="library-tab-badge">{lists.length}</span>
           </button>
         </div>
 
-        {/* Lists View */}
         {activeTab === 'lists' && (
           <div className="lists-view">
             {selectedList ? (
               <div className="list-detail">
                 <div className="list-detail-header">
                   <button
+                    type="button"
                     className="back-to-lists"
                     onClick={() => setSelectedList(null)}
                   >
@@ -395,6 +425,7 @@ function LibraryPage() {
                   <h2>{selectedList.name}</h2>
                   {isListOwner(selectedList.id) && (
                     <button
+                      type="button"
                       className="delete-list-btn"
                       onClick={() => handleDeleteList(selectedList.id)}
                     >
@@ -431,6 +462,7 @@ function LibraryPage() {
                         <option value="viewer">Viewer</option>
                       </select>
                       <button
+                        type="button"
                         className="collab-invite-btn"
                         disabled={isInvitingCollaborator || !collaboratorInput.trim()}
                         onClick={handleInviteCollaborator}
@@ -467,6 +499,7 @@ function LibraryPage() {
                                 <option value="viewer">Viewer</option>
                               </select>
                               <button
+                                type="button"
                                 className="collab-remove-btn"
                                 disabled={memberLoading}
                                 onClick={() => handleRemoveCollaborator(member.user_id)}
@@ -480,10 +513,10 @@ function LibraryPage() {
                     })}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <div className="library-movie-grid library-movie-grid--list-detail">
                   {selectedList.list_items && selectedList.list_items.length > 0 ? (
                     selectedList.list_items.map((item) => (
-                      <div key={item.id} className="group relative">
+                      <div key={item.id} className="library-poster-cell group relative min-w-0">
                         <div className="aspect-[2/3] overflow-hidden rounded-lg bg-zinc-900">
                           <img
                             src={`https://image.tmdb.org/t/p/w300${item.poster_path}`}
@@ -507,6 +540,7 @@ function LibraryPage() {
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded-lg">
                           {canEditList(selectedList.id) && (
                             <button
+                              type="button"
                               className="px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded hover:bg-red-700 transition-colors"
                               onClick={() => removeMovieFromList(selectedList.id, item.tmdb_id)}
                             >
@@ -517,7 +551,7 @@ function LibraryPage() {
                       </div>
                     ))
                   ) : (
-                    <p className="col-span-full text-center text-zinc-500 py-12">This list is empty.</p>
+                    <p className="library-movie-grid-empty">This list is empty.</p>
                   )}
                 </div>
               </div>
@@ -554,6 +588,7 @@ function LibraryPage() {
                       </div>
                       <div className="list-card-actions">
                         <button
+                          type="button"
                           className="view-list-btn"
                           onClick={() => handleViewList(list)}
                         >
@@ -567,6 +602,7 @@ function LibraryPage() {
                     <h3>No lists yet</h3>
                     <p>Create your first custom list to organize your movies.</p>
                     <button
+                      type="button"
                       className="create-first-list"
                       onClick={() => setShowCreateListModal(true)}
                     >
@@ -579,65 +615,82 @@ function LibraryPage() {
           </div>
         )}
 
-        {/* Movies View */}
         {activeTab !== 'lists' && (
           <>
-            {/* Filters */}
-            <div className="library-filters">
-              <input
-                type="text"
-                placeholder='Natural sort: "under 90 mins, unwatched, dark, highest rated"'
-                value={naturalQuery}
-                onChange={(e) => setNaturalQuery(e.target.value)}
-                className="search-input"
-              />
-              <input
-                type="text"
-                placeholder="Search your library..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="search-input"
-              />
-              {allMoods.length > 0 && (
-                <select
-                  value={selectedMood}
-                  onChange={(e) => setSelectedMood(e.target.value)}
-                  className="mood-filter"
-                >
-                  <option value="">All Moods</option>
-                  {allMoods.map((mood) => (
-                    <option key={mood} value={mood}>
-                      {mood.charAt(0).toUpperCase() + mood.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              )}
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="sort-select"
-              >
-                {SORT_OPTIONS.map((opt) => (
-                  <option key={opt.id} value={opt.id}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <section className="library-filters-card" aria-label="Search and filters">
+              <h2 className="library-filters-heading">Find & refine</h2>
+              <div className="library-filters-grid">
+                <div className="library-filter-field library-filter-field--full">
+                  <label htmlFor="library-search-titles" className="library-filter-label">Search titles</label>
+                  <input
+                    id="library-search-titles"
+                    type="text"
+                    placeholder="Type part of a movie name…"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="library-input"
+                  />
+                </div>
+                <div className="library-filter-field library-filter-field--full">
+                  <label htmlFor="library-natural" className="library-filter-label">Smart filter</label>
+                  <input
+                    id="library-natural"
+                    type="text"
+                    placeholder="e.g. under 90 min, dark mood, highest rated"
+                    value={naturalQuery}
+                    onChange={(e) => setNaturalQuery(e.target.value)}
+                    className="library-input library-input--natural"
+                  />
+                  <p className="library-filter-hint">Natural language updates mood, sort, and filters when it recognizes them.</p>
+                </div>
+                {allMoods.length > 0 && (
+                  <div className="library-filter-field">
+                    <label htmlFor="library-mood" className="library-filter-label">Mood</label>
+                    <select
+                      id="library-mood"
+                      value={selectedMood}
+                      onChange={(e) => setSelectedMood(e.target.value)}
+                      className="library-select"
+                    >
+                      <option value="">All moods</option>
+                      {allMoods.map((mood) => (
+                        <option key={mood} value={mood}>
+                          {mood.charAt(0).toUpperCase() + mood.slice(1)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <div className="library-filter-field">
+                  <label htmlFor="library-sort" className="library-filter-label">Sort</label>
+                  <select
+                    id="library-sort"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="library-select"
+                  >
+                    {SORT_OPTIONS.map((opt) => (
+                      <option key={opt.id} value={opt.id}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </section>
 
-            {/* Movie Grid */}
             {isLoading ? (
               <MovieGridSkeleton count={12} />
             ) : error ? (
-              <div className="error">{error}</div>
+              <div className="library-alert library-alert--error">{error}</div>
             ) : sortedMovies.length === 0 ? (
-              <div className="empty-state">
-                <p>No movies found. Start logging!</p>
+              <div className="library-empty">
+                <p>No movies match. Try clearing search or switching shelves.</p>
               </div>
             ) : (
-              <div className="library-movie-grid grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
+              <div className="library-movie-grid">
                 {sortedMovies.map((movie) => (
-                  <div key={movie.id} className="min-w-0">
+                  <div key={movie.id} className="library-poster-cell">
                     <MovieCard
                       movie={movie}
                       isLibraryCard={true}
@@ -652,7 +705,6 @@ function LibraryPage() {
         )}
       </div>
 
-      {/* Edit Modal */}
       {showEditModal && editingMovie && (
         <LogMovieModal
           movie={editingMovie}
@@ -665,7 +717,6 @@ function LibraryPage() {
         />
       )}
 
-      {/* Create List Modal */}
       {showCreateListModal && (
         <CreateListModal
           onClose={() => setShowCreateListModal(false)}
@@ -676,18 +727,16 @@ function LibraryPage() {
         />
       )}
 
-      {/* Archive Importer Modal */}
       {showImportModal && (
         <ArchiveImporterModal
           onClose={() => setShowImportModal(false)}
           onImportComplete={(stats) => {
-            console.log('📦 Import complete:', stats);
-            fetchMovies(); // Refresh library to show newly imported movies
+            console.log('Import complete:', stats);
+            fetchMovies();
           }}
         />
       )}
 
-      {/* Barcode Scanner Modal */}
       {showScanModal && (
         <LogMovieModal
           movie={null}
