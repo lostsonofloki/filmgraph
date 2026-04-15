@@ -1,5 +1,5 @@
-const APP_SHELL_CACHE = 'filmgraph-shell-v1';
-const API_CACHE = 'filmgraph-api-v1';
+const APP_SHELL_CACHE = 'filmgraph-shell-v2';
+const API_CACHE = 'filmgraph-api-v2';
 const APP_SHELL_ASSETS = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', (event) => {
@@ -29,6 +29,24 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
 
   if (url.origin === self.location.origin) {
+    if (request.mode === 'navigate') {
+      event.respondWith(
+        fetch(request)
+          .then((response) => {
+            if (response && response.status === 200) {
+              const responseClone = response.clone();
+              caches.open(APP_SHELL_CACHE).then((cache) => cache.put(request, responseClone));
+            }
+            return response;
+          })
+          .catch(async () => {
+            const cached = await caches.match(request);
+            return cached || caches.match('/index.html');
+          })
+      );
+      return;
+    }
+
     event.respondWith(
       caches.match(request).then((cached) => {
         const networkFetch = fetch(request)

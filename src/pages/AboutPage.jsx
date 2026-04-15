@@ -73,37 +73,37 @@ function AboutPage() {
           <div className="changelog-content">
             <div className="changelog-item">
               <div className="changelog-header">
-                <h3>🐛 Database Payload Fixes</h3>
-                <span className="changelog-date">April 7, 2026</span>
+                <h3>📦 v1.12.3 - Auth Persistence & Session Reliability</h3>
+                <span className="changelog-date">April 15, 2026</span>
               </div>
               <ul className="changelog-list">
                 <li>
                   <span className="badge-fix">FIX</span>
-                  Removed poster from insert/update payloads (Supabase generated column)
+                  "Remember me" now reliably persists sessions using a deterministic Supabase storage preference.
                 </li>
                 <li>
                   <span className="badge-fix">FIX</span>
-                  Fixed "N/A" integer cast error on missing release dates
+                  Removed unsupported sign-in persistence options and centralized auth storage handling.
                 </li>
               </ul>
             </div>
             <div className="changelog-item">
               <div className="changelog-header">
-                <h3>🔮 Oracle & Matchmaker</h3>
-                <span className="changelog-date">March 29, 2026</span>
+                <h3>🛠️ v1.12.2-v1.12.0 - PWA + Scanner + UPC Integrity</h3>
+                <span className="changelog-date">April 15, 2026</span>
               </div>
               <ul className="changelog-list">
                 <li>
                   <span className="badge-new">NEW</span>
-                  AI-powered movie discovery with mood-based recommendations
+                  Library now has a primary "Scan Barcode" action beside "Magic Import" for discoverability.
                 </li>
                 <li>
                   <span className="badge-new">NEW</span>
-                  Social compatibility — compare movie taste with friends
+                  Scanner supports native `BarcodeDetector` with `html5-qrcode` fallback on unsupported devices.
                 </li>
                 <li>
                   <span className="badge-new">NEW</span>
-                  6 mood presets for quick-select vibe matching
+                  PWA install prompt, offline queue, and service worker caching shipped for app-like behavior.
                 </li>
               </ul>
             </div>
@@ -124,48 +124,48 @@ function AboutPage() {
             <h2>Roadmap</h2>
           </div>
           <div className="roadmap-content">
-            {/* v1.9.0 */}
+            {/* Active Focus */}
             <div className="roadmap-item">
               <div className="roadmap-version">
-                <span className="version-pill v1-9">v1.9.0</span>
-                <span className="roadmap-status status-planned">Planned</span>
+                <span className="version-pill v1-9">Active</span>
+                <span className="roadmap-status status-planned">Now</span>
               </div>
-              <h3>Advanced Filters & Search</h3>
+              <h3>Oracle AI Infrastructure (Phase 7.1)</h3>
               <ul className="roadmap-list">
-                <li>Multi-criteria filtering (genre, year, mood, rating)</li>
-                <li>Save custom filter presets</li>
-                <li>Filter by cast, director, keywords</li>
-                <li>Advanced search operators</li>
+                <li>Gemini + Groq orchestration with OpenRouter emergency fallback</li>
+                <li>Daily Oracle usage guardrails with Supabase RPC-first budget checks</li>
+                <li>Lower-cost inference path with graceful fallback when providers fail</li>
+                <li>Production guardrail migrations now live</li>
               </ul>
             </div>
 
-            {/* v2.0.0 */}
+            {/* PWA / Offline */}
             <div className="roadmap-item">
               <div className="roadmap-version">
-                <span className="version-pill v2-0">v2.0.0</span>
-                <span className="roadmap-status status-future">Future</span>
+                <span className="version-pill v2-0">Active</span>
+                <span className="roadmap-status status-future">Now</span>
               </div>
-              <h3>Social Expansion</h3>
+              <h3>PWA & Offline Foundation (Phase 7.2)</h3>
               <ul className="roadmap-list">
-                <li>Activity feeds & shared watch history</li>
-                <li>Collaborative lists</li>
-                <li>Comments & discussions on movie logs</li>
-                <li>Share movie cards to social media</li>
+                <li>Install prompt UX, manifest polish, and app icons shipped</li>
+                <li>Service worker app-shell + API caching enabled</li>
+                <li>Offline log queue via IndexedDB with reconnect flush behavior</li>
+                <li>Mobile-first behavior tuning and cache freshness hardening</li>
               </ul>
             </div>
 
-            {/* v3.0.0 */}
+            {/* Collection Integrity */}
             <div className="roadmap-item">
               <div className="roadmap-version">
-                <span className="version-pill v3-0">v3.0.0</span>
-                <span className="roadmap-status status-future">Vision</span>
+                <span className="version-pill v3-0">Active</span>
+                <span className="roadmap-status status-future">Now</span>
               </div>
-              <h3>Mobile App & Premium Features</h3>
+              <h3>Vibe Filters + Natural Language + Anti-Double-Buy (Phase 7.3)</h3>
               <ul className="roadmap-list">
-                <li>Native iOS/Android app</li>
-                <li>Offline mode for logging on the go</li>
-                <li>Advanced analytics & yearly reports</li>
-                <li>Custom themes & branding</li>
+                <li>Natural-language sorting for Library now live</li>
+                <li>UPC lookup + barcode scanner pipeline integrated in logging flow</li>
+                <li>Duplicate protection across logs/lists/watchlist with integrity checks</li>
+                <li>UPC uniqueness constraints enforced in database migration</li>
               </ul>
             </div>
           </div>
