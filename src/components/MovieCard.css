@@ -1,119 +1,90 @@
-.movie-card {
-  background: #121212;
-  border-radius: 8px;
-  overflow: hidden;
-  transition: transform 0.2s ease;
-  display: flex;
-  flex-direction: column;
-  max-width: 280px;
-}
-
-.movie-card:hover {
-  transform: scale(1.05);
-}
-
-.movie-card-poster {
-  position: relative;
-  width: 100%;
-  padding-top: 150%;
-  overflow: hidden;
-  background: #1a1a1a;
-}
-
-.movie-card-poster img {
+/* Mobile library strip: keep controls inside the poster width (2-col grid) */
+.movie-card-mobile-actions {
   position: absolute;
-  top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  padding: 1.75rem 0.35rem 0.35rem;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.55) 45%, transparent 100%);
 }
 
-.rt-score-badge {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.85);
-  font-size: 11px;
-  font-weight: 700;
-  color: #ffffff;
-}
-
-.movie-card-content {
-  padding: 14px;
+.movie-card-mobile-actions-inner {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.movie-card-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #ffffff;
-  margin: 0;
-  line-height: 1.3;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.movie-card-year {
-  font-size: 13px;
-  color: #666666;
-  margin: 0;
-}
-
-.movie-card-genre {
-  font-size: 12px;
-  color: #555555;
-  margin: 0;
-}
-
-.movie-card-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.add-to-list-inline {
-  flex: 1;
-}
-
-.add-to-list-inline .add-to-list-button {
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
   width: 100%;
+  max-width: 100%;
+}
+
+.movie-card-mobile-action-slot {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
   justify-content: center;
-  font-size: 12px;
-  padding: 8px 12px;
 }
 
-.add-to-list-inline .add-to-list-button svg {
-  width: 16px;
-  height: 16px;
-}
-
-.log-movie-button {
-  flex: 1;
-  padding: 10px 16px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: inherit;
-  color: #ffffff;
-  background: #2a2a2a;
-  border: none;
-  border-radius: 6px;
+.movie-card-mobile-icon-btn {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(24, 24, 27, 0.92);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.log-movie-button:hover {
-  background: #3a3a3a;
+.movie-card-mobile-icon-btn--edit:hover {
+  background: rgba(234, 88, 12, 0.95);
+  border-color: rgba(251, 191, 36, 0.5);
 }
 
-@media (max-width: 480px) {
-  .movie-card {
-    max-width: 100%;
-  }
+.movie-card-mobile-icon-btn--delete {
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+.movie-card-mobile-icon-btn--delete:hover {
+  background: rgba(185, 28, 28, 0.95);
+  border-color: rgba(252, 165, 165, 0.5);
+}
+
+/* Narrow AddToList icon control + badge kept inside the slot */
+.movie-card-mobile-add.add-to-list-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  max-width: 2.5rem;
+  min-width: 0;
+}
+
+.movie-card-mobile-add .add-to-list-button-icon {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 2.5rem;
+  min-width: 0;
+  height: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0;
+  border-radius: 10px;
+}
+
+.movie-card-mobile-add .add-to-list-button-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.movie-card-mobile-add .add-to-list-badge {
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  font-size: 10px;
+  border-width: 1px;
 }

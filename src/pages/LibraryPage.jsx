@@ -635,15 +635,16 @@ function LibraryPage() {
                 <p>No movies found. Start logging!</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              <div className="library-movie-grid grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
                 {sortedMovies.map((movie) => (
-                  <MovieCard
-                    key={movie.id}
-                    movie={movie}
-                    isLibraryCard={true}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                  />
+                  <div key={movie.id} className="min-w-0">
+                    <MovieCard
+                      movie={movie}
+                      isLibraryCard={true}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                    />
+                  </div>
                 ))}
               </div>
             )}
