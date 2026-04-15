@@ -1,9 +1,9 @@
 {
-  "short_name": "Ignes",
-  "name": "Ignes - Movie Logging & Visualization",
+  "short_name": "Filmgraph",
+  "name": "Filmgraph - Movie Logging & Visualization",
   "icons": [
     {
-      "src": "/resources/IgnesMain.png",
+      "src": "/resources/FilmgraphMain.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"

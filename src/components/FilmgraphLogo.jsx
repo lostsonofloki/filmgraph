@@ -1,21 +1,21 @@
 /**
- * Ignes Logo Component
+ * Filmgraph Logo Component
  * Flame symbol with geometric 'I' cutout
- * 
+ *
  * @param {number|string} props.size - Logo size in pixels (default: 40)
  * @param {string} props.className - Additional CSS classes
- * @param {boolean} props.showText - Whether to show "IGNES" text beside the logo
+ * @param {boolean} props.showText - Whether to show "FILMGRAPH" text beside the logo
  */
-function IgnesLogo({ size = 40, className = '', showText = false }) {
+function FilmgraphLogo({ size = 40, className = '', showText = false }) {
   const sizeValue = typeof size === 'number' ? `${size}px` : size;
 
   return (
     <div
-      className={`ignes-logo-container ${className}`}
+      className={`filmgraph-logo-container ${className}`}
       style={{ '--logo-size': sizeValue }}
     >
       <svg
-        className="ignes-logo-svg"
+        className="filmgraph-logo-svg"
         viewBox="0 0 100 100"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
@@ -23,7 +23,7 @@ function IgnesLogo({ size = 40, className = '', showText = false }) {
       >
         {/* Flame Shape - Deep Ember Burgundy */}
         <path
-          className="ignes-flame"
+          className="filmgraph-flame"
           d="M50 5
              C50 5 65 25 65 45
              C65 58 58 68 50 75
@@ -31,10 +31,10 @@ function IgnesLogo({ size = 40, className = '', showText = false }) {
              C35 25 50 5 50 5Z"
           fill="#991b1b"
         />
-        
+
         {/* Inner Flame Detail - Lighter Ember */}
         <path
-          className="ignes-flame-inner"
+          className="filmgraph-flame-inner"
           d="M50 20
              C50 20 58 35 58 48
              C58 56 54 63 50 68
@@ -42,10 +42,10 @@ function IgnesLogo({ size = 40, className = '', showText = false }) {
              C42 35 50 20 50 20Z"
           fill="#b91c1c"
         />
-        
+
         {/* Geometric 'I' Cutout - Negative Space */}
         <rect
-          className="ignes-i-cutout"
+          className="filmgraph-i-cutout"
           x="46"
           y="35"
           width="8"
@@ -53,10 +53,10 @@ function IgnesLogo({ size = 40, className = '', showText = false }) {
           rx="2"
           fill="#0a0a0a"
         />
-        
+
         {/* 'I' Top Serif */}
         <rect
-          className="ignes-i-serif-top"
+          className="filmgraph-i-serif-top"
           x="44"
           y="33"
           width="12"
@@ -64,10 +64,10 @@ function IgnesLogo({ size = 40, className = '', showText = false }) {
           rx="1"
           fill="#0a0a0a"
         />
-        
+
         {/* 'I' Bottom Serif */}
         <rect
-          className="ignes-i-serif-bottom"
+          className="filmgraph-i-serif-bottom"
           x="44"
           y="63"
           width="12"
@@ -78,10 +78,10 @@ function IgnesLogo({ size = 40, className = '', showText = false }) {
       </svg>
 
       {showText && (
-        <span className="ignes-logo-text">IGNES</span>
+        <span className="filmgraph-logo-text">FILMGRAPH</span>
       )}
     </div>
   );
 }
 
-export default IgnesLogo;
+export default FilmgraphLogo;

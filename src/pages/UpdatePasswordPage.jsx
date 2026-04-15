@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getSupabase } from '../supabaseClient';
-import IgnesLogo from '../components/IgnesLogo';
+import FilmgraphLogo from '../components/FilmgraphLogo';
 import './UpdatePasswordPage.css';
 
 /**
@@ -58,7 +58,7 @@ function UpdatePasswordPage() {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <IgnesLogo size={50} showText={true} />
+          <FilmgraphLogo size={50} showText={true} />
           <h1>Forge New Password</h1>
           <p>Enter your new password below</p>
         </div>

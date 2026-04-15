@@ -71,44 +71,59 @@ function SynergyDashboard() {
    * Calculate compatibility metrics between two users
    */
   const calculateSynergy = (myLogs, friendLogs) => {
-    // Create maps for quick lookup
-    const myMoviesMap = new Map(myLogs.map(m => [m.tmdb_id, m]));
-    const friendMoviesMap = new Map(friendLogs.map(m => [m.tmdb_id, m]));
+    // Create maps for quick lookup - normalize tmdb_id to string for comparison
+    const myMoviesMap = new Map(myLogs.map(m => [String(m.tmdb_id), m]));
+    const friendMoviesMap = new Map(friendLogs.map(m => [String(m.tmdb_id), m]));
 
-    // Find shared movies (both have watched and rated)
+    // Find shared movies (both have watched status - regardless of rating)
     const sharedMovies = [];
     myLogs?.forEach(myMovie => {
-      if (!myMovie) return;
-      const friendMovie = friendMoviesMap.get(myMovie.tmdb_id);
-      if (friendMovie && myMovie.rating && friendMovie.rating) {
+      if (!myMovie || !myMovie.tmdb_id) return;
+      const myMovieId = String(myMovie.tmdb_id);
+      const friendMovie = friendMoviesMap.get(myMovieId);
+      
+      // Check if both have watched status (case-insensitive)
+      const myWatched = String(myMovie.watch_status || '').toLowerCase() === 'watched';
+      const friendWatched = String(friendMovie?.watch_status || '').toLowerCase() === 'watched';
+      
+      if (friendMovie && myWatched && friendWatched) {
         sharedMovies.push({
           tmdb_id: myMovie.tmdb_id,
           title: myMovie.title,
           poster_path: myMovie.poster_path,
-          myRating: myMovie.rating,
-          theirRating: friendMovie.rating,
-          difference: Math.abs(myMovie.rating - friendMovie.rating),
+          myRating: myMovie.rating || 0,
+          theirRating: friendMovie.rating || 0,
+          difference: Math.abs((myMovie.rating || 0) - (friendMovie.rating || 0)),
         });
       }
     });
 
-    // Find shared watchlist (both want to watch)
-    const myWatchlist = new Set(myLogs?.filter(m => m?.watch_status === 'to-watch').map(m => m?.tmdb_id) || []);
-    const theirWatchlist = new Set(friendLogs?.filter(m => m?.watch_status === 'to-watch').map(m => m?.tmdb_id) || []);
+    // Find shared watchlist (both want to watch) - with safe string comparison
+    const myWatchlist = new Set(
+      myLogs
+        ?.filter(m => m?.watch_status && String(m.watch_status).toLowerCase() === 'to-watch')
+        .map(m => String(m.tmdb_id)) || []
+    );
+    const theirWatchlist = new Set(
+      friendLogs
+        ?.filter(m => m?.watch_status && String(m.watch_status).toLowerCase() === 'to-watch')
+        .map(m => String(m.tmdb_id)) || []
+    );
 
     const sharedWatchlist = [];
     const seenTmdbIds = new Set();
 
     myLogs?.forEach(myMovie => {
-      if (!myMovie) return;
-      if (myWatchlist.has(myMovie.tmdb_id) && theirWatchlist.has(myMovie.tmdb_id)) {
-        if (!seenTmdbIds.has(myMovie.tmdb_id)) {
+      if (!myMovie || !myMovie.tmdb_id) return;
+      const movieId = String(myMovie.tmdb_id);
+      if (myWatchlist.has(movieId) && theirWatchlist.has(movieId)) {
+        if (!seenTmdbIds.has(movieId)) {
           sharedWatchlist.push({
             tmdb_id: myMovie.tmdb_id,
             title: myMovie.title,
             poster_path: myMovie.poster_path,
           });
-          seenTmdbIds.add(myMovie.tmdb_id);
+          seenTmdbIds.add(movieId);
         }
       }
     });

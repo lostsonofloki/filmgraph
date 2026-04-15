@@ -245,7 +245,7 @@ function DiscoveryPage() {
       <div className="discovery-container">
         <div className="discovery-header">
           <div className="oracle-icon">🔮</div>
-          <h1>Ember Oracle</h1>
+          <h1>Oracle</h1>
           <p className="oracle-tagline">AI-powered film discovery for the discerning viewer</p>
         </div>
 
@@ -367,7 +367,7 @@ function DiscoveryPage() {
                     </div>
 
                     <div className="rec-rationale">
-                      <h3 className="rationale-title">Why Ignes Picked This</h3>
+                      <h3 className="rationale-title">Why Filmgraph Picked This</h3>
                       <p className="rationale-text">{rec.rationale}</p>
                     </div>
 

@@ -8,7 +8,7 @@ import { APP_VERSION, APP_NAME } from '../constants';
 import tmdbLogo from '../assets/tmdb-logo.svg';
 
 /**
- * Ignes Footer Component
+ * Filmgraph Footer Component
  * 7th Anniversary Dedication for Rachel Banks (Racheepi)
  */
 function Footer() {

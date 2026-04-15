@@ -1,8 +1,8 @@
 @echo off
-title Ignes v1.3.8
+title Filmgraph v1.3.8
 echo.
 echo ========================================
-echo   IG NES - Movie Logging Platform
+echo   FILMGRAPH - Movie Logging Platform
 echo   Version: 1.3.8 - Logo Text Fixed
 echo ========================================
 echo.
@@ -14,10 +14,10 @@ if not exist "node_modules" (
     echo.
 )
 
-echo [+] Starting Ignes development server...
-echo [+] Opening http://localhost:3000
+echo [+] Starting Filmgraph development server...
+echo [+] Opening http://localhost:3001
 echo.
-start http://localhost:3000
+start http://localhost:3001
 call npm run dev
 
 pause

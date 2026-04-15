@@ -1,8 +1,8 @@
-# 🎬 Ignes
+# 🎬 Filmgraph
 
 **Your Personal Movie Logging & AI Discovery Platform**
 
-Ignes is a React-based web application that lets you log, track, and visualize your movie-watching journey. Unlike traditional platforms like Letterboxd, Ignes focuses on emotional tracking, AI-powered discovery, and deep cinematic insights with the **Ember Oracle** — your personal film curator.
+Filmgraph is a React-based web application that lets you log, track, and visualize your movie-watching journey. Unlike traditional platforms like Letterboxd, Filmgraph focuses on emotional tracking, AI-powered discovery, and deep cinematic insights with the **Oracle** — your personal film curator.
 
 ---
 
@@ -33,8 +33,8 @@ Ignes is a React-based web application that lets you log, track, and visualize y
 - **Actor Pages**: Actor bios, photos, and top movies sorted by popularity
 - **Stats Dashboard**: Visualize your watching habits with Top Genres, Mood Breakdown, and Ratings Distribution charts
 
-### 🤖 AI Features (Ember Oracle)
-- **Ember Oracle v2.1**: Multi-movie AI discovery with natural language vibe search
+### 🤖 AI Features (Oracle)
+- **Oracle v2.1**: Multi-movie AI discovery with natural language vibe search
 - **Multi-Movie Recommendations**: Returns 3-5 curated films per query (cult classics + deep cuts)
 - **Hybrid AI Orchestration**: Groq LPU for fast genre extraction + Gemini for deep reasoning
 - **Sub-500ms Genre Parsing**: Ultra-fast vibe-to-genre translation via Groq's LPU hardware
@@ -44,7 +44,7 @@ Ignes is a React-based web application that lets you log, track, and visualize y
 - **Mood Bubbles**: 6 quick-select presets (Cozy, Adrenaline, Mind-Bending, Deep Cuts, Noir, Euphoric)
 - **Reject & Reroll**: Reject entire batch and get instant alternative recommendations
 - **Deep Cut Recommendations**: AI prioritizes obscure gems over mainstream blockbusters
-- **Rationale Display**: "Why Ignes Picked This" with specific cinematic analysis for each film
+- **Rationale Display**: "Why Filmgraph Picked This" with specific cinematic analysis for each film
 - **Vibe Check Tagline**: 5-7 word punchy essence descriptions per movie
 - **Session Tracking**: Tracks rejected movies to avoid repeat suggestions
 - **Concurrent Data Fetching**: All movie posters/data load in parallel for faster UX
@@ -79,11 +79,11 @@ Ignes is a React-based web application that lets you log, track, and visualize y
 ## 📁 Project Structure
 
 ```
-Ignes/
+Filmgraph/
 ├── src/
 │   ├── components/
 │   │   ├── GlobalSearch.jsx     # Global search bar in header
-│   │   ├── IgnesLogo.jsx        # Ignes flame logo component
+│   │   ├── FilmgraphLogo.jsx        # Filmgraph flame logo component
 │   │   ├── Logo.jsx             # Legacy logo component
 │   │   ├── Footer.jsx           # App footer with TMDB/OMDb attributions
 │   │   ├── MovieCard.jsx        # Movie card with poster, title, RT score
@@ -148,7 +148,7 @@ Ignes/
 
 ```bash
 # Clone the repository
-cd Ignes
+cd Filmgraph
 
 # Install dependencies
 npm install
@@ -186,8 +186,8 @@ See [ROADMAP.md](./ROADMAP.md) for the detailed development plan.
 - ✅ Library integration (Add to Watchlist / Mark as Watched)
 - ✅ TMDB verification for all AI suggestions
 
-**Phase 6: Ember Oracle & Social** is underway:
-- ✅ **Ember Oracle** (v1.3.2) - Conversational AI with natural language vibe search
+**Phase 6: Oracle & Social** is underway:
+- ✅ **Oracle** (v1.3.2) - Conversational AI with natural language vibe search
 - ✅ **Mood Bubbles** - 6 quick-select presets for instant discovery
 - ✅ **Reject & Reroll** (v1.3.5) - Reject suggestions and get alternatives
 - ✅ **Custom Lists** (v1.3.1) - User-created movie collections
@@ -219,8 +219,8 @@ For licensing inquiries or permission requests, please contact the project autho
 
 ## 🔥 Brand Assets
 
-### Ignes Logo
-The Ignes logo features a flame symbol with a geometric 'I' cutout, representing the spark of discovery in your film journey.
+### Filmgraph Logo
+The Filmgraph logo features a flame symbol with a geometric 'I' cutout, representing the spark of discovery in your film journey.
 
 **Colors:**
 - Deep Ember Burgundy: `#991b1b` (primary)
@@ -229,11 +229,11 @@ The Ignes logo features a flame symbol with a geometric 'I' cutout, representing
 
 **Usage:**
 ```jsx
-import IgnesLogo from './components/IgnesLogo';
+import FilmgraphLogo from './components/FilmgraphLogo';
 
 // Header logo (with text)
-<IgnesLogo size={40} showText={true} />
+<FilmgraphLogo size={40} showText={true} />
 
 // Just the flame symbol
-<IgnesLogo size={40} showText={false} />
+<FilmgraphLogo size={40} showText={false} />
 ```

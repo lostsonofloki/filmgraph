@@ -65,7 +65,7 @@ function LoginPage() {
         redirectTo: redirectUrl,
       });
 
-      setSuccess('Check your email for the Ignes reset link!');
+      setSuccess('Check your email for the Filmgraph reset link!');
       setResetEmail('');
       setShowResetForm(false);
     } catch (err) {

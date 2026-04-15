@@ -4,10 +4,10 @@ import { fetchGroqGenres, TMDB_GENRES } from './groq';
 // Initialize Gemini AI with v1beta endpoint for Gemini 3 Preview models
 
 /**
- * Base system prompt for the Ember Oracle
+ * Base system prompt for the Oracle
  * Exported for use in getHybridRecommendation
  */
-export const BASE_SYSTEM_PROMPT = `You are the Ember Oracle, an elite film historian and curator for Ignes, a premium movie discovery platform.
+export const BASE_SYSTEM_PROMPT = `You are the Oracle, an elite film historian and curator for Filmgraph, a premium movie discovery platform.
 
 YOUR ROLE:
 - Recommend films that are PERFECT tonal matches for the user's mood
@@ -122,7 +122,7 @@ export const getMovieRecommendations = async ({
     ? `\n\nSTRICT CONSTRAINT - DO NOT suggest these TMDB IDs: [${excludedIds.join(',')}]. User already has these or rejected them.`
     : '';
 
-  const prompt = `You are the Ignes Discovery Engine. Your goal is to suggest high-quality cinema across ALL genres based on the user's logged history.
+  const prompt = `You are the Filmgraph Discovery Engine. Your goal is to suggest high-quality cinema across ALL genres based on the user's logged history.
 
 THE EEAAO RULE: The user has rated ambitious, non-linear films like Everything Everywhere All at Once 10/10. Do not limit suggestions to one genre; prioritize complexity and emotional resonance.
 
@@ -261,7 +261,7 @@ export const analyzeMoodPatterns = async (movieLogs) => {
       rating: m.rating,
     }));
 
-  const prompt = `You are a Global Cinema Strategist for Ignes. Analyze the ENTIRE movie_logs array for common threads in pacing, cinematography, and narrative complexity across ALL genres (Action, Drama, Sci-Fi, Horror, etc.).
+  const prompt = `You are a Global Cinema Strategist for Filmgraph. Analyze the ENTIRE movie_logs array for common threads in pacing, cinematography, and narrative complexity across ALL genres (Action, Drama, Sci-Fi, Horror, etc.).
 
 ${JSON.stringify(moodData)}
 
@@ -282,7 +282,7 @@ Return JSON with these exact keys:
 };
 
 /**
- * Ember Oracle - AI-powered single movie discovery with deep cuts
+ * Oracle - AI-powered single movie discovery with deep cuts
  * @param {Object} params - Parameters object
  * @param {string} params.mood - User's current mood or vibe description
  * @param {string} params.userContext - User's favorite films for context
@@ -327,7 +327,7 @@ Format:
     const cleanJson = responseText.replace(/```json\s*|\s*```/g, '').trim();
     return JSON.parse(cleanJson);
   } catch (error) {
-    console.error('Error in Ember Oracle discovery:', error);
+    console.error('Error in Oracle discovery:', error);
     throw new Error('The Oracle is silent. Please try again.');
   }
 };

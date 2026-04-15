@@ -39,7 +39,7 @@ export function UserProvider({ children }) {
     // Listen for auth changes
     const { data: { subscription } } = currentSupabase.auth.onAuthStateChange((event, session) => {
       // Check if this is a temporary (non-remembered) session
-      const isTemporary = window.sessionStorage.getItem('ignes_temp_session') === 'true';
+      const isTemporary = window.sessionStorage.getItem('filmgraph_temp_session') === 'true';
 
       if (event === 'SIGNED_IN' && session?.user) {
         setUser({
@@ -52,7 +52,7 @@ export function UserProvider({ children }) {
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
-        window.sessionStorage.removeItem('ignes_temp_session');
+        window.sessionStorage.removeItem('filmgraph_temp_session');
       } else if (session?.user) {
         setUser({
           id: session.user.id,
@@ -98,9 +98,9 @@ export function UserProvider({ children }) {
 
       // Store flag for temporary session tracking
       if (!rememberMe) {
-        window.sessionStorage.setItem('ignes_temp_session', 'true');
+        window.sessionStorage.setItem('filmgraph_temp_session', 'true');
       } else {
-        window.sessionStorage.removeItem('ignes_temp_session');
+        window.sessionStorage.removeItem('filmgraph_temp_session');
       }
     }
 

@@ -1,12 +1,12 @@
 import './Logo.css';
 
 /**
- * Ignes Logo Component
+ * Filmgraph Logo Component
  * A minimalist logo featuring a film frame with a bar chart inside
  * @param {Object} props
  * @param {number|string} props.size - Logo size in pixels (e.g., 40, '48px')
  * @param {string} props.className - Additional CSS classes
- * @param {boolean} props.showText - Whether to show "Ignes" text beside the logo
+ * @param {boolean} props.showText - Whether to show "Filmgraph" text beside the logo
  */
 function Logo({ size = 40, className = '', showText = false }) {
   const sizeValue = typeof size === 'number' ? `${size}px` : size;
@@ -50,7 +50,7 @@ function Logo({ size = 40, className = '', showText = false }) {
       </svg>
 
       {showText && (
-        <span className="logo-text">Ignes</span>
+        <span className="logo-text">Filmgraph</span>
       )}
     </div>
   );

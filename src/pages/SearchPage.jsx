@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import SearchResults from '../components/SearchResults';
-import { searchMovies, discoverMovies } from '../api/tmdb';
+import { searchMulti, discoverMovies } from '../api/tmdb';
 import './SearchPage.css';
 
 const TMDB_GENRES = [
@@ -102,14 +102,19 @@ function SearchPage() {
     setSearchMode('search');
 
     try {
-      const results = await searchMovies(query);
-      // Map TMDB results to MovieCard format
-      const mappedMovies = results.map(movie => ({
-        Title: movie.title,
-        Year: movie.release_date?.split('-')[0] || 'N/A',
-        imdbID: movie.id,
-        Poster: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
-        tmdb_id: movie.id,
+      const results = await searchMulti(query);
+      // Map TMDB multi-search results to a unified format
+      const mappedMovies = results.map(item => ({
+        Title: item.media_type === 'person' ? item.name : item.title,
+        Year: item.media_type === 'person' ? null : (item.release_date?.split('-')[0] || 'N/A'),
+        imdbID: item.id,
+        Poster: item.media_type === 'person'
+          ? (item.profile_path ? `https://image.tmdb.org/t/p/w500${item.profile_path}` : null)
+          : (item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : null),
+        tmdb_id: item.id,
+        media_type: item.media_type,
+        known_for_department: item.known_for_department || null,
+        character: item.character || null,
       }));
       setMovies(mappedMovies);
     } catch (error) {

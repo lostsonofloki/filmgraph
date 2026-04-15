@@ -1,58 +1,52 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getBackdropUrl, getPosterUrl } from '../api/tmdb';
+import { getPosterUrl, getProfileUrl } from '../api/tmdb';
+import { getSupabase } from '../supabaseClient';
+import { useUser } from '../context/UserContext';
 import './ActorPage.css';
 
+const TMDB_BASE = 'https://api.themoviedb.org/3';
+const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
+
 /**
- * ActorPage - Shows actor details and filmography
+ * ActorPage — Person hub with bio, filmography grid, and "Watched" badge
  */
 function ActorPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useUser();
   const [actor, setActor] = useState(null);
   const [movies, setMovies] = useState([]);
+  const [loggedIds, setLoggedIds] = useState(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Fetch actor bio + credits concurrently
   useEffect(() => {
     const fetchActorData = async () => {
       setIsLoading(true);
       setError('');
 
       try {
-        // Fetch actor details
-        const actorResponse = await fetch(
-          `https://api.themoviedb.org/3/person/${id}?api_key=${import.meta.env.VITE_TMDB_API_KEY}`
-        );
-        const actorData = await actorResponse.json();
+        const [actorRes, creditsRes] = await Promise.all([
+          fetch(`${TMDB_BASE}/person/${id}?api_key=${API_KEY}`),
+          fetch(`${TMDB_BASE}/person/${id}/movie_credits?api_key=${API_KEY}`),
+        ]);
 
-        if (actorData.status_code) {
-          throw new Error(actorData.status_message);
-        }
-
+        const actorData = await actorRes.json();
+        if (actorData.status_code) throw new Error(actorData.status_message);
         setActor(actorData);
 
-        // Fetch actor's movie credits
-        const creditsResponse = await fetch(
-          `https://api.themoviedb.org/3/person/${id}/movie_credits?api_key=${import.meta.env.VITE_TMDB_API_KEY}`
-        );
-        const creditsData = await creditsResponse.json();
-
+        const creditsData = await creditsRes.json();
         if (creditsData.cast) {
-          // Sort by popularity and release date
-          const sortedMovies = [...creditsData.cast]
-            .filter(movie => movie.poster_path) // Only movies with posters
+          const sorted = [...creditsData.cast]
+            .filter(m => m.poster_path)
             .sort((a, b) => {
-              // First by popularity
-              if (b.popularity !== a.popularity) {
-                return b.popularity - a.popularity;
-              }
-              // Then by release date
+              if (b.popularity !== a.popularity) return b.popularity - a.popularity;
               return new Date(b.release_date || 0) - new Date(a.release_date || 0);
             })
-            .slice(0, 20); // Top 20 movies
-
-          setMovies(sortedMovies);
+            .slice(0, 40);
+          setMovies(sorted);
         }
       } catch (err) {
         console.error('Error fetching actor data:', err);
@@ -66,6 +60,29 @@ function ActorPage() {
     window.scrollTo(0, 0);
   }, [id]);
 
+  // Fetch user's logged TMDB IDs for "Watched" badge
+  useEffect(() => {
+    const fetchLoggedIds = async () => {
+      if (!user?.id) return;
+      try {
+        const supabase = getSupabase();
+        const { data, error } = await supabase
+          .from('movie_logs')
+          .select('tmdb_id')
+          .eq('user_id', user.id)
+          .not('tmdb_id', 'is', null);
+
+        if (!error && data) {
+          setLoggedIds(new Set(data.map(row => row.tmdb_id)));
+        }
+      } catch (err) {
+        console.error('Error fetching logged IDs:', err);
+      }
+    };
+
+    fetchLoggedIds();
+  }, [user?.id]);
+
   const handleMovieClick = (movieId) => {
     navigate(`/movie/${movieId}`);
     window.scrollTo(0, 0);
@@ -76,7 +93,7 @@ function ActorPage() {
       <div className="actor-page">
         <div className="loading-state">
           <div className="loading-spinner"></div>
-          <p>Loading actor details...</p>
+          <p>Loading person details...</p>
         </div>
       </div>
     );
@@ -86,8 +103,8 @@ function ActorPage() {
     return (
       <div className="actor-page">
         <div className="error-state">
-          <h2>Actor not found</h2>
-          <p>{error || 'Unable to load actor information'}</p>
+          <h2>Person not found</h2>
+          <p>{error || 'Unable to load information'}</p>
           <button onClick={() => navigate(-1)} className="back-btn">
             Go Back
           </button>
@@ -98,12 +115,12 @@ function ActorPage() {
 
   return (
     <div className="actor-page">
-      {/* Actor Header */}
+      {/* Bio Section */}
       <div className="actor-header">
         <div className="actor-header-content">
           {actor.profile_path ? (
             <img
-              src={getPosterUrl(actor.profile_path, 'w500')}
+              src={getProfileUrl(actor.profile_path, 'w500')}
               alt={actor.name}
               className="actor-profile-image"
             />
@@ -119,6 +136,9 @@ function ActorPage() {
           <div className="actor-info">
             <h1>{actor.name}</h1>
             <p className="actor-meta">
+              {actor.known_for_department && (
+                <span className="actor-department-badge">{actor.known_for_department}</span>
+              )}
               {actor.birthday && (
                 <span>Born: {new Date(actor.birthday).toLocaleDateString()}</span>
               )}
@@ -132,47 +152,53 @@ function ActorPage() {
                 <p>{actor.biography}</p>
               </div>
             )}
-            {actor.known_for_department && (
-              <p className="actor-department">
-                Known for: {actor.known_for_department}
-              </p>
-            )}
           </div>
         </div>
       </div>
 
-      {/* Filmography */}
+      {/* Filmography Grid */}
       {movies.length > 0 && (
         <section className="actor-filmography">
           <div className="section-content">
             <h2>Filmography</h2>
             <p className="filmography-subtitle">
-              Top {movies.length} movies by popularity
+              {movies.length} movies by popularity
             </p>
-            <div className="movies-grid">
-              {movies.map((movie) => (
-                <div
-                  key={movie.id}
-                  className="movie-card"
-                  onClick={() => handleMovieClick(movie.id)}
-                >
-                  <div className="movie-card-poster">
-                    <img
-                      src={getBackdropUrl(movie.poster_path, 'w500')}
-                      alt={movie.title}
-                    />
+            <div className="filmography-grid">
+              {movies.map((movie) => {
+                const isWatched = loggedIds.has(movie.id);
+                return (
+                  <div
+                    key={movie.id}
+                    className="film-card"
+                    onClick={() => handleMovieClick(movie.id)}
+                  >
+                    <div className="film-card-poster">
+                      <img
+                        src={getPosterUrl(movie.poster_path, 'w342')}
+                        alt={movie.title}
+                        loading="lazy"
+                      />
+                      {isWatched && (
+                        <span className="watched-badge" title="Watched">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <path d="M20 6L9 17l-5-5" />
+                          </svg>
+                        </span>
+                      )}
+                    </div>
+                    <div className="film-card-info">
+                      <h3>{movie.title}</h3>
+                      <p className="film-year">
+                        {movie.release_date?.split('-')[0] || 'N/A'}
+                      </p>
+                      {movie.character && (
+                        <p className="film-character">as {movie.character}</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="movie-card-info">
-                    <h3>{movie.title}</h3>
-                    <p className="movie-year">
-                      {movie.release_date?.split('-')[0] || 'N/A'}
-                    </p>
-                    {movie.character && (
-                      <p className="movie-character">as {movie.character}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>

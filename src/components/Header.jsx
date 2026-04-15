@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
-import IgnesLogo from './IgnesLogo';
+import FilmgraphLogo from './FilmgraphLogo';
 import './Header.css';
 
 /**
@@ -55,8 +55,8 @@ function Header({ onOracleClick }) {
           <div className="mobile-logo-search">
             {!isSearchVisible ? (
               <Link to="/" className="logo-link" onClick={closeSearch}>
-                <IgnesLogo size={28} />
-                <span className="logo-text">IGNES</span>
+                <FilmgraphLogo size={28} />
+                <span className="logo-text">FILMGRAPH</span>
               </Link>
             ) : (
               <form onSubmit={handleSubmit} className="mobile-search-form">
@@ -64,7 +64,7 @@ function Header({ onOracleClick }) {
                   type="text"
                   value={tempSearch}
                   onChange={(e) => setTempSearch(e.target.value)}
-                  placeholder="Search movies..."
+                  placeholder="Search..."
                   autoFocus
                   className="mobile-search-input"
                 />
@@ -84,8 +84,8 @@ function Header({ onOracleClick }) {
 
           {/* Desktop: Always show Logo + Nav */}
           <Link to="/" className="desktop-logo" onClick={closeSearch}>
-            <IgnesLogo size={28} />
-            <span className="logo-text">IGNES</span>
+            <FilmgraphLogo size={28} />
+            <span className="logo-text">FILMGRAPH</span>
           </Link>
 
           <nav className="desktop-nav">
@@ -134,7 +134,7 @@ function Header({ onOracleClick }) {
                 type="text"
                 value={tempSearch}
                 onChange={(e) => setTempSearch(e.target.value)}
-                placeholder="Search movies..."
+                placeholder="Search..."
                 className="desktop-search-input"
               />
             </form>

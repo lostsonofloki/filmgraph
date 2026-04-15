@@ -2,7 +2,8 @@ import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation, us
 import { UserProvider, useUser } from './context/UserContext';
 import { ListProvider } from './context/ListContext';
 import { ToastProvider } from './context/ToastContext';
-import IgnesLogo from './components/IgnesLogo';
+import { Analytics } from '@vercel/analytics/react';
+import FilmgraphLogo from './components/FilmgraphLogo';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
 import SearchPage from './pages/SearchPage';
@@ -69,8 +70,8 @@ function Header() {
           <div className="md:hidden flex items-center flex-1">
             {!isSearchVisible ? (
               <Link to="/" className="flex items-center gap-2">
-                <IgnesLogo size={28} />
-                <span className="text-xl font-bold tracking-tighter text-white hover:opacity-80 ml-2">IGNES</span>
+                <FilmgraphLogo size={28} />
+                <span className="text-xl font-bold tracking-tighter text-white hover:opacity-80 ml-2">FILMGRAPH</span>
               </Link>
             ) : (
               <form onSubmit={handleSubmit} className="flex items-center gap-2 flex-1">
@@ -78,7 +79,7 @@ function Header() {
                   type="text"
                   value={tempSearch}
                   onChange={handleChange}
-                  placeholder="Search movies..."
+                  placeholder="Search..."
                   autoFocus
                   className="w-full bg-zinc-900 text-zinc-200 border border-amber-500 rounded-md px-4 py-2 focus:outline-none focus:border-amber-600"
                 />
@@ -97,8 +98,8 @@ function Header() {
 
           {/* Desktop: Always show Logo */}
           <Link to="/" className="hidden md:flex items-center gap-2">
-            <IgnesLogo size={28} />
-            <span className="text-xl font-bold tracking-tighter text-white hover:opacity-80">IGNES</span>
+            <FilmgraphLogo size={28} />
+            <span className="text-xl font-bold tracking-tighter text-white hover:opacity-80">FILMGRAPH</span>
           </Link>
         </div>
 
@@ -147,7 +148,7 @@ function Header() {
                   type="text"
                   value={tempSearch}
                   onChange={handleChange}
-                  placeholder="Search movies..."
+                  placeholder="Search..."
                   className="w-64 bg-zinc-900 text-zinc-200 border border-zinc-700 rounded-md px-4 py-2 focus:outline-none focus:border-amber-500"
                 />
                 <button type="submit" className="hidden">Search</button>
@@ -237,6 +238,7 @@ function App() {
         <ListProvider>
           <ToastProvider>
             <AppContent />
+            <Analytics />
           </ToastProvider>
         </ListProvider>
       </UserProvider>

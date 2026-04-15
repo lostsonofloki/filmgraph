@@ -1,6 +1,6 @@
-# 🗺️ Ignes Development Roadmap
+# 🗺️ Filmgraph Development Roadmap
 
-A phased approach to building Ignes from a static UI to a fully-featured movie logging platform with AI-powered recommendations.
+A phased approach to building Filmgraph from a static UI to a fully-featured movie logging platform with AI-powered recommendations.
 
 ---
 
@@ -156,7 +156,7 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 
 ## Phase 4: The "StoryGraph" Polish (Advanced) ✨
 
-**Goal**: Add unique features that differentiate Ignes from Letterboxd.
+**Goal**: Add unique features that differentiate Filmgraph from Letterboxd.
 
 ### Tasks
 
@@ -232,7 +232,7 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 
 ## Phase 6: Future Enhancements (Post-v1.0) 🚀
 
-**Goal**: Expand Ignes with social features, platform growth, and enhanced user experience.
+**Goal**: Expand Filmgraph with social features, platform growth, and enhanced user experience.
 
 ### Tasks
 
@@ -268,7 +268,7 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 
 **Status**: ✅ **Complete** (v1.5.0)
 
-**Goal**: Allow users to instantly migrate their old movie lists into Ignes without typing them one by one.
+**Goal**: Allow users to instantly migrate their old movie lists into Filmgraph without typing them one by one.
 
 ### How It Works
 
@@ -477,17 +477,17 @@ $ git log --all --full-history -- .env
 - ✅ **Social Hub Card** (v1.8.0) - Profile page entry point for friend management.
 - ✅ **Friends Carousel** (v1.8.0) - Horizontal scroll of friend chips with match scores.
 - ✅ **Discover Page Navigation** (v1.8.0) - Movie posters and titles are fully clickable via React Router.
-- ✅ **Ember Oracle Stabilization** (v1.8.1) - Upgraded to stable Gemini Flash 1.5; bulletproofed Watchlist payload.
+- ✅ **Oracle Stabilization** (v1.8.1) - Upgraded to stable Gemini Flash 1.5; bulletproofed Watchlist payload.
 - ✅ **Database Bouncer** (Phase 3.8) - Enforced `UNIQUE (user_id, tmdb_id)` constraint to permanently prevent duplicate logs.
 - ✅ **Native Mobile UX** (v1.7.0) - Replaced hamburger menu with fixed BottomNav (Home, Discover, Library, Profile).
 - ✅ **Watchlist Quick-Toggle** (v1.7.0) - Three-button action row (Eye icon for Watchlist, Primary Log, Folder for Lists).
 - ✅ **Magic Importer** (v1.5.0) - AI-powered bulk import with Groq LPU parsing
 
-**🤖 Ember Oracle - AI Discovery (v1.3.2+)**:
-- ✅ **Ember Oracle Page** (`/discover`) - Dedicated AI discovery interface
+**🤖 Oracle - AI Discovery (v1.3.2+)**:
+- ✅ **Oracle Page** (`/discover`) - Dedicated AI discovery interface
 - ✅ **Mood Bubbles** - 6 quick-select presets (Cozy, Adrenaline, Mind-Bending, Deep Cuts, Noir, Euphoric)
 - ✅ **Natural Language Input** - "A dark comedy for a rainy night"
-- ✅ **Rationale Display** - "Why Ignes Picked This" with cinematic analysis
+- ✅ **Rationale Display** - "Why Filmgraph Picked This" with cinematic analysis
 - ✅ **Vibe Check Tagline** - 5-7 word punchy descriptions
 - ✅ **TMDB Integration** - Auto-fetch posters and release years
 - ✅ **Reject & Reroll** (v1.3.5) - Reject suggestions and get instant alternatives
@@ -508,7 +508,7 @@ $ git log --all --full-history -- .env
 
 **Phase 6 Planned - AI Personality & Social**:
 - ✅ **The Oracle** (v1.3.2-v1.3.6) - Conversational AI Librarian with natural language vibe search
-  - ✅ Ember Oracle page (`/discover`) with mood bubbles
+  - ✅ Oracle page (`/discover`) with mood bubbles
   - ✅ Natural language input with rationale display
   - ✅ Reject & Reroll (v1.3.5)
   - ✅ Session tracking with rejected movies count
@@ -524,19 +524,19 @@ $ git log --all --full-history -- .env
 
 ## Phase 6.13: The Oracle (Conversational AI Librarian) 🧙
 
-**Status**: ✅ **Complete** (v1.8.0 - Ember Oracle)
+**Status**: ✅ **Complete** (v1.8.0 - Oracle)
 
-**Note**: The Oracle lives on as the **Ember Oracle** discovery page (`/discover`) with mood bubbles, natural language search, and multi-movie recommendations with rationale.
+**Note**: The Oracle lives on as the **Oracle** discovery page (`/discover`) with mood bubbles, natural language search, and multi-movie recommendations with rationale.
 
 **Goal**: Transform the AI from a recommendation engine into a conversational librarian with personality, wit, and deep knowledge of your viewing habits.
 
-### Features (Implemented in Ember Oracle)
+### Features (Implemented in Oracle)
 
 | Feature | Description | Status |
 |---------|-------------|--------|
 | **Natural Language Search** | Ask by feeling, not genre | ✅ Implemented |
 | **Mood Bubbles** | 6 quick-select presets (Cozy, Adrenaline, Mind-Bending, Deep Cuts, Noir, Euphoric) | ✅ Implemented |
-| **Rationale Display** | "Why Ignes Picked This" with cinematic analysis | ✅ Implemented |
+| **Rationale Display** | "Why Filmgraph Picked This" with cinematic analysis | ✅ Implemented |
 | **Vibe Check** | Punchy 5-7 word taglines for each recommendation | ✅ Implemented |
 | **Reject & Reroll** | Reject entire batch and get new alternatives | ✅ Implemented |
 | **Session Tracking** | Badge showing rejected movies count | ✅ Implemented |
@@ -606,7 +606,7 @@ $ git log --all --full-history -- .env
 
 ## Phase 6.15: High-Speed AI Ensemble (Groq LPU Integration) 🚀
 
-**Goal**: Transition the Ember Oracle to a multi-model architecture for near-instant response times while maintaining deep reasoning capabilities.
+**Goal**: Transition the Oracle to a multi-model architecture for near-instant response times while maintaining deep reasoning capabilities.
 
 ### Overview
 
@@ -636,7 +636,7 @@ User Query → Groq LPU (llama-3.3-70b-versatile) → Genre IDs (300-600ms)
            ↓
     Gemini 3.1 Flash Lite → 3-5 Movies + Deep Analysis + Rationale
            ↓
-    Ember Oracle UI → Posters + Years + "Why Ignes Picked This" (per movie)
+    Oracle UI → Posters + Years + "Why Filmgraph Picked This" (per movie)
 ```
 
 ### Technical Requirements
@@ -733,7 +733,7 @@ User Query → Groq LPU (llama-3.3-70b-versatile) → Genre IDs (300-600ms)
 
 | # | Task | Description | Status |
 |---|------|-------------|--------|
-| 6.18.1 | **Global Search Update** | Update search logic to hit `search/person` alongside movies. | ⬜ |
+| 6.18.1 | **Global Search Update** | Update search logic to hit `search/person` alongside movies. | ✅ |
 | 6.18.2 | **UI Categorization** | Visually separate "Movies" and "People" in search dropdowns/results. | ⬜ |
 | 6.18.3 | **Advanced Person Profiles** | Enhance existing actor pages with full `person/{id}/movie_credits` endpoints. | ⬜ |
 | 6.18.4 | **Smart Filtering** | Add genre toggles on actor pages (e.g., "Show Horror Only"). | ⬜ |

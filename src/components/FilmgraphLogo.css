@@ -1,35 +1,35 @@
-.ignes-logo-container {
+.filmgraph-logo-container {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.ignes-logo-svg {
+.filmgraph-logo-svg {
   transition: transform 0.3s ease;
 }
 
-.ignes-logo-container:hover .ignes-logo-svg {
+.filmgraph-logo-container:hover .filmgraph-logo-svg {
   transform: scale(1.05);
 }
 
-.ignes-flame {
+.filmgraph-flame {
   transition: fill 0.3s ease;
 }
 
-.ignes-logo-container:hover .ignes-flame {
+.filmgraph-logo-container:hover .filmgraph-flame {
   fill: #b91c1c;
 }
 
-.ignes-flame-inner {
+.filmgraph-flame-inner {
   opacity: 0.8;
   transition: opacity 0.3s ease;
 }
 
-.ignes-logo-container:hover .ignes-flame-inner {
+.filmgraph-logo-container:hover .filmgraph-flame-inner {
   opacity: 1;
 }
 
-.ignes-logo-text {
+.filmgraph-logo-text {
   font-size: 24px;
   font-weight: 800;
   letter-spacing: 2px;
@@ -40,7 +40,7 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-  .ignes-logo-text {
+  .filmgraph-logo-text {
     font-size: 20px;
   }
 }

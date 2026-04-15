@@ -1,9 +1,58 @@
 # 📝 Changelog
 
-All notable changes to Ignes will be documented in this file.
+All notable changes to Filmgraph will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [1.9.1] - April 14, 2026
+
+### 📊 Added
+- **Vercel Analytics** - Installed `@vercel/analytics` with `<Analytics />` component in `App.jsx`
+- **Google Analytics 4** - Added GA4 tag (`G-V9YRL159CM`) to `index.html` head section
+- **Page View Tracking** - Automatic tracking of navigation events via Vercel Analytics
+- **Dual Analytics Setup** - Both Vercel and Google Analytics running simultaneously
+
+---
+
+## [1.9.0] - April 14, 2026
+
+### 🔥 Rebrand
+- **Ignes → Filmgraph** - Complete project rename across all source files, components, documentation, and configuration
+- **FilmgraphLogo Component** - Renamed from IgnesLogo with updated CSS classes and branding
+- **Session Storage Keys** - Changed from `ignes_temp_session` to `filmgraph_temp_session`
+- **AI System Prompts** - Updated all Gemini prompts to reference Filmgraph
+- **GitHub Repository** - Updated to `https://github.com/lostsonofloki/filmgraph`
+
+### 🚀 Added
+
+#### Global Multi-Search (TMDB /search/multi)
+- **searchMulti Function** - New API endpoint in `tmdb.js` returns both movies and people from a single query
+- **Mixed Results Display** - SearchResults component now visually distinguishes movies from people with media-type badges
+- **Person Cards** - Profile-image results with 1:1 aspect ratio, department label, and "Person" badge
+- **Movie Cards** - Standard 2:3 poster cards with "Movie" badge
+- **Deep Linking** - Person results navigate to `/actor/${id}`, movie results to `/movie/${id}`
+
+#### Person Profile Hub (ActorPage Rewrite)
+- **Concurrent Data Fetching** - `Promise.all` fetches bio and movie_credits simultaneously on mount
+- **Enhanced Bio Section** - Profile image, name, department badge, birthday, birthplace, and full biography
+- **Expanded Filmography** - Shows top 40 movies by popularity (up from 20) with character roles
+- **Deep Ember Redesign** - Dark zinc backgrounds, amber accents, responsive layout
+
+#### "Watched" Badge (Supabase Cross-Reference)
+- **Logged ID Fetching** - Lightweight query fetches only `tmdb_id` column from `movie_logs` for authenticated user
+- **Cross-Reference Engine** - Compares logged IDs against actor's filmography via `Set.has()` lookup
+- **Watched Badge** - Subtle amber checkmark overlay on posters user has already logged
+- **Real-Time** - Badge appears automatically when user logs movies
+
+### 🛠️ Changed
+- **SearchPage.jsx** - Migrated from `searchMovies` to `searchMulti` for mixed results
+- **SearchResults.jsx** - Complete rewrite to handle both movie and person result types
+- **ActorPage.jsx** - Full rewrite with `Promise.all` concurrent fetching, Supabase cross-reference, and Watched badge
+- **ActorPage.css** - Complete CSS overhaul with filmography grid, watched badge, and responsive design
+- **SearchResults.css** - Added media-type badges, person card styling, and department labels
 
 ---
 
@@ -53,7 +102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Latest Version: 1.8.0 (March 29, 2026)
 
 **Highlights:**
-- 🔮 **Ember Oracle** - AI-powered movie discovery with mood-based recommendations
+- 🔮 **Oracle** - AI-powered movie discovery with mood-based recommendations
 - 🤝 **The Matchmaker** - Social compatibility feature for comparing movie tastes with friends
 - 🎭 **6 Mood Presets** - Quick-select bubbles for instant vibe matching
 - 📱 **Mobile Navigation** - Discover page movie cards now clickable
@@ -71,7 +120,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🚀 Added
 
-#### Ember Oracle - AI-Powered Discovery
+#### Oracle - AI-Powered Discovery
 - **Mood Bubbles** - 6 quick-select presets with icons:
   - 🕯️ **Cozy** - Warm, comforting films for quiet nights
   - 🔥 **Adrenaline** - High-octane action and thrills
@@ -81,7 +130,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - ✨ **Euphoric** - Uplifting films that leave you feeling alive
 - **Natural Language Input** - "A sci-fi film that explores loneliness with stunning visuals"
 - **Vibe Check** - Punchy 5-7 word taglines for each recommendation
-- **Rationale Display** - "Why Ignes Picked This" with cinematic analysis
+- **Rationale Display** - "Why Filmgraph Picked This" with cinematic analysis
 - **Reject & Reroll** - Reject entire batch and get new recommendations
 - **Session Tracking** - Badge showing rejected movies count
 - **TMDB Integration** - Auto-fetch posters, release years, and metadata
@@ -187,7 +236,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Updated Files
 - **CHANGELOG.md** - Comprehensive v1.8.0 release notes
 - **ROADMAP.md** - Phase 6.14 (Matchmaker) marked complete
-- **ROADMAP.md** - Ember Oracle features documented
+- **ROADMAP.md** - Oracle features documented
 
 ---
 
@@ -652,7 +701,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🚀 Added
 
 #### Multi-Movie Recommendation Engine
-- **Ember Oracle v2** - Returns 3-5 unique movie recommendations per query instead of single picks
+- **Oracle v2** - Returns 3-5 unique movie recommendations per query instead of single picks
 - **Curated Mix** - AI instructed to blend well-known cult classics with obscure deep cuts
 - **Enhanced Prompt** - Requests diverse genres, narrative complexity, and emotional resonance
 - **JSON Wrapper Format** - `{ recommendations: [...] }` structure for scalable responses
@@ -694,7 +743,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 📝 Documentation
 
 #### Updated Files
-- **README.md** - Updated Ember Oracle section to reflect multi-movie output
+- **README.md** - Updated Oracle section to reflect multi-movie output
 - **ROADMAP.md** - Marked Hybrid AI Architecture as complete
 - **CHANGELOG.md** - Comprehensive v1.4.0 release notes
 
@@ -738,7 +787,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🐛 Fixed
 
-#### IGNES Logo Home Button
+#### FILMGRAPH Logo Home Button
 - **Mobile Logo Now Clickable** - Wrapped in Link to navigate to home (/)
 - **Consistent Behavior** - Both mobile and desktop logos now act as home buttons
 
@@ -767,7 +816,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **AutoFocus** - Input gains focus immediately when expanded
 - **Same Pattern for DiscoveryPage** - Controlled textarea with handleSubmit
 
-#### Ember Oracle Library Integration
+#### Oracle Library Integration
 - **Watched Button** - Opens LogMovieModal pre-filled with movie data
 - **Watchlist Button** - Direct Supabase insert with watch_status: 'to-watch'
 - **Add to List Button** - Dropdown to select from user's custom lists
@@ -791,16 +840,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Latest Version: 1.3.8 (March 24, 2026)
 
 **Highlights:**
-- 🔧 Logo text "IGNES" now visible on all screen sizes
+- 🔧 Logo text "FILMGRAPH" now visible on all screen sizes
 - 📝 Changelog page with dedicated route (/changelog)
-- 🤖 Ember Oracle with Reject & Reroll feature
+- 🤖 Oracle with Reject & Reroll feature
 - 🔐 Remember Me checkbox with dynamic storage
 - 📱 Responsive library grid (`grid-cols-2 md:grid-cols-4 lg:grid-cols-6`)
 - 🎯 Oracle vibe mapping fixed - "Brain Mush" now works
 
 **Quick Links:**
 - [Full v1.3.8 Notes](#138---march-24-2026)
-- [Ember Oracle v1.3.2](#132---march-24-2026)
+- [Oracle v1.3.2](#132---march-24-2026)
 - [Roadmap](./ROADMAP.md)
 - [README](./README.md)
 
@@ -811,7 +860,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 Fixed
 
 #### Logo Text Visibility
-- **IGNES Text Now Visible on Mobile** - Removed `hidden sm:inline` class
+- **FILMGRAPH Text Now Visible on Mobile** - Removed `hidden sm:inline` class
 - **Consistent Branding** - Logo + text visible on ALL screen sizes
 - **Flex Alignment** - `flex items-center gap-2` ensures proper spacing
 
@@ -830,7 +879,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### ChangelogPage Component
 - **Dedicated Changelog Page** - Full-page view of version history
 - **Version Sections** - v1.3.1 through v1.3.6 documented with badges
-- **Navigation** - "Back to Ignes Hub" and "Back to Home" links
+- **Navigation** - "Back to Filmgraph Hub" and "Back to Home" links
 - **Deep Ember Theme** - Dark zinc backgrounds with orange accents
 - **Mobile Responsive** - Stacked layout on small screens
 
@@ -973,11 +1022,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🎉 Added
 
-#### Ember Oracle - AI Discovery Engine
+#### Oracle - AI Discovery Engine
 - **Mood Bubbles** - 6 quick-select presets (Cozy, Adrenaline, Mind-Bending, Deep Cuts, Noir, Euphoric)
 - **Custom Prompt Input** - Natural language vibe description
 - **AI System Prompt** - Elite film historian persona that prioritizes deep cuts over mainstream picks
-- **Rationale Display** - "Why Ignes Picked This" section with specific cinematic analysis
+- **Rationale Display** - "Why Filmgraph Picked This" section with specific cinematic analysis
 - **Vibe Check Tagline** - 5-7 word punchy essence description
 - **TMDB Integration** - Automatic poster and year fetching for verified movies
 - **User Context** - AI considers user's top-rated films for personalized suggestions
@@ -997,7 +1046,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Hover Effects** - Mood bubbles glow with orange shadow when active
 
 ### 📁 New Files
-- `src/pages/DiscoveryPage.jsx` - Main Ember Oracle component
+- `src/pages/DiscoveryPage.jsx` - Main Oracle component
 - `src/pages/DiscoveryPage.css` - Deep Ember styling with animations
 - `src/utils/gemini.js` - Added `discoverMovies()` function
 - `src/api/tmdb.js` - Added `fetchTMDBMovie()` utility
@@ -1051,7 +1100,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Version Management System
 - **Centralized Constants** - `src/constants.js` with `APP_VERSION`
 - **Auto-Version Bug Reports** - Every bug submission includes app version
-- **Footer Version Display** - Dynamic "Ignes v{VERSION}" badge
+- **Footer Version Display** - Dynamic "Filmgraph v{VERSION}" badge
 - **Admin Version Tracking** - BugList displays which version bugs occurred in
 
 #### AI Personality Features (Planned)
@@ -1106,7 +1155,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### About/Roadmap Page
 - **AboutPage Component** - New page at `/about` showing project info
-- **Ignes Hub** - Central information hub with About, Changelog, and Roadmap
+- **Filmgraph Hub** - Central information hub with About, Changelog, and Roadmap
 - **Interactive Roadmap** - Version pills showing v1.2.0, v1.3.0, v2.0.0 plans
 - **Version Badge** - Current version display (v1.2.0)
 - **Footer Link** - "About / Roadmap" link added to footer
@@ -1234,7 +1283,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **RatingSlider** - StoryGraph-style 0.0-5.0 precision slider
 - **Mood Palette** - 22 moods across 3 categories (Emotional, Vibe, Intellectual)
 - **StarRating** - Clickable star ratings with 0.5 increments
-- **IgnesLogo** - Custom film frame + bar chart logo
+- **FilmgraphLogo** - Custom film frame + bar chart logo
 
 #### Backend
 - **Supabase Integration** - PostgreSQL database with RLS policies

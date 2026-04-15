@@ -15,9 +15,9 @@ function ChangelogPage() {
             <h1 className="changelog-title">
               <span className="title-icon">📝</span> Changelog
             </h1>
-            <p className="changelog-subtitle">All notable changes to Ignes</p>
+            <p className="changelog-subtitle">All notable changes to Filmgraph</p>
             <Link to="/about" className="back-to-hub-link">
-              ← Back to Ignes Hub
+              ← Back to Filmgraph Hub
             </Link>
           </div>
         </header>
@@ -141,11 +141,11 @@ function ChangelogPage() {
             <span className="version-date">March 24, 2026</span>
           </div>
           <div className="version-content">
-            <h3 className="version-highlight">🤖 Ember Oracle Launch</h3>
+            <h3 className="version-highlight">🤖 Oracle Launch</h3>
             <ul className="changelog-list">
               <li className="new">
                 <span className="badge-new">NEW</span>
-                Ember Oracle AI Discovery page (/discover)
+                Oracle AI Discovery page (/discover)
               </li>
               <li className="new">
                 <span className="badge-new">NEW</span>
@@ -157,7 +157,7 @@ function ChangelogPage() {
               </li>
               <li className="new">
                 <span className="badge-new">NEW</span>
-                Rationale display - "Why Ignes Picked This"
+                Rationale display - "Why Filmgraph Picked This"
               </li>
               <li className="new">
                 <span className="badge-new">NEW</span>
@@ -205,7 +205,7 @@ function ChangelogPage() {
             <p className="older-note">
               For older version history, view the{' '}
               <a
-                href="https://github.com/lostsonofloki/ignes/blob/main/CHANGELOG.md"
+                href="https://github.com/lostsonofloki/filmgraph/blob/main/CHANGELOG.md"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="github-link"
@@ -220,7 +220,7 @@ function ChangelogPage() {
         {/* Footer */}
         <footer className="changelog-footer">
           <div className="footer-content">
-            <span className="version-label">Ignes v{APP_VERSION}</span>
+            <span className="version-label">Filmgraph v{APP_VERSION}</span>
             <Link to="/" className="back-home-link">← Back to Home</Link>
           </div>
         </footer>

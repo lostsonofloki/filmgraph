@@ -150,7 +150,7 @@ function MatchmakerPage() {
         .single();
 
       if (userError || !userData) {
-        toast.error('User not found. Make sure they have an Ignes account.');
+        toast.error('User not found. Make sure they have a Filmgraph account.');
         return;
       }
 

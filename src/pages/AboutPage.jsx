@@ -6,7 +6,7 @@ import './AboutPage.css';
 const VERSION = APP_VERSION;
 
 /**
- * AboutPage - Ignes Hub with About, Changelog, and Roadmap
+ * AboutPage - Filmgraph Hub with About, Changelog, and Roadmap
  */
 function AboutPage() {
   return (
@@ -15,7 +15,7 @@ function AboutPage() {
         {/* Header */}
         <header className="about-header">
           <h1 className="about-title">
-            <span className="title-icon">🔥</span> Ignes Hub
+            <span className="title-icon">🔥</span> Filmgraph Hub
           </h1>
           <p className="about-subtitle">Your Personal Movie Logging & Visualization Platform</p>
         </header>
@@ -28,12 +28,12 @@ function AboutPage() {
               <path d="M2 17l10 5 10-5" />
               <path d="M2 12l10 5 10-5" />
             </svg>
-            <h2>About Ignes</h2>
+            <h2>About Filmgraph</h2>
           </div>
           <div className="section-content">
             <p className="about-text">
-              <strong>Ignes</strong> is a premium, private movie vault designed for serious cinephiles. 
-              Unlike public databases, Ignes is your personal sanctuary for tracking, rating, and 
+              <strong>Filmgraph</strong> is a premium, private movie vault designed for serious cinephiles.
+              Unlike public databases, Filmgraph is your personal sanctuary for tracking, rating, and
               curating your cinematic journey.
             </p>
             <div className="about-features">
@@ -89,7 +89,7 @@ function AboutPage() {
             </div>
             <div className="changelog-item">
               <div className="changelog-header">
-                <h3>🔮 Ember Oracle & Matchmaker</h3>
+                <h3>🔮 Oracle & Matchmaker</h3>
                 <span className="changelog-date">March 29, 2026</span>
               </div>
               <ul className="changelog-list">
@@ -178,7 +178,7 @@ function AboutPage() {
               <ReportBugButton variant="button" />
             </div>
             <div className="footer-right">
-              <span className="version-label">Ignes v{VERSION}</span>
+              <span className="version-label">Filmgraph v{VERSION}</span>
               <Link to="/" className="back-home-link">← Back to Home</Link>
             </div>
           </div>

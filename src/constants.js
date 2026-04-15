@@ -1,10 +1,10 @@
 /**
- * Ignes Application Constants
+ * Filmgraph Application Constants
  * Centralized configuration and version management
  */
 
 // Application Version
-export const APP_VERSION = '1.8.3';
+export const APP_VERSION = '1.9.1';
 
 // Theme Colors
 export const THEME_COLORS = {
@@ -14,7 +14,7 @@ export const THEME_COLORS = {
 };
 
 // Application Info
-export const APP_NAME = 'Ignes';
+export const APP_NAME = 'Filmgraph';
 export const APP_TAGLINE = 'Your Personal Movie Logging & Visualization Platform';
 
 // API Configuration

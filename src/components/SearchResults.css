@@ -50,6 +50,7 @@
   transition: transform 0.2s ease;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .movie-card-poster {
@@ -92,6 +93,49 @@
   margin: 0;
 }
 
+.movie-card-department {
+  font-size: 12px;
+  color: #f97316;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+/* Media type badge */
+.media-type-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #f97316;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  z-index: 2;
+  backdrop-filter: blur(4px);
+}
+
+/* Person card specific */
+.person-card-wrapper .movie-card-poster {
+  padding-top: 100%;
+}
+
+.person-card-wrapper .movie-card-poster img {
+  object-position: top center;
+}
+
+.person-card {
+  border: 1px solid #2a2a2a;
+}
+
+.person-card:hover {
+  border-color: #f97316;
+}
+
 @media (max-width: 640px) {
   .results-header {
     flex-direction: column;
@@ -99,7 +143,7 @@
   }
 
   .movies-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 16px;
   }
 }

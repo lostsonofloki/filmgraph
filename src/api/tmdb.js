@@ -156,11 +156,11 @@ export const searchMovies = async (query) => {
         },
       }
     );
-    
+
     if (!response.ok) {
       throw new Error(`TMDB API error: ${response.status} ${response.statusText}`);
     }
-    
+
     const data = await response.json();
 
     if (data.results) {
@@ -169,6 +169,41 @@ export const searchMovies = async (query) => {
     return [];
   } catch (error) {
     console.error('Error searching movies:', error);
+    return [];
+  }
+};
+
+/**
+ * Search movies AND people via TMDB /search/multi
+ * @param {string} query - Search query
+ * @returns {Promise<Array>} - Array of results with media_type property ('movie' or 'person')
+ */
+export const searchMulti = async (query) => {
+  try {
+    const response = await fetch(
+      `${BASE_URL}/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(query)}&include_adult=false`,
+      {
+        headers: {
+          'Accept': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`TMDB API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    if (data.results) {
+      // Filter to only movies and people (exclude TV for now)
+      return data.results.filter(
+        result => result.media_type === 'movie' || result.media_type === 'person'
+      );
+    }
+    return [];
+  } catch (error) {
+    console.error('Error searching multi:', error);
     return [];
   }
 };
