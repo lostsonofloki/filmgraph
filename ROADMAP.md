@@ -485,7 +485,7 @@ $ git log --all --full-history -- .env
 
 **Phase**: Phase 7.1 + 7.2 + 7.3 core foundations shipped ✅
 
-**Current Version**: v1.12.5 - Watch History Calendar
+**Current Version**: v1.12.6 - Oracle Analytics + Reliability Hardening
 
 **Completed Features**:
 

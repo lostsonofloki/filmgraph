@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.12.6] - April 16, 2026
+
+### 🚀 Added
+- **Oracle Analytics admin surface**
+  - Added analytics route at `/admin/oracle-analytics` with provider/fallback visibility.
+  - Added Oracle analytics API/util wiring and Supabase `oracle_provider_events` migration support.
+
+### 🛠️ Changed
+- **Reliability hardening**
+  - Added shared-list schema fallback handling for optional columns (`joined_at`, `added_by`) to avoid hard failures across environments.
+  - Hardened importer/list insertion fallback when `added_by` is unavailable.
+  - Improved service worker offline fallbacks for navigation and cached API responses.
+
+### ✅ Quality
+- Follow-up release sync after GitHub push: changelog/version alignment before deployment.
+
+---
+
 ## [1.12.5] - April 16, 2026
 
 ### 🚀 Added

@@ -1,6 +1,6 @@
 {
   "name": "filmgraph",
-  "version": "1.12.5",
+  "version": "1.12.6",
   "description": "**Your Personal Movie Logging & Visualization Platform**",
   "type": "module",
   "scripts": {
