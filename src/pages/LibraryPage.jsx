@@ -11,6 +11,7 @@ import ArchiveImporterModal from '../components/ArchiveImporterModal';
 import { MovieGridSkeleton } from '../components/Skeleton';
 import { runPosterMigration } from '../utils/posterMigration';
 import { parseLibraryQuery } from '../utils/naturalLanguageSort';
+import { buildListSharePayload, buildMovieSharePayload, executeShare } from '../utils/share';
 import './LibraryPage.css';
 
 const SORT_OPTIONS = [
@@ -276,6 +277,43 @@ function LibraryPage() {
     }
   };
 
+  const notifyShareResult = (result) => {
+    if (result.status === 'shared') {
+      toast.success('Shared successfully.');
+      return;
+    }
+    if (result.status === 'copied') {
+      toast.success('Share link copied to clipboard.');
+      return;
+    }
+    if (result.status === 'cancelled') {
+      return;
+    }
+    toast.error('Could not share from this browser.');
+  };
+
+  const handleShareMovie = async (movie) => {
+    const payload = buildMovieSharePayload({
+      title: movie.title,
+      year: movie.year || movie.release_date?.split('-')[0] || null,
+      rating: movie.rating,
+      moods: movie.moods || [],
+      tmdbId: movie.tmdb_id,
+    });
+    const result = await executeShare(payload);
+    notifyShareResult(result);
+  };
+
+  const handleShareList = async (list) => {
+    const payload = buildListSharePayload({
+      listId: list.id,
+      listName: list.name,
+      itemCount: list.list_items?.length || 0,
+    });
+    const result = await executeShare(payload);
+    notifyShareResult(result);
+  };
+
   const filteredMovies = movies.filter((movie) => {
     const normalizedSearch = (parsedQuery.searchText || searchQuery).toLowerCase();
     const matchesSearch = movie.title.toLowerCase().includes(normalizedSearch);
@@ -423,6 +461,13 @@ function LibraryPage() {
                     ← Back to Lists
                   </button>
                   <h2>{selectedList.name}</h2>
+                  <button
+                    type="button"
+                    className="share-list-btn"
+                    onClick={() => handleShareList(selectedList)}
+                  >
+                    Share
+                  </button>
                   {isListOwner(selectedList.id) && (
                     <button
                       type="button"
@@ -594,6 +639,20 @@ function LibraryPage() {
                         >
                           View List
                         </button>
+                        <button
+                          type="button"
+                          className="list-share-btn"
+                          onClick={() => handleShareList(list)}
+                          aria-label={`Share list ${list.name}`}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                            <circle cx="18" cy="5" r="3" />
+                            <circle cx="6" cy="12" r="3" />
+                            <circle cx="18" cy="19" r="3" />
+                            <path d="M8.59 13.51l6.83 3.98M15.41 6.51L8.59 10.49" />
+                          </svg>
+                          <span className="share-btn-text">Share</span>
+                        </button>
                       </div>
                     </div>
                   ))
@@ -691,6 +750,21 @@ function LibraryPage() {
               <div className="library-movie-grid">
                 {sortedMovies.map((movie) => (
                   <div key={movie.id} className="library-poster-cell">
+                    <button
+                      type="button"
+                      className="library-share-movie-btn"
+                      onClick={() => handleShareMovie(movie)}
+                      title="Share this movie"
+                      aria-label={`Share ${movie.title}`}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <circle cx="18" cy="5" r="3" />
+                        <circle cx="6" cy="12" r="3" />
+                        <circle cx="18" cy="19" r="3" />
+                        <path d="M8.59 13.51l6.83 3.98M15.41 6.51L8.59 10.49" />
+                      </svg>
+                      <span className="share-btn-text">Share</span>
+                    </button>
                     <MovieCard
                       movie={movie}
                       isLibraryCard={true}

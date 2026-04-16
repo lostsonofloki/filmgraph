@@ -62,7 +62,23 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-
 function isJoinedAtColumnError(error) {
   const message = String(error?.message || '').toLowerCase();
   const details = String(error?.details || '').toLowerCase();
-  return message.includes('joined_at') || details.includes('joined_at');
+  const code = String(error?.code || '').toUpperCase();
+  return (
+    message.includes('joined_at') ||
+    details.includes('joined_at') ||
+    code === 'PGRST204'
+  );
+}
+
+function isAddedByColumnError(error) {
+  const message = String(error?.message || '').toLowerCase();
+  const details = String(error?.details || '').toLowerCase();
+  const code = String(error?.code || '').toUpperCase();
+  return (
+    message.includes('added_by') ||
+    details.includes('added_by') ||
+    code === 'PGRST204'
+  );
 }
 
 /**
@@ -139,7 +155,7 @@ export async function getUserLists(userId) {
   );
   const ids = [...new Set(memberships.map((m) => m.list_id))];
 
-  const { data: lists, error: listsError } = await supabase
+  let { data: lists, error: listsError } = await supabase
     .from('lists')
     .select(
       `
@@ -156,6 +172,33 @@ export async function getUserLists(userId) {
     )
     .in('id', ids)
     .order('created_at', { ascending: false });
+
+  if (listsError && isAddedByColumnError(listsError)) {
+    const fallback = await supabase
+      .from('lists')
+      .select(
+        `
+        *,
+        list_items (
+          id,
+          tmdb_id,
+          title,
+          poster_path,
+          added_at
+        )
+      `
+      )
+      .in('id', ids)
+      .order('created_at', { ascending: false });
+    lists = (fallback.data || []).map((list) => ({
+      ...list,
+      list_items: (list.list_items || []).map((item) => ({
+        ...item,
+        added_by: null,
+      })),
+    }));
+    listsError = fallback.error;
+  }
 
   if (listsError) {
     console.error('sharedLists.getUserLists lists:', listsError);
@@ -236,10 +279,19 @@ export async function getUserLists(userId) {
  */
 export async function getListMembers(listId) {
   const supabase = getSupabase();
-  const { data: membersData, error } = await supabase
+  let { data: membersData, error } = await supabase
     .from('list_members')
     .select('list_id, user_id, role, joined_at')
     .eq('list_id', listId);
+
+  if (error && isJoinedAtColumnError(error)) {
+    const fallback = await supabase
+      .from('list_members')
+      .select('list_id, user_id, role')
+      .eq('list_id', listId);
+    membersData = (fallback.data || []).map((m) => ({ ...m, joined_at: null }));
+    error = fallback.error;
+  }
   if (error) return { data: null, error };
 
   const memberIds = [...new Set((membersData || []).map((m) => m.user_id).filter(Boolean))];
@@ -312,13 +364,25 @@ export async function updateListMemberRole(listId, memberUserId, role) {
     return { data: null, error: new Error('Invalid role update.') };
   }
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('list_members')
     .update({ role })
     .eq('list_id', listId)
     .eq('user_id', memberUserId)
     .select('list_id, user_id, role, joined_at')
     .single();
+
+  if (error && isJoinedAtColumnError(error)) {
+    const fallback = await supabase
+      .from('list_members')
+      .update({ role })
+      .eq('list_id', listId)
+      .eq('user_id', memberUserId)
+      .select('list_id, user_id, role')
+      .single();
+    data = fallback.data ? { ...fallback.data, joined_at: null } : null;
+    error = fallback.error;
+  }
   if (error) return { data: null, error };
   return { data, error: null };
 }
@@ -363,7 +427,18 @@ export async function addMovieToList(listId, tmdbId, userId, movie = {}) {
     added_by: userId,
   };
 
-  const { data, error } = await supabase.from('list_items').insert(row).select().single();
+  let { data, error } = await supabase.from('list_items').insert(row).select().single();
+
+  if (error && isAddedByColumnError(error)) {
+    const { added_by, ...fallbackRow } = row;
+    const fallbackInsert = await supabase
+      .from('list_items')
+      .insert(fallbackRow)
+      .select()
+      .single();
+    data = fallbackInsert.data;
+    error = fallbackInsert.error;
+  }
 
   if (error) {
     if (error.code === '23505') {

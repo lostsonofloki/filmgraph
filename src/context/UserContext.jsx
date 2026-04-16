@@ -1,5 +1,9 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { getSupabase, setAuthStoragePreference } from '../supabaseClient';
+import {
+  getSupabase,
+  setAuthStoragePreference,
+  clearSupabaseAuthFromAllBuckets,
+} from '../supabaseClient';
 
 const UserContext = createContext(null);
 
@@ -23,6 +27,9 @@ export function UserProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const isInvalidRefreshTokenError = (error) =>
+    String(error?.message || '').toLowerCase().includes('invalid refresh token');
+
   // Get the default supabase client on mount
   useEffect(() => {
     try {
@@ -34,30 +41,30 @@ export function UserProvider({ children }) {
     }
 
     // Get initial session
-    currentSupabase.auth.getSession().then(({ data: { session } }) => {
+    currentSupabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      if (error && isInvalidRefreshTokenError(error)) {
+        clearSupabaseAuthFromAllBuckets();
+        await currentSupabase.auth.signOut({ scope: 'local' }).catch(() => {});
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
       if (session?.user) {
         setUser(toUserShape(session.user));
       }
       setIsLoading(false);
     });
 
-    // Listen for auth changes
+    // Listen for auth changes — only clear user on explicit sign-out (not transient null sessions).
     const { data: { subscription } } = currentSupabase.auth.onAuthStateChange((event, session) => {
-      // Check if this is a temporary (non-remembered) session
-      const isTemporary = window.sessionStorage.getItem('filmgraph_temp_session') === 'true';
-
-      if (event === 'SIGNED_IN' && session?.user) {
-        setUser(toUserShape(session.user));
-        if (isTemporary) {
-          console.log('🔐 Temporary session active (will expire on tab close)');
-        }
-      } else if (event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT') {
         setUser(null);
         window.sessionStorage.removeItem('filmgraph_temp_session');
-      } else if (session?.user) {
+        setIsLoading(false);
+        return;
+      }
+      if (session?.user) {
         setUser(toUserShape(session.user));
-      } else {
-        setUser(null);
       }
       setIsLoading(false);
     });
@@ -72,8 +79,10 @@ export function UserProvider({ children }) {
    * @param {boolean} rememberMe - Use localStorage (true) or sessionStorage (false)
    */
   const login = async (email, password, rememberMe = true) => {
-    setAuthStoragePreference(rememberMe);
     const supabase = getSupabase();
+    await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+    clearSupabaseAuthFromAllBuckets();
+    setAuthStoragePreference(rememberMe);
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -103,6 +112,8 @@ export function UserProvider({ children }) {
     if (currentSupabase) {
       await currentSupabase.auth.signOut();
     }
+    clearSupabaseAuthFromAllBuckets();
+    window.sessionStorage.removeItem('filmgraph_temp_session');
     setAuthStoragePreference(true);
     setUser(null);
   };
@@ -112,7 +123,7 @@ export function UserProvider({ children }) {
    */
   const updateUser = async (updates) => {
     if (!currentSupabase) throw new Error('Supabase client not initialized');
-    
+
     const { error } = await currentSupabase.auth.updateUser({
       data: { username: updates.username, display_name: updates.display_name || updates.username },
     });

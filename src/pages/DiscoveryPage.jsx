@@ -5,6 +5,11 @@ import { useToast } from '../context/ToastContext';
 import { getSupabase } from '../supabaseClient';
 import { getHybridRecommendation, BASE_SYSTEM_PROMPT } from '../utils/gemini';
 import { canUseOracle, recordOracleUse } from '../utils/oracleBudget';
+import {
+  buildOracleEventPayload,
+  classifyOracleError,
+  trackOracleProviderEventSafe,
+} from '../utils/oracleAnalytics';
 import { fetchTMDBMovie } from '../api/tmdb';
 import { Link } from 'react-router-dom';
 import LogMovieModal from '../components/LogMovieModal';
@@ -20,6 +25,29 @@ const MOOD_PRESETS = [
 ];
 
 function DiscoveryPage() {
+  const getDiscoveryErrorMessage = (err) => {
+    const raw = String(err?.message || '').toLowerCase();
+    const statusMatch = raw.match(/\[oracle:[a-z]+:(\d+)\]/i);
+    const statusCode = statusMatch ? Number.parseInt(statusMatch[1], 10) : null;
+
+    if (raw.includes('daily oracle limit')) {
+      return 'Daily Oracle limit reached for free tier. Try again tomorrow.';
+    }
+    if (statusCode === 429) {
+      return 'Oracle providers are currently rate limited. Please try again in a moment.';
+    }
+    if (statusCode === 404 || raw.includes('not found')) {
+      return 'A recommendation model is currently unavailable. Switching providers failed this time.';
+    }
+    if (raw.includes('all recommendation providers are unavailable')) {
+      return 'All recommendation providers are temporarily unavailable. Please try again shortly.';
+    }
+    if (raw.includes('openrouter') && raw.includes('missing vite_openrouter_api_key')) {
+      return 'OpenRouter fallback is not configured. TMDB fallback was attempted automatically.';
+    }
+    return err?.message || 'The Oracle could not find a match. Try a different mood.';
+  };
+
   const { user } = useUser();
   const { lists, addMovieToList, isMovieInList, canEditList } = useLists();
   const toast = useToast();
@@ -136,7 +164,11 @@ function DiscoveryPage() {
     }
   };
 
-  const handleDiscover = async (_additionalRejectedIds = [], additionalRejectedTitles = []) => {
+  const handleDiscover = async (
+    _additionalRejectedIds = [],
+    additionalRejectedTitles = [],
+    requestSource = 'discover'
+  ) => {
     if (!tempPrompt.trim()) return;
 
     setIsDiscovering(true);
@@ -144,8 +176,12 @@ function DiscoveryPage() {
     setRecommendations([]);
     setTmdbResults([]);
 
+    let budgetSource = 'unknown';
+    let orchestrationMeta = null;
+
     try {
       const budget = await canUseOracle(user?.id);
+      budgetSource = budget?.source || 'unknown';
       if (!budget.allowed) {
         throw new Error('Daily Oracle limit reached for free tier. Try again tomorrow.');
       }
@@ -163,6 +199,7 @@ function DiscoveryPage() {
         systemPrompt: BASE_SYSTEM_PROMPT,
         rejectedTitles: allRejectedTitles,
       });
+      orchestrationMeta = aiResponse?._meta || null;
 
       if (!aiResponse || !aiResponse.recommendations || aiResponse.recommendations.length === 0) {
         throw new Error('The Oracle is silent. Please try again.');
@@ -186,9 +223,41 @@ function DiscoveryPage() {
       setTmdbResults(tmdbResponses);
       await recordOracleUse(user?.id);
 
+      if (user?.id) {
+        const promptType = selectedMood?.prompt === tempPrompt ? 'mood_preset' : 'custom_prompt';
+        const eventPayload = buildOracleEventPayload({
+          userId: user.id,
+          meta: orchestrationMeta,
+          success: true,
+          budgetSource,
+          requestSource,
+          promptType,
+          recommendationCount: aiResponse.recommendations.length,
+          tmdbHitCount: tmdbResponses.filter(Boolean).length,
+        });
+        trackOracleProviderEventSafe(eventPayload);
+      }
+
     } catch (err) {
       console.error('Discovery error:', err);
-      setError(err.message || 'The Oracle could not find a match. Try a different mood.');
+      setError(getDiscoveryErrorMessage(err));
+
+      if (user?.id) {
+        const promptType = selectedMood?.prompt === tempPrompt ? 'mood_preset' : 'custom_prompt';
+        const { errorCode, fallbackReason, provider, statusCode } = classifyOracleError(err);
+        const eventPayload = buildOracleEventPayload({
+          userId: user.id,
+          meta: orchestrationMeta || { provider, modelUsed: statusCode ? `status:${statusCode}` : null },
+          success: false,
+          fallbackReason,
+          errorCode,
+          errorMessage: err?.message || 'Unknown error',
+          budgetSource,
+          requestSource,
+          promptType,
+        });
+        trackOracleProviderEventSafe(eventPayload);
+      }
     } finally {
       setIsDiscovering(false);
     }
@@ -204,7 +273,7 @@ function DiscoveryPage() {
     setRejectedIds([...rejectedIds, ...allNewRejectedIds]);
     setRejectedTitles([...rejectedTitles, ...allNewRejectedTitles]);
 
-    await handleDiscover(allNewRejectedIds, allNewRejectedTitles);
+    await handleDiscover(allNewRejectedIds, allNewRejectedTitles, 'reroll');
   };
 
   const handleKeyDown = (e) => {

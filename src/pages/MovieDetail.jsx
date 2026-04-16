@@ -7,6 +7,7 @@ import { useToast } from '../context/ToastContext';
 import { getSupabase } from '../supabaseClient';
 import LogMovieModal from '../components/LogMovieModal';
 import AddToListButton from '../components/AddToListButton';
+import { buildMovieSharePayload, executeShare } from '../utils/share';
 import './MovieDetail.css';
 
 // Content Safety Filter - Blacklisted keywords (case-insensitive)
@@ -339,6 +340,29 @@ function MovieDetail() {
     }
   };
 
+  const handleShareMovie = async () => {
+    const payload = buildMovieSharePayload({
+      title: movie?.title,
+      year: movie?.release_date?.split('-')[0] || null,
+      rating: userLog?.rating,
+      moods: userLog?.moods || [],
+      tmdbId: movie?.id,
+    });
+    const result = await executeShare(payload);
+    if (result.status === 'shared') {
+      toast.success('Shared successfully.');
+      return;
+    }
+    if (result.status === 'copied') {
+      toast.success('Share link copied to clipboard.');
+      return;
+    }
+    if (result.status === 'cancelled') {
+      return;
+    }
+    toast.error('Could not share from this browser.');
+  };
+
   if (isLoading) {
     return (
       <div className="loading-page">
@@ -592,6 +616,22 @@ function MovieDetail() {
                   movie={{ tmdb_id: movie.id, title: movie.title, poster_path: movie.poster_path }}
                   className="add-to-list-detail"
                 />
+
+                {/* Share Button */}
+                <button
+                  className="share-movie-btn"
+                  onClick={handleShareMovie}
+                  title="Share movie"
+                  aria-label={`Share ${movie.title}`}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="18" cy="5" r="3" />
+                    <circle cx="6" cy="12" r="3" />
+                    <circle cx="18" cy="19" r="3" />
+                    <path d="M8.59 13.51l6.83 3.98M15.41 6.51L8.59 10.49" />
+                  </svg>
+                  <span className="share-btn-text">Share</span>
+                </button>
               </div>
             </div>
           </div>

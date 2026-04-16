@@ -22,6 +22,7 @@ import BugList from './components/BugList';
 import DiscoveryPage from './pages/DiscoveryPage';
 import MatchmakerPage from './pages/MatchmakerPage';
 import SynergyDashboard from './pages/SynergyDashboard';
+import OracleAnalyticsPage from './pages/OracleAnalyticsPage';
 import { useState, useEffect } from 'react';
 import { flushQueuedMovieLogs } from './utils/offlineQueue';
 import { useInstallPrompt } from './pwa/useInstallPrompt';
@@ -233,6 +234,7 @@ function AppContent() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/changelog" element={<ChangelogPage />} />
             <Route path="/admin/bugs" element={<BugList />} />
+            <Route path="/admin/oracle-analytics" element={<OracleAnalyticsPage />} />
             <Route path="/discover" element={<ProtectedRoute><DiscoveryPage /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="/matchmaker" element={<ProtectedRoute><MatchmakerPage /></ProtectedRoute>} />

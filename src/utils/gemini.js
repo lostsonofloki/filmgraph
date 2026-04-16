@@ -64,19 +64,49 @@ const OPENROUTER_MODELS = [
 ];
 
 const toErrorString = (error) => String(error?.message || error || '').toLowerCase();
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const extractStatusCode = (error) => {
+  const direct = Number(error?.status || error?.statusCode);
+  if (Number.isFinite(direct) && direct > 0) return direct;
+  const match = String(error?.message || '').match(/\b(4\d\d|5\d\d)\b/);
+  return match ? Number.parseInt(match[1], 10) : null;
+};
+
+const withTaggedError = (message, provider, status = null) => {
+  const prefix = `[ORACLE:${provider}${status ? `:${status}` : ''}]`;
+  const error = new Error(`${prefix} ${message}`);
+  error.provider = provider;
+  error.status = status;
+  return error;
+};
 
 const isRetryableGeminiError = (error) => {
+  const status = extractStatusCode(error);
+  if (status === 404) return false;
+  if (status === 429 || status === 500 || status === 503) return true;
   const raw = toErrorString(error);
   return (
-    raw.includes('404') ||
-    raw.includes('429') ||
-    raw.includes('500') ||
-    raw.includes('503') ||
     raw.includes('high demand') ||
-    raw.includes('overloaded') ||
-    raw.includes('not found') ||
-    raw.includes('not supported')
+    raw.includes('overloaded')
   );
+};
+
+const runWithRetries = async (fn, shouldRetry, maxAttempts = 3) => {
+  let lastError;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await fn(attempt);
+    } catch (error) {
+      lastError = error;
+      if (attempt === maxAttempts || !shouldRetry(error)) {
+        throw error;
+      }
+      const delayMs = 250 * 2 ** (attempt - 1) + Math.floor(Math.random() * 120);
+      await sleep(delayMs);
+    }
+  }
+  throw lastError;
 };
 
 const parseJsonResponse = (responseText) => {
@@ -87,7 +117,11 @@ const parseJsonResponse = (responseText) => {
 const runOpenRouterWithFallback = async (prompt, generationConfig, validator) => {
   const openRouterApiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
   if (!openRouterApiKey) {
-    throw new Error('OpenRouter fallback unavailable: missing VITE_OPENROUTER_API_KEY');
+    throw withTaggedError(
+      'OpenRouter fallback unavailable: missing VITE_OPENROUTER_API_KEY',
+      'openrouter',
+      0
+    );
   }
 
   let lastError;
@@ -95,7 +129,7 @@ const runOpenRouterWithFallback = async (prompt, generationConfig, validator) =>
   for (let i = 0; i < OPENROUTER_MODELS.length; i += 1) {
     const modelName = OPENROUTER_MODELS[i];
     try {
-      const response = await fetch(OPENROUTER_API_URL, {
+      const response = await runWithRetries(async () => fetch(OPENROUTER_API_URL, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${openRouterApiKey}`,
@@ -113,10 +147,13 @@ const runOpenRouterWithFallback = async (prompt, generationConfig, validator) =>
           temperature: generationConfig?.temperature ?? 0.9,
           max_tokens: generationConfig?.maxOutputTokens ?? 1200,
         }),
+      }), (error) => {
+        const status = extractStatusCode(error);
+        return status === 429 || status === 500 || status === 503;
       });
 
       if (!response.ok) {
-        throw new Error(`OpenRouter error ${response.status}`);
+        throw withTaggedError(`OpenRouter error ${response.status}`, 'openrouter', response.status);
       }
 
       const data = await response.json();
@@ -127,18 +164,18 @@ const runOpenRouterWithFallback = async (prompt, generationConfig, validator) =>
     } catch (error) {
       lastError = error;
       if (i === OPENROUTER_MODELS.length - 1) {
-        throw error;
+        throw withTaggedError(error.message || 'OpenRouter failure', 'openrouter', extractStatusCode(error));
       }
       console.warn(`⚠️ OpenRouter model failed (${modelName}). Trying next model.`);
     }
   }
 
-  throw lastError || new Error('No OpenRouter model available');
+  throw withTaggedError(lastError?.message || 'No OpenRouter model available', 'openrouter', extractStatusCode(lastError));
 };
 
 const runGeminiWithFallback = async (prompt, generationConfig, validator) => {
   if (!genAI) {
-    throw new Error('Gemini unavailable: missing VITE_GEMINI_API_KEY');
+    throw withTaggedError('Gemini unavailable: missing VITE_GEMINI_API_KEY', 'gemini', 0);
   }
 
   let lastError;
@@ -147,16 +184,18 @@ const runGeminiWithFallback = async (prompt, generationConfig, validator) => {
     const modelName = GEMINI_MODEL_CANDIDATES[i];
 
     try {
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        generationConfig,
-      });
-
-      const result = await model.generateContentStream(prompt);
-      const chunks = [];
-      for await (const chunk of result.stream) {
-        chunks.push(chunk.text());
-      }
+      const chunks = await runWithRetries(async () => {
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          generationConfig,
+        });
+        const result = await model.generateContentStream(prompt);
+        const streamed = [];
+        for await (const chunk of result.stream) {
+          streamed.push(chunk.text());
+        }
+        return streamed;
+      }, isRetryableGeminiError);
 
       const parsed = parseJsonResponse(chunks.join(''));
       if (validator) validator(parsed);
@@ -164,14 +203,15 @@ const runGeminiWithFallback = async (prompt, generationConfig, validator) => {
       return { parsed, modelUsed: modelName };
     } catch (error) {
       lastError = error;
-      if (i === GEMINI_MODEL_CANDIDATES.length - 1 || !isRetryableGeminiError(error)) {
-        throw error;
+      const status = extractStatusCode(error);
+      if (i === GEMINI_MODEL_CANDIDATES.length - 1 || (!isRetryableGeminiError(error) && status !== 404)) {
+        throw withTaggedError(error.message || 'Gemini request failed', 'gemini', status);
       }
       console.warn(`⚠️ Gemini model failed (${modelName}). Trying next model.`);
     }
   }
 
-  throw lastError || new Error('No Gemini model available');
+  throw withTaggedError(lastError?.message || 'No Gemini model available', 'gemini', extractStatusCode(lastError));
 };
 
 const getLocalVibeCheck = (vibe) => {
@@ -192,12 +232,18 @@ const buildTmdbFallbackRecommendations = async (vibe, genreIds, rejectedTitles =
   const genreParam = uniqueGenreIds.length > 0 ? `&with_genres=${uniqueGenreIds.join('|')}` : '';
   const page = 1 + Math.floor(Math.random() * 3);
 
-  const response = await fetch(
-    `https://api.themoviedb.org/3/discover/movie?api_key=${tmdbApiKey}&include_adult=false&sort_by=vote_average.desc&vote_count.gte=300&page=${page}${genreParam}`
+  const response = await runWithRetries(
+    async () => fetch(
+      `https://api.themoviedb.org/3/discover/movie?api_key=${tmdbApiKey}&include_adult=false&sort_by=vote_average.desc&vote_count.gte=300&page=${page}${genreParam}`
+    ),
+    (error) => {
+      const status = extractStatusCode(error);
+      return status === 429 || status === 500 || status === 503;
+    }
   );
 
   if (!response.ok) {
-    throw new Error(`TMDB fallback failed: ${response.status}`);
+    throw withTaggedError(`TMDB fallback failed: ${response.status}`, 'tmdb', response.status);
   }
 
   const data = await response.json();
@@ -212,7 +258,7 @@ const buildTmdbFallbackRecommendations = async (vibe, genreIds, rejectedTitles =
     }));
 
   if (picks.length === 0) {
-    throw new Error('TMDB fallback returned no usable results');
+    throw withTaggedError('TMDB fallback returned no usable results', 'tmdb', 204);
   }
 
   return picks;
@@ -643,7 +689,11 @@ Format:
       };
     } catch (fallbackError) {
       console.error('❌ TMDB fallback failed:', fallbackError.message);
-      throw new Error('The Oracle is silent. Please try again.');
+      throw withTaggedError(
+        'All recommendation providers are unavailable. Please try again shortly.',
+        'orchestration',
+        extractStatusCode(fallbackError)
+      );
     }
   }
 };

@@ -796,6 +796,29 @@
   gap: 8px;
 }
 
+.list-share-btn,
+.share-list-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  background: #18181b;
+  color: #f4f4f5;
+  border: 1px solid #3f3f46;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.list-share-btn:hover,
+.share-list-btn:hover {
+  background: #27272a;
+  border-color: #52525b;
+}
+
 .view-list-btn {
   flex: 1;
   padding: 10px;
@@ -1411,6 +1434,59 @@
 
 .library-poster-cell {
   min-width: 0;
+  position: relative;
+}
+
+.library-share-movie-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 20;
+  border: 1px solid #3f3f46;
+  background: rgba(9, 9, 11, 0.85);
+  color: #e4e4e7;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.list-share-btn svg,
+.share-list-btn svg,
+.library-share-movie-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+@media (max-width: 640px) {
+  .library-share-movie-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border-radius: 999px;
+  }
+
+  .list-share-btn {
+    width: 38px;
+    min-width: 38px;
+    padding: 0;
+  }
+
+  .list-share-btn .share-btn-text,
+  .library-share-movie-btn .share-btn-text {
+    display: none;
+  }
+}
+
+.library-share-movie-btn:hover {
+  background: rgba(249, 115, 22, 0.25);
+  border-color: rgba(249, 115, 22, 0.45);
+  color: #ffedd5;
 }
 
 .library-movie-grid-empty {

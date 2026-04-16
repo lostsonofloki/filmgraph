@@ -15,6 +15,7 @@ export const useInstallPrompt = () => {
     }
 
     const handleBeforeInstallPrompt = (event) => {
+      // We intentionally defer the native prompt so the app can show a custom install CTA.
       event.preventDefault();
       setDeferredPrompt(event);
       setIsInstallable(true);
@@ -36,7 +37,7 @@ export const useInstallPrompt = () => {
   }, []);
 
   const promptInstall = async () => {
-    if (!deferredPrompt) return false;
+    if (!deferredPrompt || typeof deferredPrompt.prompt !== 'function') return false;
     deferredPrompt.prompt();
     const choice = await deferredPrompt.userChoice;
     if (choice.outcome === 'accepted') {

@@ -5,6 +5,30 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || process.env.REACT_APP_S
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
 const AUTH_STORAGE_PREF_KEY = 'filmgraph_auth_storage';
 
+/**
+ * Remove Supabase session payloads from both persistence buckets.
+ * Prevents "split brain" when toggling Remember Me or after logout (orphaned sb-* keys).
+ * Also clears legacy `filmgraph.supabase.auth` if present from earlier builds.
+ */
+export function clearSupabaseAuthFromAllBuckets() {
+  const shouldRemove = (key) =>
+    typeof key === 'string' &&
+    (key.startsWith('sb-') || key === 'filmgraph.supabase.auth');
+
+  for (const store of [window.localStorage, window.sessionStorage]) {
+    try {
+      const toRemove = [];
+      for (let i = 0; i < store.length; i += 1) {
+        const k = store.key(i);
+        if (k && shouldRemove(k)) toRemove.push(k);
+      }
+      toRemove.forEach((k) => store.removeItem(k));
+    } catch {
+      /* private mode / blocked storage */
+    }
+  }
+}
+
 const getPreferredStorage = () => {
   const preference = window.localStorage.getItem(AUTH_STORAGE_PREF_KEY);
   return preference === 'session' ? window.sessionStorage : window.localStorage;

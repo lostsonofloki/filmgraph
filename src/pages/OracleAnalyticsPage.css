@@ -1,0 +1,150 @@
+.oracle-analytics-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px 96px;
+  color: #e4e4e7;
+}
+
+.oracle-analytics-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.oracle-analytics-header h1 {
+  margin: 0 0 8px;
+  color: #f97316;
+}
+
+.oracle-analytics-header p {
+  margin: 0;
+  color: #a1a1aa;
+}
+
+.oracle-analytics-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.oracle-analytics-controls select,
+.oracle-analytics-controls button {
+  border: 1px solid #3f3f46;
+  background: #18181b;
+  color: #e4e4e7;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.oracle-analytics-controls button {
+  cursor: pointer;
+}
+
+.oracle-analytics-card {
+  border: 1px solid #27272a;
+  border-radius: 12px;
+  background: #111114;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.oracle-analytics-card h2,
+.oracle-analytics-card h3 {
+  margin-top: 0;
+}
+
+.oracle-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.oracle-kpi {
+  font-size: 30px;
+  margin: 8px 0 0;
+  color: #fb923c;
+  font-weight: 700;
+}
+
+.oracle-analytics-error {
+  border: 1px solid #7f1d1d;
+  background: rgba(127, 29, 29, 0.2);
+  color: #fecaca;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.oracle-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.oracle-table th,
+.oracle-table td {
+  text-align: left;
+  border-bottom: 1px solid #27272a;
+  padding: 8px 6px;
+}
+
+.oracle-table th {
+  color: #f4f4f5;
+  font-weight: 600;
+}
+
+.oracle-fallback-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.oracle-fallback-item {
+  border: 1px solid #3f3f46;
+  background: #18181b;
+  border-radius: 999px;
+  padding: 6px 10px;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.oracle-timeline-chart {
+  display: grid;
+  gap: 8px;
+}
+
+.oracle-timeline-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.oracle-timeline-label {
+  color: #a1a1aa;
+  font-size: 12px;
+}
+
+.oracle-timeline-bar-wrap {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.oracle-timeline-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f97316, #ea580c);
+}
+
+@media (max-width: 700px) {
+  .oracle-analytics-header {
+    flex-direction: column;
+  }
+
+  .oracle-timeline-row {
+    grid-template-columns: 1fr;
+  }
+}

@@ -141,12 +141,34 @@ function ArchiveImporterModal({ onClose, onImportComplete }) {
         }));
 
         // Batch insert into list_items (ignore duplicates)
-        const { error: listError } = await supabase
+        let { error: listError } = await supabase
           .from('list_items')
           .upsert(listItemsToAdd, {
             onConflict: 'list_id, tmdb_id',
             ignoreDuplicates: true
           });
+
+        const isAddedByColumnError = (supabaseError) => {
+          const message = String(supabaseError?.message || '').toLowerCase();
+          const details = String(supabaseError?.details || '').toLowerCase();
+          const code = String(supabaseError?.code || '').toUpperCase();
+          return (
+            message.includes('added_by') ||
+            details.includes('added_by') ||
+            code === 'PGRST204'
+          );
+        };
+
+        if (listError && isAddedByColumnError(listError)) {
+          const fallbackItems = listItemsToAdd.map(({ added_by, ...item }) => item);
+          const fallback = await supabase
+            .from('list_items')
+            .upsert(fallbackItems, {
+              onConflict: 'list_id, tmdb_id',
+              ignoreDuplicates: true
+            });
+          listError = fallback.error;
+        }
 
         if (listError) {
           console.error('Error adding to list:', listError);

@@ -317,12 +317,29 @@ export const fetchTMDBMovie = async (title, year = '') => {
     return null;
   }
 
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  const fetchWithRetry = async (url, attempts = 3) => {
+    let lastResponse = null;
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      const response = await fetch(url);
+      lastResponse = response;
+      if (response.ok) return response;
+      if (![429, 500, 503].includes(response.status) || attempt === attempts) {
+        return response;
+      }
+      const delayMs = 200 * 2 ** (attempt - 1) + Math.floor(Math.random() * 100);
+      await sleep(delayMs);
+    }
+    return lastResponse;
+  };
+
   // Helper to run the actual fetch
   const search = async (searchYear) => {
     const searchQuery = encodeURIComponent(title);
     const yearParam = searchYear && searchYear !== 'N/A' ? `&primary_release_year=${searchYear}` : '';
     
-    const response = await fetch(
+    const response = await fetchWithRetry(
       `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${searchQuery}${yearParam}`
     );
 

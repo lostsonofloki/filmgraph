@@ -335,14 +335,15 @@
 /* Three equal columns: balanced widths */
 .movie-actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   margin-top: 8px;
   align-items: stretch;
 }
 
 .movie-actions > .watchlist-btn,
-.movie-actions > .log-movie-btn-primary {
+.movie-actions > .log-movie-btn-primary,
+.movie-actions > .share-movie-btn {
   width: 100%;
   justify-content: center;
   box-sizing: border-box;
@@ -443,6 +444,37 @@
 .add-to-list-detail .add-to-list-button svg {
   width: 18px;
   height: 18px;
+}
+
+/* Share Button */
+.share-movie-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  min-height: 44px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e4e4e7;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.share-movie-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.share-movie-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.share-movie-btn .share-btn-text {
+  white-space: nowrap;
 }
 
 .log-movie-btn {
@@ -947,7 +979,7 @@
     border-top: 1px solid #27272a;
     box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45);
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 8px;
     align-items: stretch;
   }
@@ -958,6 +990,7 @@
 
   .watchlist-btn,
   .log-movie-btn-primary,
+  .share-movie-btn,
   .add-to-list-detail .add-to-list-button {
     width: 100%;
     justify-content: center;
@@ -997,13 +1030,25 @@
 
   .watchlist-btn,
   .log-movie-btn-primary,
+  .share-movie-btn,
   .add-to-list-detail .add-to-list-button {
     min-height: 44px;
   }
 
   .watchlist-btn span,
-  .log-movie-btn-primary span {
+  .log-movie-btn-primary span,
+  .share-movie-btn span {
     white-space: nowrap;
+  }
+
+  .share-movie-btn .share-btn-text {
+    display: none;
+  }
+
+  .share-movie-btn {
+    gap: 0;
+    padding-left: 10px;
+    padding-right: 10px;
   }
 
   .log-movie-btn {
