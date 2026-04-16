@@ -253,7 +253,7 @@ GET /?apikey={key}&i={imdb_id}&plot=full
 | #    | Task                         | Description                                                  | Status |
 | ---- | ---------------------------- | ------------------------------------------------------------ | ------ |
 | 6.1  | **Social Sharing**           | Share movie logs to social media platforms                   | ⬜     |
-| 6.2  | **Watch History Calendar**   | Visual calendar view of watched movies                       | ⬜     |
+| 6.2  | **Watch History Calendar**   | Visual calendar view of watched movies                       | ✅     |
 | 6.3  | **Smart Recommendations V2** | Enhanced AI with cross-user patterns & seasonal picks        | ⬜     |
 | 6.4  | **Letterboxd Import**        | Migrate existing data from Letterboxd                        | ⬜     |
 | 6.5  | **Mobile App (Deferred)**    | React Native version for iOS/Android (pushed back)           | ⏸️     |
@@ -485,10 +485,11 @@ $ git log --all --full-history -- .env
 
 **Phase**: Phase 7.1 + 7.2 + 7.3 core foundations shipped ✅
 
-**Current Version**: v1.12.3 - Auth Persistence Fix
+**Current Version**: v1.12.5 - Watch History Calendar
 
 **Completed Features**:
 
+- ✅ **v1.12.5 Highlights** - Watch History Calendar replaced timeline on `/history`, added day-level drilldown, and mobile touch-target/readability polish.
 - ✅ **Oracle Foundation** - Hybrid AI routing (Groq + Gemini), deterministic fallback behavior, and discovery stability.
 - ✅ **Oracle Guardrails** - Daily-budget controls via Supabase RPC + local fallback safeguards.
 - ✅ **PWA/Offline Core** - Service worker, cached app shell/API responses, IndexedDB queue, and reconnect sync.

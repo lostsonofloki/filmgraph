@@ -4,7 +4,7 @@
  */
 
 // Application Version
-export const APP_VERSION = '1.12.3';
+export const APP_VERSION = '1.12.5';
 
 // Theme Colors
 export const THEME_COLORS = {
@@ -30,6 +30,7 @@ export const SUPABASE_TABLES = {
   LIST_MEMBERS: 'list_members',
   BUG_REPORTS: 'bug_reports',
   RECOMMENDATION_FEEDBACK: 'recommendation_feedback',
+  ORACLE_PROVIDER_EVENTS: 'oracle_provider_events',
 };
 
 // UI Constants

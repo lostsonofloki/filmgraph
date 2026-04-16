@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.12.5] - April 16, 2026
+
+### 🚀 Added
+- **Phase 6.2 Watch History Calendar**
+  - Replaced the `/history` timeline with a month calendar grid that highlights watched days.
+  - Added day-level drilldown: selecting an active day reveals all movies watched on that date.
+  - Added month navigation controls (`Previous`, `Next`) and a `Jump to Today` shortcut.
+
+### 🛠️ Changed
+- **Watch History mobile UX polish**
+  - Enforced mobile-friendly touch targets (44px minimum) on calendar controls and day cells.
+  - Improved small-screen layout density for calendar and selected-day cards for readability and tap comfort.
+
+### ✅ Quality
+- Lint checks pass for updated Watch History files.
+
+---
+
+## [1.12.4] - April 15, 2026
+
+### 🐛 Fixed
+- **Auth persistence / Remember Me (hardening)**
+  - Clear Supabase session keys (`sb-*` and legacy app key) from both `localStorage` and `sessionStorage` before each login and after logout so switching Remember Me cannot leave orphaned tokens.
+  - Local-only `signOut` before `signInWithPassword` resets in-memory auth without an extra network round trip.
+  - `onAuthStateChange` clears app user state only on `SIGNED_OUT`, not on other events with a transient missing session.
+
+### ✅ Quality
+- Targeted lint passes for auth/session files.
+- Production build succeeds (`npm run build`).
+
+---
+
 ## [1.12.3] - April 15, 2026
 
 ### 🐛 Fixed
