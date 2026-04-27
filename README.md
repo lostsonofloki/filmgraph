@@ -193,6 +193,8 @@ Set these repository secrets before enabling the workflow:
 - `DATADOG_PERSONA` (optional, default `BACKEND`)
 - `SLACK_WEBHOOK_URL` (optional)
 
+If `DATADOG_API_KEY` / `DATADOG_APP_KEY` are missing, the workflow now exits gracefully and publishes a setup-needed report instead of failing the entire job.
+
 ---
 
 ## 📋 Development Roadmap

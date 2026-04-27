@@ -23,25 +23,6 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Validate required secrets
-        env:
-          DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
-          DATADOG_APP_KEY: ${{ secrets.DATADOG_APP_KEY }}
-        run: |
-          missing=0
-          if [ -z "$DATADOG_API_KEY" ]; then
-            echo "Missing secret: DATADOG_API_KEY" >> "$GITHUB_STEP_SUMMARY"
-            missing=1
-          fi
-          if [ -z "$DATADOG_APP_KEY" ]; then
-            echo "Missing secret: DATADOG_APP_KEY" >> "$GITHUB_STEP_SUMMARY"
-            missing=1
-          fi
-          if [ "$missing" -eq 1 ]; then
-            echo "Datadog investigation aborted due to missing required secrets."
-            exit 1
-          fi
-
       - name: Investigate top Datadog errors
         env:
           DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
@@ -71,7 +52,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Create or update daily investigation issue
-        if: success()
+        if: always()
         uses: peter-evans/create-issue-from-file@v5
         with:
           title: Datadog Error Investigation - ${{ github.run_id }}

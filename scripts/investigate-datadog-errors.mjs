@@ -10,6 +10,7 @@ const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
 const TOP_N = Number(process.env.TOP_N || "10");
 const DATADOG_TRACK = process.env.DATADOG_TRACK || "logs";
 const DATADOG_PERSONA = process.env.DATADOG_PERSONA || "BACKEND";
+const hasRequiredKeys = Boolean(DATADOG_API_KEY && DATADOG_APP_KEY);
 
 function nowMs() {
   return Date.now();
@@ -165,6 +166,24 @@ function buildMarkdownReport(clusters, windowStart, windowEnd) {
   return lines.join("\n");
 }
 
+function buildSetupReport() {
+  return [
+    "# Daily Datadog Error Investigation",
+    "",
+    "Investigation skipped because Datadog credentials are not configured.",
+    "",
+    "## Missing Configuration",
+    "- `DATADOG_API_KEY`",
+    "- `DATADOG_APP_KEY`",
+    "",
+    "## Next Actions",
+    "- Add the missing repository secrets in GitHub settings.",
+    "- Re-run this workflow manually after setting secrets.",
+    "- Keep `DATADOG_SITE`, `DATADOG_ERROR_QUERY`, `DATADOG_TRACK`, and `DATADOG_PERSONA` aligned with production.",
+    ""
+  ].join("\n");
+}
+
 async function maybeSendSlack(markdown, clusters) {
   if (!SLACK_WEBHOOK_URL) return;
   const preview = clusters
@@ -187,6 +206,15 @@ async function maybeSendSlack(markdown, clusters) {
 }
 
 async function main() {
+  await fs.mkdir(path.dirname(REPORT_PATH), { recursive: true });
+
+  if (!hasRequiredKeys) {
+    const setupReport = buildSetupReport();
+    await fs.writeFile(REPORT_PATH, setupReport, "utf8");
+    console.log(`Wrote ${REPORT_PATH} (setup required).`);
+    return;
+  }
+
   const windowStart = oneDayAgoMs();
   const windowEnd = nowMs();
 
@@ -213,7 +241,6 @@ async function main() {
   const clusters = clusterBySignature(issues);
   const report = buildMarkdownReport(clusters, windowStart, windowEnd);
 
-  await fs.mkdir(path.dirname(REPORT_PATH), { recursive: true });
   await fs.writeFile(REPORT_PATH, report, "utf8");
   await maybeSendSlack(report, clusters);
 
