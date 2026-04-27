@@ -1,4 +1,4 @@
-name: Datadog Error Investigation
+name: Vercel Error Investigation
 
 on:
   workflow_dispatch:
@@ -23,22 +23,21 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Investigate top Datadog errors
+      - name: Investigate Vercel deployment errors
         env:
-          DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
-          DATADOG_APP_KEY: ${{ secrets.DATADOG_APP_KEY }}
-          DATADOG_SITE: ${{ secrets.DATADOG_SITE }}
-          DATADOG_ERROR_QUERY: ${{ secrets.DATADOG_ERROR_QUERY }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          REPORT_PATH: artifacts/datadog-error-report.md
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+          REPORT_PATH: artifacts/vercel-error-report.md
           TOP_N: "10"
-        run: node scripts/investigate-datadog-errors.mjs
+          LOOKBACK_HOURS: "24"
+        run: node scripts/investigate-vercel-errors.mjs
 
       - name: Append report to workflow summary
         if: always()
         run: |
-          if [ -f artifacts/datadog-error-report.md ]; then
-            cat artifacts/datadog-error-report.md >> "$GITHUB_STEP_SUMMARY"
+          if [ -f artifacts/vercel-error-report.md ]; then
+            cat artifacts/vercel-error-report.md >> "$GITHUB_STEP_SUMMARY"
           else
             echo "No report generated." >> "$GITHUB_STEP_SUMMARY"
           fi
@@ -47,17 +46,17 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: datadog-error-report
-          path: artifacts/datadog-error-report.md
+          name: vercel-error-report
+          path: artifacts/vercel-error-report.md
           if-no-files-found: warn
 
-      - name: Create or update daily investigation issue
+      - name: Create investigation issue
         if: always()
         uses: peter-evans/create-issue-from-file@v5
         with:
-          title: Datadog Error Investigation - ${{ github.run_id }}
-          content-filepath: artifacts/datadog-error-report.md
+          title: Vercel Error Investigation - ${{ github.run_id }}
+          content-filepath: artifacts/vercel-error-report.md
           labels: |
             incident
-            datadog
+            vercel
             automation
