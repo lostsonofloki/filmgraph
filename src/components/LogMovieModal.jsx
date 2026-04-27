@@ -71,7 +71,19 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
   const html5ScannerRef = useRef(null);
   const scannerRegionIdRef = useRef(`upc-scanner-${Math.random().toString(36).slice(2, 9)}`);
   const scannerSupported = typeof window !== 'undefined' && 'BarcodeDetector' in window;
+  const cameraApiAvailable =
+    typeof navigator !== 'undefined' &&
+    !!navigator.mediaDevices &&
+    typeof navigator.mediaDevices.getUserMedia === 'function';
   const effectiveMovie = lookupResult?.tmdbMovie || movie;
+  const waitForElement = async (id, attempts = 12) => {
+    for (let i = 0; i < attempts; i += 1) {
+      const el = document.getElementById(id);
+      if (el) return el;
+      await new Promise((resolve) => window.setTimeout(resolve, 30));
+    }
+    return null;
+  };
 
   // Safety defaults
   const movieTitle = effectiveMovie?.title || lookupResult?.sourceTitle || 'Loading...';
@@ -105,10 +117,14 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
 
   const startHtml5QrcodeScanner = async () => {
     const { Html5Qrcode } = await import('html5-qrcode');
-    const scanner = new Html5Qrcode(scannerRegionIdRef.current);
-    html5ScannerRef.current = scanner;
     setScannerMode('html5');
     setIsScannerOpen(true);
+    const region = await waitForElement(scannerRegionIdRef.current);
+    if (!region) {
+      throw new Error('Scanner mount target unavailable. Please try again.');
+    }
+    const scanner = new Html5Qrcode(scannerRegionIdRef.current);
+    html5ScannerRef.current = scanner;
 
     await scanner.start(
       { facingMode: 'environment' },
@@ -136,6 +152,10 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
       setScannerError('Camera scanning requires HTTPS or localhost.');
       return;
     }
+    if (!cameraApiAvailable) {
+      setScannerError('This browser does not expose camera APIs (mediaDevices/getUserMedia).');
+      return;
+    }
 
     try {
       if (!scannerSupported) {
@@ -143,9 +163,15 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
         return;
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } },
-      });
+      let stream = null;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } },
+        });
+      } catch (_rearCameraError) {
+        // Fallback for devices/browsers that reject facingMode constraints.
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
       streamRef.current = stream;
       setScannerMode('native');
       setIsScannerOpen(true);
@@ -155,9 +181,13 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
         await videoRef.current.play();
       }
 
-      const detector = new window.BarcodeDetector({
-        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'],
-      });
+      const desiredFormats = ['ean_13', 'ean_8', 'upc_a', 'upc_e'];
+      const supportedFormats = await window.BarcodeDetector.getSupportedFormats();
+      const activeFormats = desiredFormats.filter((fmt) => supportedFormats.includes(fmt));
+      if (activeFormats.length === 0) {
+        throw new Error('No compatible native barcode formats available on this device.');
+      }
+      const detector = new window.BarcodeDetector({ formats: activeFormats });
 
       scanTimerRef.current = window.setInterval(async () => {
         if (!videoRef.current) return;
@@ -177,10 +207,12 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
       try {
         await startHtml5QrcodeScanner();
       } catch (fallbackError) {
-        setScannerError(
+        const normalizedError =
           fallbackError?.message ||
-            scanError?.message ||
-            'Failed to start camera scanner.'
+          scanError?.message ||
+          'Failed to start camera scanner.';
+        setScannerError(
+          `${normalizedError} Check browser camera permissions for this site.`
         );
         stopScanner();
       }
@@ -468,6 +500,37 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
                   Stop Scanner
                 </button>
               )}
+            </div>
+            <div
+              style={{
+                marginTop: '8px',
+                padding: '8px',
+                borderRadius: '6px',
+                border: '1px solid #2a2a2a',
+                backgroundColor: '#101012',
+                fontSize: '11px',
+                color: '#a1a1aa',
+                lineHeight: 1.5,
+              }}
+            >
+              <div>
+                Scanner diagnostics: secure context{' '}
+                <strong style={{ color: window.isSecureContext ? '#34d399' : '#f87171' }}>
+                  {window.isSecureContext ? 'yes' : 'no'}
+                </strong>
+                , camera API{' '}
+                <strong style={{ color: cameraApiAvailable ? '#34d399' : '#f87171' }}>
+                  {cameraApiAvailable ? 'available' : 'missing'}
+                </strong>
+                , BarcodeDetector{' '}
+                <strong style={{ color: scannerSupported ? '#34d399' : '#fbbf24' }}>
+                  {scannerSupported ? 'available' : 'not available'}
+                </strong>
+                .
+              </div>
+              <div>
+                Mode: <strong style={{ color: '#e4e4e7' }}>{isScannerOpen ? scannerMode : 'idle'}</strong>
+              </div>
             </div>
             {scannerError && (
               <p style={{ marginTop: '8px', color: '#f87171', fontSize: '12px' }}>{scannerError}</p>

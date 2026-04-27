@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useUser } from '../context/UserContext';
-import FilmgraphLogo from './FilmgraphLogo';
-import './Header.css';
+import { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useUser } from "../context/UserContext";
+import FilmgraphLogo from "./FilmgraphLogo";
+import "./Header.css";
 
 /**
  * Header Component
@@ -14,36 +14,36 @@ function Header({ onOracleClick }) {
   const { user, isAuthenticated, logout } = useUser();
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [tempSearch, setTempSearch] = useState('');
+  const [tempSearch, setTempSearch] = useState("");
 
   const isActive = (path) => location.pathname === path;
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     // Trim whitespace from search query
     const cleanQuery = tempSearch.trim();
-    
+
     // Reject empty queries - prevent searching whitespace
     if (!cleanQuery) {
-      setTempSearch('');
+      setTempSearch("");
       return;
     }
-    
+
     navigate(`/search?q=${encodeURIComponent(cleanQuery)}`);
-    setTempSearch('');
+    setTempSearch("");
     setIsSearchVisible(false);
     setIsMobileMenuOpen(false);
   };
 
   const closeSearch = () => {
     setIsSearchVisible(false);
-    setTempSearch('');
+    setTempSearch("");
   };
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    navigate("/login");
   };
 
   return (
@@ -74,7 +74,12 @@ function Header({ onOracleClick }) {
                   className="close-search-btn"
                   aria-label="Close search"
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
                     <path d="M18 6L6 18M6 6l12 12" />
                   </svg>
                 </button>
@@ -89,10 +94,30 @@ function Header({ onOracleClick }) {
           </Link>
 
           <nav className="desktop-nav">
-            <Link to="/discover" className={`nav-link discover ${isActive('/discover') ? 'active' : ''}`}>Discover</Link>
-            <Link to="/" className={`nav-link ${isActive('/') ? 'active' : ''}`}>Trending</Link>
-            <Link to="/library" className={`nav-link ${isActive('/library') ? 'active' : ''}`}>Library</Link>
-            <Link to="/history" className={`nav-link ${isActive('/history') ? 'active' : ''}`}>History</Link>
+            <Link
+              to="/discover"
+              className={`nav-link discover ${isActive("/discover") ? "active" : ""}`}
+            >
+              Discover
+            </Link>
+            <Link
+              to="/"
+              className={`nav-link ${isActive("/") ? "active" : ""}`}
+            >
+              Trending
+            </Link>
+            <Link
+              to="/library"
+              className={`nav-link ${isActive("/library") ? "active" : ""}`}
+            >
+              Library
+            </Link>
+            <Link
+              to="/history"
+              className={`nav-link ${isActive("/history") ? "active" : ""}`}
+            >
+              History
+            </Link>
           </nav>
         </div>
 
@@ -106,7 +131,12 @@ function Header({ onOracleClick }) {
                 className="mobile-search-btn"
                 aria-label="Search"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   <circle cx="11" cy="11" r="8" />
                   <path d="M21 21l-4.35-4.35" />
                 </svg>
@@ -117,7 +147,12 @@ function Header({ onOracleClick }) {
               className="mobile-menu-btn"
               aria-label="Toggle menu"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 {isMobileMenuOpen ? (
                   <path d="M18 6L6 18M6 6l12 12" />
                 ) : (
@@ -143,11 +178,17 @@ function Header({ onOracleClick }) {
             </button>
             {isAuthenticated ? (
               <div className="user-controls">
-                <Link to="/profile" className="username-link">{user?.username}</Link>
-                <button onClick={handleLogout} className="logout-btn">Logout</button>
+                <Link to="/profile" className="username-link">
+                  {user?.username}
+                </Link>
+                <button onClick={handleLogout} className="logout-btn">
+                  Logout
+                </button>
               </div>
             ) : (
-              <Link to="/login" className="login-btn">Login</Link>
+              <Link to="/login" className="login-btn">
+                Login
+              </Link>
             )}
           </div>
         </div>
@@ -157,10 +198,34 @@ function Header({ onOracleClick }) {
       {isMobileMenuOpen && (
         <div className="mobile-menu">
           <nav className="mobile-nav">
-            <Link to="/discover" className={`mobile-nav-link discover ${isActive('/discover') ? 'active' : ''}`} onClick={() => setIsMobileMenuOpen(false)}>Discover</Link>
-            <Link to="/" className={`mobile-nav-link ${isActive('/') ? 'active' : ''}`} onClick={() => setIsMobileMenuOpen(false)}>Trending</Link>
-            <Link to="/library" className={`mobile-nav-link ${isActive('/library') ? 'active' : ''}`} onClick={() => setIsMobileMenuOpen(false)}>Library</Link>
-            <Link to="/history" className={`mobile-nav-link ${isActive('/history') ? 'active' : ''}`} onClick={() => setIsMobileMenuOpen(false)}>History</Link>
+            <Link
+              to="/discover"
+              className={`mobile-nav-link discover ${isActive("/discover") ? "active" : ""}`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Discover
+            </Link>
+            <Link
+              to="/"
+              className={`mobile-nav-link ${isActive("/") ? "active" : ""}`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Trending
+            </Link>
+            <Link
+              to="/library"
+              className={`mobile-nav-link ${isActive("/library") ? "active" : ""}`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Library
+            </Link>
+            <Link
+              to="/history"
+              className={`mobile-nav-link ${isActive("/history") ? "active" : ""}`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              History
+            </Link>
             <button
               type="button"
               className="mobile-oracle-btn"
@@ -171,14 +236,28 @@ function Header({ onOracleClick }) {
             >
               ✨ Oracle
             </button>
-            
+
             {isAuthenticated ? (
               <div className="mobile-auth">
-                <Link to="/profile" className="mobile-username" onClick={() => setIsMobileMenuOpen(false)}>👤 {user?.username}</Link>
-                <button onClick={handleLogout} className="mobile-logout">Logout</button>
+                <Link
+                  to="/profile"
+                  className="mobile-username"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  👤 {user?.username}
+                </Link>
+                <button onClick={handleLogout} className="mobile-logout">
+                  Logout
+                </button>
               </div>
             ) : (
-              <Link to="/login" className="mobile-login-btn" onClick={() => setIsMobileMenuOpen(false)}>Login</Link>
+              <Link
+                to="/login"
+                className="mobile-login-btn"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Login
+              </Link>
             )}
           </nav>
         </div>

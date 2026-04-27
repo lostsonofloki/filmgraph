@@ -48,6 +48,9 @@ Filmgraph is a React-based web application that lets you log, track, and visuali
 - **Vibe Check Tagline**: 5-7 word punchy essence descriptions per movie
 - **Session Tracking**: Tracks rejected movies to avoid repeat suggestions
 - **Concurrent Data Fetching**: All movie posters/data load in parallel for faster UX
+- **Streaming-Aware Discovery**: Optional provider preference filtering prioritizes titles on services you actually have
+- **Watch Now Deep Links**: Provider availability and direct watch links surfaced from TMDb watch-provider data
+- **Optional API Enrichment Flags**: Editorial (NYT/Wikipedia), Visual (Fanart.tv), and Tracking (Trakt) enrichments can be toggled independently and fail-soft.
 
 ### Advanced Features
 - **Mobile-First Responsive Navbar**: Hamburger menu (mobile) / Inline nav links (desktop 768px+)
@@ -59,6 +62,7 @@ Filmgraph is a React-based web application that lets you log, track, and visuali
 - **Remember Me**: Toggle between persistent (localStorage) and session-only (sessionStorage) login
 - **Forgot Password Flow**: Email-based password reset with Supabase Auth
 - **Editable Profiles**: Customizable display names and bios with avatar upload
+- **Streaming Service Preferences**: Profile-level provider selection to guide Oracle recommendation filtering
 - **Row Level Security**: Secure data policies protecting user movie logs
 
 ---
@@ -69,7 +73,7 @@ Filmgraph is a React-based web application that lets you log, track, and visuali
 |-------|------------|
 | **Frontend** | React 18+, React Router, Vite |
 | **Styling** | CSS Grid, Flexbox, Custom Components |
-| **External APIs** | TMDB (movie data, recommendations), OMDb (Rotten Tomatoes scores) |
+| **External APIs** | TMDB (movie data, recommendations), OMDb (Rotten Tomatoes scores), NYT Top Stories, Fanart.tv, Trakt |
 | **Backend/Database** | Supabase (Auth, PostgreSQL, RLS) |
 | **AI Integration** | Google Gemini API + Groq LPU (hybrid orchestration for multi-movie recommendations) |
 | **Visualization** | Recharts (charts and graphs) |

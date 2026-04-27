@@ -483,9 +483,9 @@ $ git log --all --full-history -- .env
 
 ## 🎯 Current Status
 
-**Phase**: Phase 7.1 + 7.2 + 7.3 core foundations shipped ✅
+**Phase**: Phase 7.1 + 7.2 + 7.3 core foundations + Streaming Oracle MVP + UI foundation shipped ✅
 
-**Current Version**: v1.12.6 - Oracle Analytics + Reliability Hardening
+**Current Version**: v1.12.7 - Optional enrichment scaffold (feature-flagged)
 
 **Completed Features**:
 
@@ -498,6 +498,33 @@ $ git log --all --full-history -- .env
 - ✅ **Social Core** - Matchmaker, social hub, invites/requests, and synergy dashboard are live.
 - ✅ **Importer Core** - Magic Importer parsing, TMDB verification, dedupe, and batch save flow are live.
 - ✅ **Identity Core** - Username constraints, availability RPC, and username-first social invites shipped.
+- ✅ **Streaming Oracle MVP** - Profile/discovery provider preferences, provider-aware recommendation filtering, and watch-now deep-link surfacing.
+- ✅ **Oracle Provider Metrics** - Analytics payload now tracks provider selection/filter outcomes for reliability tuning.
+- ✅ **UI Foundation Pass** - App shell header ownership unified and global page-shell/token normalization applied.
+
+---
+
+## Optional API Enrichment (Next Up) 🧩
+
+**Status**: 🚧 **In Progress (feature-flag scaffold shipped)**
+
+**Goal**: Add one enrichment family at a time behind feature flags, with strict fallbacks so enrichments never block core card rendering.
+
+### Enrichment Tracks
+
+| Track | Description | Status |
+| --- | --- | --- |
+| **Streaming Availability+** | Optional provider freshness layer beyond TMDb where needed | ⏳ Planned |
+| **Editorial Context** | NYT reviews and WikiData/Wikipedia summaries/links | 🚧 Scaffolded |
+| **Visual Assets** | Fanart.tv logos/background art augmentation | 🚧 Scaffolded |
+| **Tracking Sync** | Trakt synchronization for watch-history parity | 🚧 Scaffolded |
+
+### Guardrail Requirements
+
+- [x] Every enrichment must be feature-flagged.
+- [x] Core recommendation card rendering must never depend on enrichment success.
+- [x] Enrichment failures must degrade to TMDb/core metadata silently.
+- [ ] Fallback and error reasons should be captured for analytics/ops visibility.
 
 ---
 

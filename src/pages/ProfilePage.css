@@ -640,7 +640,8 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     box-shadow: 0 0 8px rgba(126, 34, 205, 0.6);
   }
@@ -737,7 +738,7 @@
 
 .loading-dots::before,
 .loading-dots::after {
-  content: '•';
+  content: "•";
   animation: loading-pulse 1.4s infinite;
   color: #fca5a5;
 }
@@ -747,8 +748,15 @@
 }
 
 @keyframes loading-pulse {
-  0%, 100% { opacity: 0.3; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.2); }
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
 }
 
 .ai-action-btn:hover:not(:disabled) {
@@ -876,11 +884,21 @@
 }
 
 /* Staggered animation delays for each recommendation card */
-.ai-recommendations-list .ai-rec-card:nth-child(1) { animation-delay: 0.1s; }
-.ai-recommendations-list .ai-rec-card:nth-child(2) { animation-delay: 0.2s; }
-.ai-recommendations-list .ai-rec-card:nth-child(3) { animation-delay: 0.3s; }
-.ai-recommendations-list .ai-rec-card:nth-child(4) { animation-delay: 0.4s; }
-.ai-recommendations-list .ai-rec-card:nth-child(5) { animation-delay: 0.5s; }
+.ai-recommendations-list .ai-rec-card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.ai-recommendations-list .ai-rec-card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.ai-recommendations-list .ai-rec-card:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.ai-recommendations-list .ai-rec-card:nth-child(4) {
+  animation-delay: 0.4s;
+}
+.ai-recommendations-list .ai-rec-card:nth-child(5) {
+  animation-delay: 0.5s;
+}
 
 .ai-rec-card:hover {
   border-color: #7e22ce;
@@ -1361,7 +1379,7 @@
 
 .danger-zone-divider::before,
 .danger-zone-divider::after {
-  content: '';
+  content: "";
   flex: 1;
   height: 1px;
   background: #3f3f46;

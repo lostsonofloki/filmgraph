@@ -460,7 +460,9 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .share-movie-btn:hover {
@@ -538,6 +540,44 @@
   color: #e5e5e5;
   margin: 0;
   max-width: 900px;
+}
+
+.enrichment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.enrichment-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.enrichment-label {
+  margin: 0 0 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #fb923c;
+}
+
+.enrichment-copy {
+  margin: 0 0 8px;
+  color: #e4e4e7;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.enrichment-link {
+  color: #f59e0b;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.enrichment-link:hover {
+  text-decoration: underline;
 }
 
 /* User Review Card - Dark Theme */
@@ -803,7 +843,9 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   overflow: visible;
 }
 
@@ -813,7 +855,7 @@
 }
 
 .provider-logo-wrapper.rent::before {
-  content: 'R';
+  content: "R";
   position: absolute;
   top: -4px;
   right: -4px;
@@ -830,7 +872,7 @@
 }
 
 .provider-logo-wrapper.buy::before {
-  content: 'B';
+  content: "B";
   position: absolute;
   top: -4px;
   right: -4px;
@@ -873,13 +915,16 @@
   white-space: nowrap;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    visibility 0.2s ease,
+    transform 0.2s ease;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   z-index: 10;
 }
 
 .provider-tooltip::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 100%;
   left: 50%;
@@ -899,7 +944,7 @@
     width: 42px;
     height: 42px;
   }
-  
+
   .provider-tooltip {
     font-size: 0.6875rem;
     padding: 0.4rem 0.6rem;

@@ -1,17 +1,24 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
-import { getMovieDetails, getBackdropUrl, getPosterUrl, getProfileUrl, fetchWatchProviders } from '../api/tmdb';
-import { getRtScoreByImdbId } from '../api/omdb';
-import { useUser } from '../context/UserContext';
-import { useToast } from '../context/ToastContext';
-import { getSupabase } from '../supabaseClient';
-import LogMovieModal from '../components/LogMovieModal';
-import AddToListButton from '../components/AddToListButton';
-import { buildMovieSharePayload, executeShare } from '../utils/share';
-import './MovieDetail.css';
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
+import {
+  getMovieDetails,
+  getBackdropUrl,
+  getPosterUrl,
+  getProfileUrl,
+  fetchWatchProviders,
+} from "../api/tmdb";
+import { getRtScoreByImdbId } from "../api/omdb";
+import { useUser } from "../context/UserContext";
+import { useToast } from "../context/ToastContext";
+import { getSupabase } from "../supabaseClient";
+import LogMovieModal from "../components/LogMovieModal";
+import AddToListButton from "../components/AddToListButton";
+import { buildMovieSharePayload, executeShare } from "../utils/share";
+import { fetchMovieEnrichment } from "../utils/movieEnrichment";
+import "./MovieDetail.css";
 
 // Content Safety Filter - Blacklisted keywords (case-insensitive)
-const ADULT_KEYWORDS = ['erotic', 'adult', 'sex', 'sexual', 'porn'];
+const ADULT_KEYWORDS = ["erotic", "adult", "sex", "sexual", "porn"];
 
 // Content Safety Filter - Blacklisted TMDB IDs
 const BLACKLISTED_IDS = [1015959];
@@ -30,7 +37,7 @@ const isContentSafe = (movie) => {
   }
 
   // Check title for adult keywords
-  const title = (movie.title || '').toLowerCase();
+  const title = (movie.title || "").toLowerCase();
   for (const keyword of ADULT_KEYWORDS) {
     if (title.includes(keyword)) {
       return false;
@@ -38,7 +45,7 @@ const isContentSafe = (movie) => {
   }
 
   // Check overview for adult keywords
-  const overview = (movie.overview || '').toLowerCase();
+  const overview = (movie.overview || "").toLowerCase();
   for (const keyword of ADULT_KEYWORDS) {
     if (overview.includes(keyword)) {
       return false;
@@ -48,7 +55,7 @@ const isContentSafe = (movie) => {
   // Check genres for adult content
   if (movie.genres && Array.isArray(movie.genres)) {
     for (const genre of movie.genres) {
-      const genreName = (genre.name || '').toLowerCase();
+      const genreName = (genre.name || "").toLowerCase();
       for (const keyword of ADULT_KEYWORDS) {
         if (genreName.includes(keyword)) {
           return false;
@@ -68,14 +75,14 @@ const isContentSafe = (movie) => {
 const filterRecommendations = (recommendations) => {
   if (!recommendations || !Array.isArray(recommendations)) return [];
 
-  return recommendations.filter(movie => {
+  return recommendations.filter((movie) => {
     // Skip blacklisted IDs
     if (BLACKLISTED_IDS.includes(movie.id)) {
       return false;
     }
 
     // Check title for adult keywords
-    const title = (movie.title || '').toLowerCase();
+    const title = (movie.title || "").toLowerCase();
     for (const keyword of ADULT_KEYWORDS) {
       if (title.includes(keyword)) {
         return false;
@@ -83,7 +90,7 @@ const filterRecommendations = (recommendations) => {
     }
 
     // Check overview for adult keywords
-    const overview = (movie.overview || '').toLowerCase();
+    const overview = (movie.overview || "").toLowerCase();
     for (const keyword of ADULT_KEYWORDS) {
       if (overview.includes(keyword)) {
         return false;
@@ -96,17 +103,17 @@ const filterRecommendations = (recommendations) => {
 
 // Mood category colors (same as LibraryPage)
 const MOOD_COLORS = {
-  emotional: 'mood-warm',
-  vibe: 'mood-cool',
-  intellectual: 'mood-slate',
+  emotional: "mood-warm",
+  vibe: "mood-cool",
+  intellectual: "mood-slate",
 };
 
 // Mood categories
 const FEATURED_CREW_JOBS = new Set([
-  'Director of Photography',
-  'Editor',
-  'Original Music Composer',
-  'Production Design',
+  "Director of Photography",
+  "Editor",
+  "Original Music Composer",
+  "Production Design",
 ]);
 
 /** @param {Array<{ id: number }>} entries */
@@ -122,7 +129,9 @@ function dedupeCrewById(entries) {
 /** @param {Array<{ id: number, job?: string, department?: string }>|undefined} crew */
 function pickDirectors(crew) {
   if (!crew?.length) return [];
-  return dedupeCrewById(crew.filter((c) => c.job === 'Director' || c.job === 'Co-Director'));
+  return dedupeCrewById(
+    crew.filter((c) => c.job === "Director" || c.job === "Co-Director"),
+  );
 }
 
 /** @param {Array<{ id: number, job?: string, department?: string }>|undefined} crew */
@@ -131,9 +140,9 @@ function pickWriters(crew) {
   return dedupeCrewById(
     crew.filter(
       (c) =>
-        c.department === 'Writing' ||
-        ['Screenplay', 'Writer', 'Story', 'Novel'].includes(c.job)
-    )
+        c.department === "Writing" ||
+        ["Screenplay", "Writer", "Story", "Novel"].includes(c.job),
+    ),
   );
 }
 
@@ -141,34 +150,34 @@ function pickWriters(crew) {
 function pickFeaturedCrew(crew, heroIds) {
   if (!crew?.length) return [];
   return dedupeCrewById(
-    crew.filter((c) => FEATURED_CREW_JOBS.has(c.job) && !heroIds.has(c.id))
+    crew.filter((c) => FEATURED_CREW_JOBS.has(c.job) && !heroIds.has(c.id)),
   ).slice(0, 12);
 }
 
 const MOOD_CATEGORIES = {
-  bittersweet: 'emotional',
-  heartwarming: 'emotional',
-  tearjerker: 'emotional',
-  uplifting: 'emotional',
-  bleak: 'emotional',
-  atmospheric: 'vibe',
-  dark: 'vibe',
-  gritty: 'vibe',
-  neon: 'vibe',
-  tense: 'vibe',
-  whimsical: 'vibe',
-  gory: 'vibe',
-  eerie: 'vibe',
-  claustrophobic: 'vibe',
-  campy: 'vibe',
-  dread: 'vibe',
-  'jump-scary': 'vibe',
-  psychological: 'intellectual',
-  mindbending: 'intellectual',
-  challenging: 'intellectual',
-  philosophical: 'intellectual',
-  slowburn: 'intellectual',
-  complex: 'intellectual',
+  bittersweet: "emotional",
+  heartwarming: "emotional",
+  tearjerker: "emotional",
+  uplifting: "emotional",
+  bleak: "emotional",
+  atmospheric: "vibe",
+  dark: "vibe",
+  gritty: "vibe",
+  neon: "vibe",
+  tense: "vibe",
+  whimsical: "vibe",
+  gory: "vibe",
+  eerie: "vibe",
+  claustrophobic: "vibe",
+  campy: "vibe",
+  dread: "vibe",
+  "jump-scary": "vibe",
+  psychological: "intellectual",
+  mindbending: "intellectual",
+  challenging: "intellectual",
+  philosophical: "intellectual",
+  slowburn: "intellectual",
+  complex: "intellectual",
 };
 
 /**
@@ -188,6 +197,7 @@ function MovieDetail() {
   const [userLog, setUserLog] = useState(null);
   const [editingLog, setEditingLog] = useState(null);
   const [watchProviders, setWatchProviders] = useState(null);
+  const [enrichment, setEnrichment] = useState(null);
 
   useEffect(() => {
     const fetchMovieData = async () => {
@@ -195,24 +205,31 @@ function MovieDetail() {
 
       // Fetch full movie details from TMDB
       const movieData = await getMovieDetails(id);
-      
+
       if (movieData) {
         // SAFETY CHECK: Block adult/blacklisted content
         if (!isContentSafe(movieData)) {
-          console.warn('Blocked adult/blacklisted content:', movieData.title, movieData.id);
-          navigate('/', { replace: true });
+          console.warn(
+            "Blocked adult/blacklisted content:",
+            movieData.title,
+            movieData.id,
+          );
+          navigate("/", { replace: true });
           setIsLoading(false);
           return;
         }
 
         setMovie(movieData);
+        setEnrichment(null);
 
         // Fetch watch providers for this movie
         const providers = await fetchWatchProviders(id);
         setWatchProviders(providers);
 
         // SAFETY CHECK: Filter recommendations
-        const filteredRecs = filterRecommendations(movieData.recommendations?.results || []);
+        const filteredRecs = filterRecommendations(
+          movieData.recommendations?.results || [],
+        );
         setRecommendations(filteredRecs.slice(0, 6));
 
         // Fetch RT score from OMDb using IMDB ID
@@ -220,6 +237,13 @@ function MovieDetail() {
           const rt = await getRtScoreByImdbId(movieData.imdb_id);
           setRtScore(rt);
         }
+
+        const extra = await fetchMovieEnrichment({
+          title: movieData.title,
+          year: movieData.release_date?.split("-")[0],
+          tmdbId: movieData.id,
+        });
+        setEnrichment(extra);
       }
 
       setIsLoading(false);
@@ -239,21 +263,21 @@ function MovieDetail() {
         // FIX 1: Use explicit column list (NOT select('*'))
         // FIX 2: Use .maybeSingle() instead of .single()
         const { data, error } = await supabase
-          .from('movie_logs')
-          .select('id, rating, review, moods, genres, tmdb_id, user_id')
-          .eq('tmdb_id', movie.id)
-          .eq('user_id', user.id)
+          .from("movie_logs")
+          .select("id, rating, review, moods, genres, tmdb_id, user_id")
+          .eq("tmdb_id", movie.id)
+          .eq("user_id", user.id)
           .maybeSingle();
 
         if (error) {
-          console.error('Error fetching user log:', error);
+          console.error("Error fetching user log:", error);
         } else if (data) {
           setUserLog(data);
         } else {
           setUserLog(null);
         }
       } catch (err) {
-        console.error('Error fetching user log:', err);
+        console.error("Error fetching user log:", err);
       }
     };
 
@@ -271,7 +295,7 @@ function MovieDetail() {
 
   const handleLogMovie = () => {
     if (!isAuthenticated) {
-      navigate('/login', { state: { from: location } });
+      navigate("/login", { state: { from: location } });
       return;
     }
     setEditingLog(userLog);
@@ -291,76 +315,87 @@ function MovieDetail() {
 
   const handleToggleWatchlist = async () => {
     if (!isAuthenticated || !movie?.id) {
-      navigate('/login', { state: { from: location } });
+      navigate("/login", { state: { from: location } });
       return;
     }
     try {
       const supabase = getSupabase();
       const { data: existing } = await supabase
-        .from('movie_logs')
-        .select('id, watch_status, rating')
-        .eq('tmdb_id', movie.id)
-        .eq('user_id', user.id)
+        .from("movie_logs")
+        .select("id, watch_status, rating")
+        .eq("tmdb_id", movie.id)
+        .eq("user_id", user.id)
         .maybeSingle();
 
       if (existing) {
-        if (existing.watch_status === 'to-watch') {
+        if (existing.watch_status === "to-watch") {
           if (!existing.rating) {
-            await supabase.from('movie_logs').delete().eq('id', existing.id);
-            toast.success('Removed from Watchlist');
+            await supabase.from("movie_logs").delete().eq("id", existing.id);
+            toast.success("Removed from Watchlist");
             setUserLog(null);
           } else {
-            await supabase.from('movie_logs').update({ watch_status: null }).eq('id', existing.id);
-            toast.success('Removed from Watchlist');
-            setUserLog(prev => prev ? { ...prev, watch_status: null } : null);
+            await supabase
+              .from("movie_logs")
+              .update({ watch_status: null })
+              .eq("id", existing.id);
+            toast.success("Removed from Watchlist");
+            setUserLog((prev) =>
+              prev ? { ...prev, watch_status: null } : null,
+            );
           }
         } else {
-          await supabase.from('movie_logs').update({ watch_status: 'to-watch' }).eq('id', existing.id);
-          toast.success('Added to Watchlist');
-          setUserLog(prev => prev ? { ...prev, watch_status: 'to-watch' } : null);
+          await supabase
+            .from("movie_logs")
+            .update({ watch_status: "to-watch" })
+            .eq("id", existing.id);
+          toast.success("Added to Watchlist");
+          setUserLog((prev) =>
+            prev ? { ...prev, watch_status: "to-watch" } : null,
+          );
         }
       } else {
         const { data: newLog, error } = await supabase
-          .from('movie_logs')
+          .from("movie_logs")
           .insert({
             user_id: user.id,
             tmdb_id: movie.id,
             title: movie.title,
             poster_path: movie.poster_path,
-            watch_status: 'to-watch',
+            watch_status: "to-watch",
           })
-          .select().single();
+          .select()
+          .single();
         if (error) throw error;
-        toast.success('Added to Watchlist');
+        toast.success("Added to Watchlist");
         setUserLog(newLog);
       }
     } catch (err) {
-      console.error('Error toggling watchlist:', err);
-      toast.error('Failed to update watchlist');
+      console.error("Error toggling watchlist:", err);
+      toast.error("Failed to update watchlist");
     }
   };
 
   const handleShareMovie = async () => {
     const payload = buildMovieSharePayload({
       title: movie?.title,
-      year: movie?.release_date?.split('-')[0] || null,
+      year: movie?.release_date?.split("-")[0] || null,
       rating: userLog?.rating,
       moods: userLog?.moods || [],
       tmdbId: movie?.id,
     });
     const result = await executeShare(payload);
-    if (result.status === 'shared') {
-      toast.success('Shared successfully.');
+    if (result.status === "shared") {
+      toast.success("Shared successfully.");
       return;
     }
-    if (result.status === 'copied') {
-      toast.success('Share link copied to clipboard.');
+    if (result.status === "copied") {
+      toast.success("Share link copied to clipboard.");
       return;
     }
-    if (result.status === 'cancelled') {
+    if (result.status === "cancelled") {
       return;
     }
-    toast.error('Could not share from this browser.');
+    toast.error("Could not share from this browser.");
   };
 
   if (isLoading) {
@@ -376,22 +411,22 @@ function MovieDetail() {
   if (!movie || !movie.title) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-        <h2 className="text-4xl font-creepster text-accent mb-4">Signal Lost</h2>
+        <h2 className="text-4xl font-creepster text-accent mb-4">
+          Signal Lost
+        </h2>
         <p className="text-text-muted mb-8 max-w-md">
-          The archives have no record of this tape. It may have been corrupted, deleted, or it never existed at all.
+          The archives have no record of this tape. It may have been corrupted,
+          deleted, or it never existed at all.
         </p>
-        <button 
-          onClick={handleBack}
-          className="btn-primary"
-        >
+        <button onClick={handleBack} className="btn-primary">
           Return to Library
         </button>
       </div>
     );
   }
 
-  const backdropUrl = getBackdropUrl(movie.backdrop_path, 'original');
-  const posterUrl = getPosterUrl(movie.poster_path, 'w500');
+  const backdropUrl = getBackdropUrl(movie.backdrop_path, "original");
+  const posterUrl = getPosterUrl(movie.poster_path, "w500");
   const rtNumeric = rtScore ? parseInt(rtScore) : null;
 
   const crewList = movie.credits?.crew || [];
@@ -415,9 +450,14 @@ function MovieDetail() {
               <div className="hero-overlay"></div>
             </div>
           )}
-          
+
           <button className="back-nav-button" onClick={handleBack}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M19 12H5M12 19l-7-7 7-7" />
             </svg>
             Back
@@ -429,7 +469,12 @@ function MovieDetail() {
                 <img src={posterUrl} alt={movie.title} loading="lazy" />
               ) : (
                 <div className="no-poster">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1"
+                  >
                     <rect x="3" y="3" width="18" height="18" rx="2" />
                     <circle cx="8.5" cy="8.5" r="1.5" />
                     <path d="M21 15l-5-5L5 21" />
@@ -437,23 +482,19 @@ function MovieDetail() {
                 </div>
               )}
             </div>
-            
+
             <div className="hero-info">
               <h1 className="movie-title">{movie.title}</h1>
               <p className="movie-tagline">{movie.tagline}</p>
-              
+
               <div className="movie-meta">
                 <span className="meta-item">
-                  {movie.release_date?.split('-')[0]}
+                  {movie.release_date?.split("-")[0]}
                 </span>
                 <span className="meta-divider">•</span>
-                <span className="meta-item">
-                  {movie.runtime} min
-                </span>
+                <span className="meta-item">{movie.runtime} min</span>
                 <span className="meta-divider">•</span>
-                <span className="meta-item">
-                  {movie.certification || 'NR'}
-                </span>
+                <span className="meta-item">{movie.certification || "NR"}</span>
               </div>
 
               <div className="scores-row">
@@ -466,9 +507,11 @@ function MovieDetail() {
                     {movie.vote_average?.toFixed(1)}
                   </div>
                 </div>
-                
+
                 {rtScore !== null && (
-                  <div className={`score-block rt ${rtNumeric >= 75 ? 'fresh' : rtNumeric >= 60 ? 'rotten' : 'splatted'}`}>
+                  <div
+                    className={`score-block rt ${rtNumeric >= 75 ? "fresh" : rtNumeric >= 60 ? "rotten" : "splatted"}`}
+                  >
                     <span className="score-label">Rotten Tomatoes</span>
                     <div className="score-value rt-score">
                       <svg viewBox="0 0 24 24" fill="currentColor">
@@ -482,7 +525,9 @@ function MovieDetail() {
 
               <div className="genres-row">
                 {movie.genres?.map((genre) => (
-                  <span key={genre.id} className="genre-chip">{genre.name}</span>
+                  <span key={genre.id} className="genre-chip">
+                    {genre.name}
+                  </span>
                 ))}
               </div>
 
@@ -493,8 +538,11 @@ function MovieDetail() {
                       <span className="crew-hero-label">Directed by</span>
                       {directors.map((person, index) => (
                         <span key={person.id}>
-                          {index > 0 && ', '}
-                          <Link to={`/actor/${person.id}`} className="crew-hero-link">
+                          {index > 0 && ", "}
+                          <Link
+                            to={`/actor/${person.id}`}
+                            className="crew-hero-link"
+                          >
                             {person.name}
                           </Link>
                         </span>
@@ -506,8 +554,11 @@ function MovieDetail() {
                       <span className="crew-hero-label">Written by</span>
                       {writers.map((person, index) => (
                         <span key={person.id}>
-                          {index > 0 && ', '}
-                          <Link to={`/actor/${person.id}`} className="crew-hero-link">
+                          {index > 0 && ", "}
+                          <Link
+                            to={`/actor/${person.id}`}
+                            className="crew-hero-link"
+                          >
                             {person.name}
                           </Link>
                         </span>
@@ -523,9 +574,15 @@ function MovieDetail() {
                   <h3 className="watch-section-title">Where to Watch</h3>
                   <div className="watch-providers-row">
                     {/* Priority 1: Free Streaming (flatrate) - deduplicated by provider name */}
-                    {watchProviders.flatrate && watchProviders.flatrate.length > 0 ? (
+                    {watchProviders.flatrate &&
+                    watchProviders.flatrate.length > 0 ? (
                       Array.from(
-                        new Map(watchProviders.flatrate.map(p => [p.provider_name, p])).values()
+                        new Map(
+                          watchProviders.flatrate.map((p) => [
+                            p.provider_name,
+                            p,
+                          ]),
+                        ).values(),
                       ).map((provider) => (
                         <div
                           key={provider.provider_id}
@@ -538,15 +595,22 @@ function MovieDetail() {
                             loading="lazy"
                             className="provider-logo"
                           />
-                          <span className="provider-tooltip">{provider.provider_name}</span>
+                          <span className="provider-tooltip">
+                            {provider.provider_name}
+                          </span>
                         </div>
                       ))
                     ) : (
                       /* Fallback: Rent & Buy options if no free streaming - deduplicated */
                       <>
-                        {watchProviders.rent && watchProviders.rent.length > 0 && (
+                        {watchProviders.rent &&
+                          watchProviders.rent.length > 0 &&
                           Array.from(
-                            new Map(watchProviders.rent.slice(0, 4).map(p => [p.provider_name, p])).values()
+                            new Map(
+                              watchProviders.rent
+                                .slice(0, 4)
+                                .map((p) => [p.provider_name, p]),
+                            ).values(),
                           ).map((provider) => (
                             <div
                               key={provider.provider_id}
@@ -559,13 +623,19 @@ function MovieDetail() {
                                 loading="lazy"
                                 className="provider-logo"
                               />
-                              <span className="provider-tooltip">{provider.provider_name} (Rent)</span>
+                              <span className="provider-tooltip">
+                                {provider.provider_name} (Rent)
+                              </span>
                             </div>
-                          ))
-                        )}
-                        {watchProviders.buy && watchProviders.buy.length > 0 && (
+                          ))}
+                        {watchProviders.buy &&
+                          watchProviders.buy.length > 0 &&
                           Array.from(
-                            new Map(watchProviders.buy.slice(0, 4).map(p => [p.provider_name, p])).values()
+                            new Map(
+                              watchProviders.buy
+                                .slice(0, 4)
+                                .map((p) => [p.provider_name, p]),
+                            ).values(),
                           ).map((provider) => (
                             <div
                               key={provider.provider_id}
@@ -578,10 +648,11 @@ function MovieDetail() {
                                 loading="lazy"
                                 className="provider-logo"
                               />
-                              <span className="provider-tooltip">{provider.provider_name} (Buy)</span>
+                              <span className="provider-tooltip">
+                                {provider.provider_name} (Buy)
+                              </span>
                             </div>
-                          ))
-                        )}
+                          ))}
                       </>
                     )}
                   </div>
@@ -592,28 +663,53 @@ function MovieDetail() {
               <div className="movie-actions">
                 {/* Watchlist Button (Eye Icon) */}
                 <button
-                  className={`watchlist-btn ${userLog?.watch_status === 'to-watch' ? 'active' : ''}`}
+                  className={`watchlist-btn ${userLog?.watch_status === "to-watch" ? "active" : ""}`}
                   onClick={handleToggleWatchlist}
-                  title={userLog?.watch_status === 'to-watch' ? 'Remove from Watchlist' : 'Add to Watchlist'}
+                  title={
+                    userLog?.watch_status === "to-watch"
+                      ? "Remove from Watchlist"
+                      : "Add to Watchlist"
+                  }
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                     <circle cx="12" cy="12" r="3" />
                   </svg>
-                  <span>{userLog?.watch_status === 'to-watch' ? 'In Watchlist' : 'Watchlist'}</span>
+                  <span>
+                    {userLog?.watch_status === "to-watch"
+                      ? "In Watchlist"
+                      : "Watchlist"}
+                  </span>
                 </button>
 
                 {/* Log Movie Button (Primary) */}
-                <button className="log-movie-btn-primary" onClick={handleLogMovie}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <button
+                  className="log-movie-btn-primary"
+                  onClick={handleLogMovie}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
                     <path d="M12 5v14M5 12h14" />
                   </svg>
-                  <span>{userLog ? 'Edit Log' : 'Log Movie'}</span>
+                  <span>{userLog ? "Edit Log" : "Log Movie"}</span>
                 </button>
 
                 {/* Add to List Button (Folder Icon) */}
                 <AddToListButton
-                  movie={{ tmdb_id: movie.id, title: movie.title, poster_path: movie.poster_path }}
+                  movie={{
+                    tmdb_id: movie.id,
+                    title: movie.title,
+                    poster_path: movie.poster_path,
+                  }}
                   className="add-to-list-detail"
                 />
 
@@ -624,7 +720,12 @@ function MovieDetail() {
                   title="Share movie"
                   aria-label={`Share ${movie.title}`}
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
                     <circle cx="18" cy="5" r="3" />
                     <circle cx="6" cy="12" r="3" />
                     <circle cx="18" cy="19" r="3" />
@@ -653,17 +754,24 @@ function MovieDetail() {
                     </div>
                   )}
                   {userLog.watch_status && (
-                    <span className={`status-badge ${userLog.watch_status === 'watched' ? 'watched' : 'to-watch'}`}>
-                      {userLog.watch_status === 'watched' ? '✓ Watched' : '○ Want to Watch'}
+                    <span
+                      className={`status-badge ${userLog.watch_status === "watched" ? "watched" : "to-watch"}`}
+                    >
+                      {userLog.watch_status === "watched"
+                        ? "✓ Watched"
+                        : "○ Want to Watch"}
                     </span>
                   )}
                 </div>
                 {userLog.moods && userLog.moods.length > 0 && (
                   <div className="user-review-moods">
                     {userLog.moods.map((mood) => {
-                      const category = MOOD_CATEGORIES[mood] || 'vibe';
+                      const category = MOOD_CATEGORIES[mood] || "vibe";
                       return (
-                        <span key={mood} className={`mood-chip ${MOOD_COLORS[category]}`}>
+                        <span
+                          key={mood}
+                          className={`mood-chip ${MOOD_COLORS[category]}`}
+                        >
                           {mood}
                         </span>
                       );
@@ -690,6 +798,91 @@ function MovieDetail() {
           </section>
         )}
 
+        {(enrichment?.wikipedia ||
+          enrichment?.nyt ||
+          enrichment?.fanart ||
+          enrichment?.trakt) && (
+          <section className="detail-section dark-section">
+            <div className="section-content">
+              <h2 className="section-title">Optional Enrichment</h2>
+              <div className="enrichment-grid">
+                {enrichment?.wikipedia && (
+                  <article className="enrichment-card">
+                    <p className="enrichment-label">Wikipedia context</p>
+                    <p className="enrichment-copy">{enrichment.wikipedia.summary}</p>
+                    {enrichment.wikipedia.url && (
+                      <a
+                        href={enrichment.wikipedia.url}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="enrichment-link"
+                      >
+                        Read source
+                      </a>
+                    )}
+                  </article>
+                )}
+
+                {enrichment?.nyt && (
+                  <article className="enrichment-card">
+                    <p className="enrichment-label">NYT coverage</p>
+                    <p className="enrichment-copy">{enrichment.nyt.summary}</p>
+                    {enrichment.nyt.url && (
+                      <a
+                        href={enrichment.nyt.url}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="enrichment-link"
+                      >
+                        Open article
+                      </a>
+                    )}
+                  </article>
+                )}
+
+                {enrichment?.fanart && (
+                  <article className="enrichment-card">
+                    <p className="enrichment-label">Fanart assets</p>
+                    <p className="enrichment-copy">
+                      {enrichment.fanart.logoCount} logos,{" "}
+                      {enrichment.fanart.backdropCount} backdrops available.
+                    </p>
+                    {enrichment.fanart.logo && (
+                      <a
+                        href={enrichment.fanart.logo}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="enrichment-link"
+                      >
+                        Preview logo
+                      </a>
+                    )}
+                  </article>
+                )}
+
+                {enrichment?.trakt && (
+                  <article className="enrichment-card">
+                    <p className="enrichment-label">Trakt match</p>
+                    <p className="enrichment-copy">
+                      Matched as {enrichment.trakt.title} ({enrichment.trakt.year})
+                    </p>
+                    {enrichment.trakt.ids?.slug && (
+                      <a
+                        href={`https://trakt.tv/movies/${enrichment.trakt.ids.slug}`}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="enrichment-link"
+                      >
+                        Open on Trakt
+                      </a>
+                    )}
+                  </article>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Cast Section */}
         {movie.credits?.cast?.length > 0 && (
           <section className="detail-section dark-section">
@@ -705,7 +898,11 @@ function MovieDetail() {
                     <div className="cast-card">
                       <div className="cast-image">
                         {getProfileUrl(actor.profile_path) ? (
-                          <img src={getProfileUrl(actor.profile_path)} alt={actor.name} loading="lazy" />
+                          <img
+                            src={getProfileUrl(actor.profile_path)}
+                            alt={actor.name}
+                            loading="lazy"
+                          />
                         ) : (
                           <div className="no-cast-image" />
                         )}
@@ -724,7 +921,9 @@ function MovieDetail() {
           <section className="detail-section dark-section">
             <div className="section-content">
               <h2 className="section-title">Behind the camera</h2>
-              <p className="crew-section-subtitle">Director of photography, editing, music, and design</p>
+              <p className="crew-section-subtitle">
+                Director of photography, editing, music, and design
+              </p>
               <div className="cast-grid">
                 {featuredCrew.map((person) => (
                   <Link
@@ -735,7 +934,11 @@ function MovieDetail() {
                     <div className="cast-card">
                       <div className="cast-image">
                         {getProfileUrl(person.profile_path) ? (
-                          <img src={getProfileUrl(person.profile_path)} alt={person.name} loading="lazy" />
+                          <img
+                            src={getProfileUrl(person.profile_path)}
+                            alt={person.name}
+                            loading="lazy"
+                          />
                         ) : (
                           <div className="no-cast-image" />
                         )}
@@ -764,10 +967,19 @@ function MovieDetail() {
                   >
                     <div className="rec-poster">
                       {getPosterUrl(rec.poster_path) ? (
-                        <img src={getPosterUrl(rec.poster_path)} alt={rec.title} loading="lazy" />
+                        <img
+                          src={getPosterUrl(rec.poster_path)}
+                          alt={rec.title}
+                          loading="lazy"
+                        />
                       ) : (
                         <div className="no-poster-small">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1"
+                          >
                             <rect x="3" y="3" width="18" height="18" rx="2" />
                             <circle cx="8.5" cy="8.5" r="1.5" />
                             <path d="M21 15l-5-5L5 21" />
@@ -777,8 +989,10 @@ function MovieDetail() {
                     </div>
                     <p className="rec-title">{rec.title}</p>
                     <div className="rec-meta">
-                      <span>{rec.release_date?.split('-')[0]}</span>
-                      <span className="rec-vote">★ {rec.vote_average?.toFixed(1)}</span>
+                      <span>{rec.release_date?.split("-")[0]}</span>
+                      <span className="rec-vote">
+                        ★ {rec.vote_average?.toFixed(1)}
+                      </span>
                     </div>
                   </div>
                 ))}
