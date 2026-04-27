@@ -175,6 +175,24 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ### Quick Launch (Windows)
 Double-click `launch.bat` to start the dev server and open the app automatically.
 
+### Daily Datadog Error Investigation
+
+A scheduled GitHub Action is available at `.github/workflows/datadog-error-investigation.yml` to investigate recurring production errors every day.
+
+- Schedule: daily at `12:00 UTC` (07:00 CDT during DST)
+- Script: `scripts/investigate-datadog-errors.mjs`
+- Output: workflow summary + `datadog-error-report` artifact
+
+Set these repository secrets before enabling the workflow:
+
+- `DATADOG_API_KEY`
+- `DATADOG_APP_KEY`
+- `DATADOG_SITE` (example: `datadoghq.com`, `datadoghq.eu`, `us3.datadoghq.com`)
+- `DATADOG_ERROR_QUERY` (example: `service:ignes env:prod`)
+- `DATADOG_TRACK` (optional, default `logs`)
+- `DATADOG_PERSONA` (optional, default `BACKEND`)
+- `SLACK_WEBHOOK_URL` (optional)
+
 ---
 
 ## 📋 Development Roadmap

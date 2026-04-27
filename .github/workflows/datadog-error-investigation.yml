@@ -1,0 +1,82 @@
+name: Datadog Error Investigation
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 07:00 CDT (UTC-5) == 12:00 UTC while daylight saving is active.
+    - cron: "0 12 * * *"
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  investigate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Validate required secrets
+        env:
+          DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
+          DATADOG_APP_KEY: ${{ secrets.DATADOG_APP_KEY }}
+        run: |
+          missing=0
+          if [ -z "$DATADOG_API_KEY" ]; then
+            echo "Missing secret: DATADOG_API_KEY" >> "$GITHUB_STEP_SUMMARY"
+            missing=1
+          fi
+          if [ -z "$DATADOG_APP_KEY" ]; then
+            echo "Missing secret: DATADOG_APP_KEY" >> "$GITHUB_STEP_SUMMARY"
+            missing=1
+          fi
+          if [ "$missing" -eq 1 ]; then
+            echo "Datadog investigation aborted due to missing required secrets."
+            exit 1
+          fi
+
+      - name: Investigate top Datadog errors
+        env:
+          DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
+          DATADOG_APP_KEY: ${{ secrets.DATADOG_APP_KEY }}
+          DATADOG_SITE: ${{ secrets.DATADOG_SITE }}
+          DATADOG_ERROR_QUERY: ${{ secrets.DATADOG_ERROR_QUERY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          REPORT_PATH: artifacts/datadog-error-report.md
+          TOP_N: "10"
+        run: node scripts/investigate-datadog-errors.mjs
+
+      - name: Append report to workflow summary
+        if: always()
+        run: |
+          if [ -f artifacts/datadog-error-report.md ]; then
+            cat artifacts/datadog-error-report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No report generated." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: datadog-error-report
+          path: artifacts/datadog-error-report.md
+          if-no-files-found: warn
+
+      - name: Create or update daily investigation issue
+        if: success()
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          title: Datadog Error Investigation - ${{ github.run_id }}
+          content-filepath: artifacts/datadog-error-report.md
+          labels: |
+            incident
+            datadog
+            automation
