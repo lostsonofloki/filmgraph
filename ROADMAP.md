@@ -485,7 +485,7 @@ $ git log --all --full-history -- .env
 
 **Phase**: Phase 7.1 + 7.2 + 7.3 core foundations + Streaming Oracle MVP + UI foundation shipped ✅
 
-**Current Version**: v1.12.11 - Auth email deliverability UX messaging pass
+**Current Version**: v1.12.12 - Resend bug-report admin email notifications
 
 **Completed Features**:
 
@@ -919,3 +919,127 @@ User Query → Groq LPU (llama-3.3-70b-versatile) → Genre IDs (300-600ms)
 - [ ] Mobile camera flow is stable across supported browsers/devices.
 - [x] Scanner-to-log flow integrates with anti-double-buy checks.
 - [x] Scanner entry is discoverable from primary Library actions (next to Magic Import).
+
+---
+
+## Phase 7.6: UX/UI Overhaul (Premium Product Pass) 🎬
+
+**Status**: 🛠️ **Planned**
+**Priority**: 🔥 **High (Active Focus)**
+
+**Goal**: Evolve Filmgraph from a functional tracker into a premium-feeling, mobile-first product by removing friction, tightening hierarchy, and standardizing visual language.
+
+### Design Principles
+
+- **Anti-Homework UX**: Curated, atmospheric presentation over spreadsheet-like density.
+- **Mobile-First**: Core navigation and logging actions must be one-thumb accessible.
+- **Token Consistency**: Colors, spacing, radius, and elevation must follow one system across all pages.
+- **Friction First**: Reduce taps and modal dependency in the primary log/discover loop.
+
+### Priority Execution Order
+
+| Order | Track | Why | Status |
+| --- | --- | --- | --- |
+| 1 | **Design Token Normalization** | Removes "slapped together" feel across the whole app quickly. | ✅ |
+| 2 | **Bottom Navigation (Mobile/PWA)** | Biggest usability win for daily navigation and thumb reach. | ✅ |
+| 3 | **Direct Card Actions** | Reduces logging friction and modal overhead. | ✅ |
+| 4 | **Profile Hierarchy Cleanup** | Improves readability and reduces stat clutter. | ✅ |
+| 5 | **Watch History Photographic Calendar** | Increases emotional recall and visual identity. | ✅ |
+| 6 | **Founders Presentation Surface** | Strengthens launch positioning without polluting core flows. | ✅ |
+
+### Tasks
+
+| # | Task | Description | Status |
+| --- | --- | --- | --- |
+| 7.6.1 | **Design Tokens v2** | Standardize spacing scale, typography hierarchy, border radius, card elevation, and accent usage across shared components. | ✅ |
+| 7.6.2 | **Mobile Bottom Nav** | Promote Discover, Library, and History to persistent bottom navigation on mobile breakpoints. | ✅ |
+| 7.6.3 | **Quick Actions on Cards** | Add direct watchlist/log actions on poster cards; keep advanced controls in modal fallback. | ✅ |
+| 7.6.4 | **Oracle Hero Treatment** | Upgrade Oracle surface with premium container styling and progressive response reveal motion. | ✅ |
+| 7.6.5 | **Profile Simplification** | Surface top three metrics first (total films, this-year watched, avg rating), move secondary stats below. | ✅ |
+| 7.6.6 | **Photographic History Calendar** | Represent watched days with poster-driven cells while preserving date navigation and accessibility. | ✅ |
+| 7.6.7 | **Founders UX Surface** | Add a focused Founders panel/landing section and premium badge presentation for early users. | ✅ |
+| 7.6.8 | **Motion + Microinteraction Pass** | Normalize transitions, hover states, loading behavior, and button feedback across key routes. | ✅ |
+
+### Success Criteria
+
+- [ ] Primary CTA is visually obvious within 2 seconds on Discover, Library, and Profile.
+- [ ] Core mobile nav no longer depends on the hamburger menu for top journeys.
+- [ ] User can add a movie to watchlist/log from a card in <= 2 taps.
+- [ ] Visual hierarchy remains clear in grayscale/squint test across core pages.
+- [ ] Shared token system is applied consistently across updated components.
+
+### Out of Scope (Initial 7.6 Pass)
+
+- Full framework migration (no large-scale Tailwind/shadcn rewrite).
+- Global redesign of every route in one release.
+- Episode-level TV design system requirements (handled in Phase 8 follow-up).
+
+---
+
+## Phase 7.7: UPC Cache Reliability Layer
+
+**Status**: 🚧 **In Progress**
+**Priority**: 🔥 **High (Active Focus)**
+
+**Goal**: Reduce repeated external UPC lookups by introducing a server-side `upc_cache` table and read-through cache behavior in the UPC proxy.
+
+### Tasks
+
+| # | Task | Description | Status |
+| --- | --- | --- | --- |
+| 7.7.1 | **Schema Add** | Add `upc_cache` table with lookup payload and freshness metadata columns. | ✅ |
+| 7.7.2 | **Proxy Read-Through** | Read cache first in `api/upc-lookup.js`, call upstream only on miss. | ✅ |
+| 7.7.3 | **Cache Upsert** | Persist normalized payload after upstream success with non-blocking writes. | ✅ |
+| 7.7.4 | **Env + Ops Docs** | Document required server env vars for cache access in `.env.example`. | ✅ |
+| 7.7.5 | **Verification Pass** | Validate repeated scans return faster and fail-soft behavior remains intact. | ✅ |
+
+### Success Criteria
+
+- [x] Re-scanning the same UPC avoids repeated upstream API calls.
+- [x] Cache write failures never block UPC lookup responses.
+- [x] Mobile scanner flow remains unchanged from user perspective (faster on repeat scans).
+
+---
+
+## Phase 8: Multi-Media Expansion (TV Shows) 📺
+
+**Status**: 🛠️ **Planned**
+**Priority**: ⚪ **Medium (Post-Launch)**
+
+**Goal**: Expand Filmgraph from movie-only tracking into a unified movie + TV experience without fragmenting the existing data and feature model.
+
+### Guiding Decisions
+
+- **Unified Log Model**: Extend `movie_logs` with `media_type` (`movie` | `tv`) instead of creating a separate `tv_logs` table.
+- **Series-First MVP**: Start with show-level logging and discovery (episode-level tracking is deferred).
+- **Backward Compatibility**: Existing logs default to `media_type='movie'` during migration.
+- **Route Safety**: Use explicit `/movie/:id` and `/tv/:id` routes mapped to shared detail rendering logic.
+
+### Tasks
+
+| # | Task | Description | Status |
+| --- | --- | --- | --- |
+| 8.1 | **Schema Extension** | Add `movie_logs.media_type` and enforce uniqueness on `(user_id, tmdb_id, media_type)`. | ⬜ |
+| 8.2 | **List Compatibility** | Extend list item uniqueness to include `media_type` to avoid TMDB ID collisions across movie/TV. | ⬜ |
+| 8.3 | **TMDB TV Endpoints** | Add TV adapters for search, details, watch providers, and recommendations. | ⬜ |
+| 8.4 | **Shared Detail View** | Refactor detail surface to support both movie and TV payloads safely. | ⬜ |
+| 8.5 | **Search + Discovery UI** | Add media-type toggles across Search and Oracle discovery flows. | ⬜ |
+| 8.6 | **Library + Lists UX** | Enable filtering, logging, and list operations for TV entries. | ⬜ |
+| 8.7 | **Oracle TV Support** | Extend recommendation prompt and verification flow for `media_type='tv'`. | ⬜ |
+| 8.8 | **SEO + Sitemap** | Add TV metadata strategy (`TVSeries` JSON-LD) and optional `/tv/:id` sitemap entries. | ⬜ |
+| 8.9 | **Importer Parity** | Support TV title ingestion in Magic Importer parsing/verification pipeline. | ⬜ |
+| 8.10 | **Scanner Scope Definition** | Keep barcode flow movie-first in MVP and document TV physical media handling as follow-up work. | ⬜ |
+
+### Success Criteria
+
+- [ ] Users can search, open, and log TV series entries.
+- [ ] Library/list workflows treat movie + TV entries consistently.
+- [ ] No cross-type duplicate conflicts (`movie` vs `tv`) on TMDB IDs.
+- [ ] Existing movie-only behavior remains stable after migration.
+
+### Out of Scope (Initial Phase 8)
+
+- Per-episode logging and progress tracking.
+- Season-specific provider availability logic.
+- Calendar support for episode air dates.
+- Matchmaker weighting updates based on mixed media logs.

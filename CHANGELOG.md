@@ -11,11 +11,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🧪 Next
 
-- Continue optional enrichment rollout (Streaming Availability+) behind feature flags.
-- Onboarding for streaming preferences (first-launch modal, inline display).
-- Server-side cache table for UPC results.
-- Confidence scoring in TMDB matching with user confirmation for ambiguous titles.
-- Enrichment failure telemetry into Oracle analytics.
+- **UX overhaul sprint (Phase 7.6)**
+  - Stabilized design-token pass and mobile app shell navigation (bottom nav + account-only mobile drawer).
+  - Added direct card quick actions (Watchlist + Log) to key discovery surfaces and mobile movie cards.
+  - Applied Oracle hero treatment and profile top-metrics simplification for clearer hierarchy.
+  - Upgraded Watch History into a photographic calendar: active days now surface poster-backed day tiles while preserving click-to-drill timeline details.
+  - Added a Founders presentation surface in Filmgraph Hub with launch-oriented positioning, perk callouts, and premium badge preview treatment.
+  - Added subtle motion/microinteraction polish to `WatchHistory` (active-day pulse, staggered day-card entry, reduced-motion safeguards).
+  - Added shared motion tokens and a broader microinteraction sweep across core shell surfaces (button press states, card hover elevation, mobile nav feedback, and Discovery card/button transitions).
+- **UPC cache reliability layer (Phase 7.7)**
+  - Added `upc_cache` migration scaffold for read-through caching of barcode lookup payloads.
+  - Wired cache-first behavior into `api/upc-lookup` with fail-soft upsert semantics.
+  - Added TTL-based cache aging + stale fallback handling so older UPC entries refresh automatically while still returning cached data during upstream errors/timeouts.
+  - Added optional server-side Supabase env documentation for cache operations.
+
+---
+
+## [1.12.12] - April 28, 2026
+
+### 🚀 Added
+
+- **Bug report admin email notifications (Resend)**
+  - Added a secure Vercel serverless endpoint at `api/notify-bug-report.js` to send bug-report alert emails via Resend using server-side environment variables.
+  - Added fail-soft frontend notifier helper in `src/api/adminNotifications.js` to call the new endpoint without exposing any secret keys.
+
+### 🛠️ Changed
+
+- **Bug report submission flow**
+  - Updated `BugReportModal` bug submit pipeline to fetch inserted row metadata and trigger an admin notification email after a successful `bug_reports` insert.
+  - Notification failures no longer impact user success UX; they are logged as warnings while preserving successful report submission.
+- **Environment setup documentation**
+  - Added server-only env var placeholders in `.env.example`: `RESEND_API_KEY`, `BUG_REPORT_FROM_EMAIL`, and `BUG_REPORT_ADMIN_EMAIL`.
+
+### ✅ Quality
+
+- Kept notification delivery fail-soft so product bug intake remains reliable even if Resend is temporarily unavailable or not configured.
 
 ---
 

@@ -59,6 +59,13 @@
   background: #1a1a1a;
 }
 
+.search-card-quick-actions {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  z-index: 3;
+}
+
 .movie-card-poster img {
   position: absolute;
   top: 0;

@@ -150,6 +150,12 @@
   background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.5) 50%, transparent 100%);
 }
 
+.backdrop-quick-actions {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+}
+
 .backdrop-content {
   position: absolute;
   bottom: 0;

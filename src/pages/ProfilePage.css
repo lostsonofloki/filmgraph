@@ -539,6 +539,20 @@
 }
 
 /* Stats */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.secondary-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
 .profile-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -555,6 +569,18 @@
   gap: 8px;
 }
 
+.secondary-stats-grid .stat-card {
+  padding: 18px;
+}
+
+.secondary-stats-grid .stat-number {
+  font-size: 24px;
+}
+
+.secondary-stats-grid .stat-label {
+  font-size: 11px;
+}
+
 .stat-number {
   font-size: 36px;
   font-weight: 800;
@@ -566,6 +592,16 @@
   color: #666666;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .secondary-stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 /* Search Bar Wrapper - Ensure visibility */

@@ -171,6 +171,44 @@ function AboutPage() {
           </div>
         </section>
 
+        {/* Founders Section */}
+        <section className="founders-section card-dark">
+          <div className="section-header">
+            <svg className="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9L12 3z" />
+            </svg>
+            <h2>Founders Pack</h2>
+            <span className="founders-count-chip">First 100</span>
+          </div>
+          <div className="founders-content">
+            <p className="founders-lead">
+              Claim early-access status before launch scale. Founders get a premium identity surface and long-term perks.
+            </p>
+            <div className="founders-preview">
+              <span className="founders-badge-preview">
+                <span aria-hidden="true">🎞️</span>
+                Founder
+              </span>
+              <p className="founders-preview-text">
+                This badge appears as your premium identity marker in future profile and Oracle surfaces.
+              </p>
+            </div>
+            <ul className="founders-benefits">
+              <li>Ad-free forever once monetization expands.</li>
+              <li>Founder badge with premium visual treatment.</li>
+              <li>Priority feature feedback lane during launch period.</li>
+            </ul>
+            <div className="founders-actions">
+              <Link to="/register" className="founders-cta">
+                Join Founders Access
+              </Link>
+              <Link to="/changelog" className="founders-secondary-link">
+                Track launch updates
+              </Link>
+            </div>
+          </div>
+        </section>
+
         {/* Footer */}
         <footer className="about-footer">
           <div className="footer-content">

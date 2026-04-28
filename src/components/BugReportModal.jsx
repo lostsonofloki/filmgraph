@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useUser } from '../context/UserContext';
 import { getSupabase } from '../supabaseClient';
 import { APP_VERSION } from '../constants';
+import { notifyBugReportCreated } from '../api/adminNotifications';
 import { createPortal } from 'react-dom';
 import './BugReportModal.css';
 
@@ -40,11 +41,28 @@ function BugReportModal({ onClose }) {
         status: 'open',
       };
 
-      const { error: insertError } = await supabase
+      const { data: insertedBug, error: insertError } = await supabase
         .from('bug_reports')
-        .insert(bugData);
+        .insert(bugData)
+        .select()
+        .single();
 
       if (insertError) throw insertError;
+
+      const notifyResult = await notifyBugReportCreated({
+        id: insertedBug?.id,
+        user_email: insertedBug?.user_email || bugData.user_email,
+        page_url: insertedBug?.page_url || bugData.page_url,
+        app_version: insertedBug?.app_version || bugData.app_version,
+        status: insertedBug?.status || bugData.status,
+        description: insertedBug?.description || bugData.description,
+        created_at: insertedBug?.created_at,
+      });
+
+      if (!notifyResult.success) {
+        // Keep bug submission success path intact even if email delivery fails.
+        console.warn('Bug report notification email was not sent:', notifyResult.error);
+      }
 
       // Show success message
       setSubmitted(true);

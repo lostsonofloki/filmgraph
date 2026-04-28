@@ -42,6 +42,11 @@
   max-width: 100%;
 }
 
+.movie-card-mobile-actions-inner--duo {
+  justify-content: center;
+  gap: 10px;
+}
+
 .movie-card-mobile-action-slot {
   flex: 1 1 0;
   min-width: 0;
@@ -77,6 +82,11 @@
 .movie-card-mobile-icon-btn--delete:hover {
   background: rgba(185, 28, 28, 0.95);
   border-color: rgba(252, 165, 165, 0.5);
+}
+
+.movie-card-mobile-icon-btn--log:hover {
+  background: rgba(234, 88, 12, 0.95);
+  border-color: rgba(251, 146, 60, 0.6);
 }
 
 /* Narrow AddToList icon control + badge kept inside the slot */

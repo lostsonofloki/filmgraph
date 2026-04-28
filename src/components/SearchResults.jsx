@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import QuickMovieActions from './QuickMovieActions';
 import './SearchResults.css';
 
 /**
@@ -67,6 +68,12 @@ function SearchResults({ movies }) {
                     alt={`${item.Title} poster`}
                     loading="lazy"
                   />
+                  <div
+                    className="search-card-quick-actions"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <QuickMovieActions movie={item} />
+                  </div>
                   <span className="media-type-badge">Movie</span>
                 </div>
                 <div className="movie-card-content">

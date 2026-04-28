@@ -1,0 +1,34 @@
+.quick-movie-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 20;
+}
+
+.quick-log-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(249, 115, 22, 0.35);
+  background: rgba(12, 16, 24, 0.9);
+  color: #fb923c;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-log-btn:hover {
+  border-color: rgba(249, 115, 22, 0.6);
+  color: #ffffff;
+  background: rgba(249, 115, 22, 0.85);
+  transform: translateY(-1px);
+}
+
+.quick-log-btn svg {
+  width: 20px;
+  height: 20px;
+}

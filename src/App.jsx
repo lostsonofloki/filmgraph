@@ -152,11 +152,15 @@ function Header() {
             )}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 text-zinc-400 hover:text-white transition-colors"
-              aria-label="Toggle menu"
+              className={`rounded-full p-2 transition-colors ${
+                isMobileMenuOpen
+                  ? "bg-orange-500/20 text-orange-400"
+                  : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+              }`}
+              aria-label="Toggle account menu"
             >
               <svg
-                className="w-6 h-6"
+                className="h-6 w-6"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -165,7 +169,10 @@ function Header() {
                 {isMobileMenuOpen ? (
                   <path d="M18 6L6 18M6 6l12 12" />
                 ) : (
-                  <path d="M4 6h16M4 12h16M4 18h16" />
+                  <>
+                    <circle cx="12" cy="8" r="3.25" />
+                    <path d="M5 20a7 7 0 0114 0" />
+                  </>
                 )}
               </svg>
             </button>
@@ -244,37 +251,28 @@ function Header() {
       {isMobileMenuOpen && (
         <div className="md:hidden border-t border-white/5 bg-zinc-950 px-6 py-4">
           <nav className="flex flex-col space-y-4">
-            <Link
-              to="/discover"
-              className="text-sm font-medium text-orange-500 hover:text-orange-400 transition-colors py-2"
-            >
-              Discover
-            </Link>
-            <Link
-              to="/"
-              className="text-sm font-medium text-zinc-400 hover:text-white transition-colors py-2"
-            >
-              Trending
-            </Link>
-            <Link
-              to="/library"
-              className="text-sm font-medium text-zinc-400 hover:text-white transition-colors py-2"
-            >
-              Library
-            </Link>
-            <Link
-              to="/history"
-              className="text-sm font-medium text-zinc-400 hover:text-white transition-colors py-2"
-            >
-              History
-            </Link>
             {isAuthenticated ? (
-              <div className="border-t border-white/5 pt-4 mt-2">
+              <div className="border-t border-white/5 pt-4 mt-1 space-y-2">
                 <Link
                   to="/profile"
                   className="text-sm font-bold text-orange-500 hover:text-orange-400 transition-colors py-2 block"
+                  onClick={() => setIsMobileMenuOpen(false)}
                 >
                   👤 {user?.username}
+                </Link>
+                <Link
+                  to="/about"
+                  className="text-sm font-medium text-zinc-400 hover:text-white transition-colors py-2 block"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  About
+                </Link>
+                <Link
+                  to="/changelog"
+                  className="text-sm font-medium text-zinc-400 hover:text-white transition-colors py-2 block"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Changelog
                 </Link>
                 <button
                   onClick={handleLogout}
@@ -284,17 +282,104 @@ function Header() {
                 </button>
               </div>
             ) : (
-              <Link
-                to="/login"
-                className="text-sm font-semibold text-white bg-zinc-800 px-4 py-2 rounded-full hover:bg-zinc-700 transition-colors text-center"
-              >
-                Login
-              </Link>
+              <>
+                <Link
+                  to="/about"
+                  className="text-sm font-medium text-zinc-400 hover:text-white transition-colors py-2 block"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  About
+                </Link>
+                <Link
+                  to="/changelog"
+                  className="text-sm font-medium text-zinc-400 hover:text-white transition-colors py-2 block"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Changelog
+                </Link>
+                <Link
+                  to="/login"
+                  className="text-sm font-semibold text-white bg-zinc-800 px-4 py-2 rounded-full hover:bg-zinc-700 transition-colors text-center"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Login
+                </Link>
+              </>
             )}
           </nav>
         </div>
       )}
     </header>
+  );
+}
+
+function MobileBottomNav() {
+  const location = useLocation();
+  const navItems = [
+    {
+      label: "Trending",
+      to: "/",
+      isActive: location.pathname === "/",
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M3 12h4l3-8 4 16 3-8h4" />
+        </svg>
+      ),
+    },
+    {
+      label: "Discover",
+      to: "/discover",
+      isActive:
+        location.pathname === "/discover" ||
+        location.pathname.startsWith("/discover/"),
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 3l2.5 5.5L20 11l-5.5 2.5L12 19l-2.5-5.5L4 11l5.5-2.5L12 3z" />
+        </svg>
+      ),
+    },
+    {
+      label: "Library",
+      to: "/library",
+      isActive:
+        location.pathname === "/library" ||
+        location.pathname.startsWith("/library/"),
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M4 5h14v14H4z" />
+          <path d="M18 8h2v11H7v-2" />
+        </svg>
+      ),
+    },
+    {
+      label: "History",
+      to: "/history",
+      isActive:
+        location.pathname === "/history" ||
+        location.pathname.startsWith("/history/"),
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 8v5l3 2" />
+          <path d="M3.05 11A9 9 0 1012 3v3" />
+          <path d="M3 3v6h6" />
+        </svg>
+      ),
+    },
+  ];
+
+  return (
+    <nav className="mobile-bottom-nav" aria-label="Primary">
+      {navItems.map((item) => (
+        <Link
+          key={item.to}
+          to={item.to}
+          className={`mobile-bottom-nav-link ${item.isActive ? "active" : ""}`}
+        >
+          <span className="mobile-bottom-nav-icon">{item.icon}</span>
+          <span className="mobile-bottom-nav-label">{item.label}</span>
+        </Link>
+      ))}
+    </nav>
   );
 }
 
@@ -330,7 +415,7 @@ function AppContent() {
           </div>
         </div>
       )}
-      <main className="app-main">
+      <main className={`app-main ${!isAuthPage ? "has-mobile-bottom-nav" : ""}`}>
         <div className="main-content">
           <Suspense fallback={<div className="loading-state">Loading...</div>}>
             <Routes>
@@ -387,6 +472,7 @@ function AppContent() {
           </Suspense>
         </div>
       </main>
+      {!isAuthPage && <MobileBottomNav />}
       <Footer />
     </div>
   );

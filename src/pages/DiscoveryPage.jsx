@@ -423,12 +423,14 @@ function DiscoveryPage() {
             returns.
           </div>
         )}
-        <div className="discovery-header">
-          <div className="oracle-icon">🔮</div>
-          <h1>Oracle</h1>
-          <p className="oracle-tagline">
-            AI-powered film discovery for the discerning viewer
-          </p>
+        <div className="oracle-hero">
+          <div className="discovery-header">
+            <div className="oracle-icon">🔮</div>
+            <h1>Oracle</h1>
+            <p className="oracle-tagline">
+              AI-powered film discovery for the discerning viewer
+            </p>
+          </div>
         </div>
 
         <div className="mood-bubbles">
@@ -446,7 +448,7 @@ function DiscoveryPage() {
 
         <div className="prompt-section">
           <label className="prompt-label">My Streaming Services:</label>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "14px" }}>
+          <div className="provider-chip-group">
             {TOP_STREAMING_PROVIDERS_US.map((provider) => {
               const active = selectedProviderIds.includes(provider.id);
               return (
@@ -454,15 +456,9 @@ function DiscoveryPage() {
                   key={provider.id}
                   type="button"
                   onClick={() => toggleProvider(provider.id)}
-                  className="mood-bubble"
-                  style={{
-                    minHeight: "unset",
-                    padding: "8px 10px",
-                    borderColor: active ? "#f97316" : "#262626",
-                    background: active ? "rgba(249, 115, 22, 0.16)" : "#171717",
-                  }}
+                  className={`provider-chip ${active ? "active" : ""}`}
                 >
-                  <span className="mood-label" style={{ color: active ? "#f97316" : "#a3a3a3" }}>
+                  <span className="provider-chip-label">
                     {provider.name}
                   </span>
                 </button>
@@ -470,14 +466,7 @@ function DiscoveryPage() {
             })}
           </div>
           {selectedProviderIds.length > 0 && (
-            <p
-              style={{
-                margin: "0 0 10px",
-                color: "#f59e0b",
-                fontSize: "12px",
-                fontWeight: 600,
-              }}
-            >
+            <p className="provider-filtering-note">
               Filtering toward:{" "}
               {TOP_STREAMING_PROVIDERS_US.filter((p) =>
                 selectedProviderIds.includes(p.id),
@@ -534,6 +523,7 @@ function DiscoveryPage() {
                 <div
                   key={`${rec.title}-${rec.year}`}
                   className="recommendation-card animate-in fade-in"
+                  style={{ animationDelay: `${index * 90}ms` }}
                 >
                   <div className="rec-poster-container">
                     {movieTmdb?.id ? (

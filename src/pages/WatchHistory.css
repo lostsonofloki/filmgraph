@@ -116,6 +116,9 @@
   justify-content: space-between;
   transition: all 0.2s ease;
   min-height: 44px;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
 }
 
 .calendar-cell-day:disabled {
@@ -127,22 +130,54 @@
   color: #ffffff;
   border-color: #3f2a57;
   background: #19131f;
+  animation: history-cell-in 260ms ease both;
 }
 
 .calendar-cell-day.is-active:hover {
   border-color: #6a3ba2;
   background: #231830;
+  transform: translateY(-1px);
 }
 
 .calendar-cell-day.is-selected {
   border-color: #8b5cf6;
   box-shadow: 0 0 0 1px #8b5cf6 inset;
   background: #2b1f3a;
+  animation: history-selected-pulse 850ms ease;
+}
+
+.calendar-day-poster-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.55;
+}
+
+.calendar-day-poster-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(8, 8, 8, 0.32) 0%,
+    rgba(8, 8, 8, 0.6) 42%,
+    rgba(8, 8, 8, 0.88) 100%
+  );
+}
+
+.calendar-day-poster-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.04);
 }
 
 .calendar-day-number {
   font-size: 15px;
   font-weight: 700;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
 .calendar-day-count {
@@ -154,6 +189,9 @@
   font-size: 12px;
   font-weight: 600;
   color: #c4b5fd;
+  position: relative;
+  z-index: 1;
+  backdrop-filter: blur(2px);
 }
 
 .selected-day-panel {
@@ -193,6 +231,8 @@
   padding: 10px;
   cursor: pointer;
   transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  animation: history-card-in 260ms ease both;
+  animation-delay: calc(var(--history-card-index, 0) * 30ms);
 }
 
 .selected-day-movie-card:hover {
@@ -364,6 +404,48 @@
 .browse-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(153, 27, 27, 0.5);
+}
+
+@keyframes history-cell-in {
+  from {
+    opacity: 0.7;
+    transform: translateY(1px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes history-selected-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.5), 0 0 0 1px #8b5cf6 inset;
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(139, 92, 246, 0), 0 0 0 1px #8b5cf6 inset;
+  }
+}
+
+@keyframes history-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .calendar-nav-btn,
+  .calendar-today-btn,
+  .calendar-cell-day,
+  .selected-day-movie-card,
+  .browse-btn {
+    transition: none;
+    animation: none;
+  }
 }
 
 /* Responsive */

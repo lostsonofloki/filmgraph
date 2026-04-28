@@ -1,31 +1,94 @@
 @import "tailwindcss";
 
 /* Filmgraph Custom Styles - Deep Ember Theme */
+:root {
+  --fg-bg: #090b10;
+  --fg-bg-elev-1: #11151d;
+  --fg-bg-elev-2: #171c25;
+  --fg-border: #252b36;
+  --fg-border-strong: #343c4a;
+  --fg-text: #f5f7fb;
+  --fg-text-muted: #a5adbc;
+  --fg-accent: #f97316;
+  --fg-accent-hover: #fb923c;
+  --fg-danger: #ef4444;
+  --fg-radius-sm: 8px;
+  --fg-radius-md: 12px;
+  --fg-radius-lg: 16px;
+  --fg-space-1: 8px;
+  --fg-space-2: 12px;
+  --fg-space-3: 16px;
+  --fg-space-4: 24px;
+  --fg-space-5: 32px;
+  --fg-shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.25);
+  --fg-shadow-md: 0 12px 32px rgba(0, 0, 0, 0.35);
+  --fg-focus-ring: 0 0 0 3px rgba(249, 115, 22, 0.25);
+  --fg-motion-fast: 140ms;
+  --fg-motion-base: 220ms;
+  --fg-motion-slow: 320ms;
+}
+
 @layer base {
+  html,
   body {
-    background-color: #0a0a0a;
-    color: #ffffff;
+    background-color: var(--fg-bg);
+    color: var(--fg-text);
+  }
+
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--fg-focus-ring);
+    border-radius: var(--fg-radius-sm);
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply text-white font-semibold py-3 px-6 rounded-lg;
-    background: linear-gradient(to right, #991b1b, #7f1d1d);
+    @apply text-white font-semibold py-3 px-6;
+    border-radius: var(--fg-radius-md);
+    background: linear-gradient(
+      135deg,
+      var(--fg-accent) 0%,
+      color-mix(in srgb, var(--fg-accent) 78%, black) 100%
+    );
+    box-shadow: var(--fg-shadow-sm);
+    transition: transform var(--fg-motion-base) ease, box-shadow var(--fg-motion-base) ease, filter var(--fg-motion-fast) ease;
   }
 
   .btn-primary:hover {
-    box-shadow: 0 10px 15px rgba(153, 27, 27, 0.3);
+    transform: translateY(-1px);
+    box-shadow: var(--fg-shadow-md);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
+    filter: brightness(0.98);
   }
 
   .card-dark {
-    background-color: #121212;
-    border: 1px solid #2a2a2a;
-    border-radius: 12px;
-    padding: 24px;
+    background-color: var(--fg-bg-elev-1);
+    border: 1px solid var(--fg-border);
+    border-radius: var(--fg-radius-md);
+    padding: var(--fg-space-4);
+    box-shadow: var(--fg-shadow-sm);
+    transition: border-color var(--fg-motion-base) ease, box-shadow var(--fg-motion-base) ease, transform var(--fg-motion-base) ease;
+  }
+
+  .card-dark:hover {
+    border-color: color-mix(in srgb, var(--fg-accent) 22%, var(--fg-border));
+    box-shadow: var(--fg-shadow-md);
+    transform: translateY(-1px);
   }
 
   .font-creepster {
     font-family: "Creepster", cursive;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
   }
 }

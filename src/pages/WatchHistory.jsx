@@ -27,6 +27,11 @@ const getDayLabel = (dayKey) => {
   });
 };
 
+const getPosterUrl = (movie) => {
+  if (movie?.poster_path) return `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
+  return movie?.poster || null;
+};
+
 const buildMonthCells = (monthDate) => {
   const year = monthDate.getFullYear();
   const month = monthDate.getMonth();
@@ -224,6 +229,7 @@ function WatchHistory() {
             const dayMovies = moviesByDay[cell.dayKey] || [];
             const isActive = dayMovies.length > 0;
             const isSelected = selectedDayKey === cell.dayKey;
+            const leadPoster = isActive ? getPosterUrl(dayMovies[0]) : null;
 
             return (
               <button
@@ -234,7 +240,13 @@ function WatchHistory() {
                 }`}
                 onClick={() => isActive && setSelectedDayKey(cell.dayKey)}
                 disabled={!isActive}
+                aria-pressed={isSelected}
               >
+                {isActive && leadPoster ? (
+                  <span className="calendar-day-poster-bg" aria-hidden="true">
+                    <img src={leadPoster} alt="" loading="lazy" />
+                  </span>
+                ) : null}
                 <span className="calendar-day-number">{cell.day}</span>
                 {isActive && <span className="calendar-day-count">{dayMovies.length}</span>}
               </button>
@@ -254,10 +266,11 @@ function WatchHistory() {
             </div>
 
             <div className="selected-day-movies">
-              {selectedDayMovies.map((movie) => (
+              {selectedDayMovies.map((movie, index) => (
                 <div
                   key={movie.id}
                   className="selected-day-movie-card"
+                  style={{ '--history-card-index': index }}
                   onClick={() => movie.tmdb_id && navigate(`/movie/${movie.tmdb_id}`)}
                   role="button"
                   tabIndex={0}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getTrendingMovies, getBackdropUrl, discoverMovies } from '../api/tmdb';
+import QuickMovieActions from '../components/QuickMovieActions';
 import SeoHead from '../components/seo/SeoHead';
 import './TrendingMovies.css';
 
@@ -208,6 +209,12 @@ function TrendingMovies() {
                   </div>
                 )}
                 <div className="backdrop-overlay"></div>
+                <div
+                  className="backdrop-quick-actions"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <QuickMovieActions movie={movie} />
+                </div>
                 <div className="backdrop-content">
                   <h3 className="backdrop-title">{movie.title}</h3>
                   <div className="backdrop-meta">

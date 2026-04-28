@@ -15,8 +15,8 @@ body {
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
     Cantarell, sans-serif;
-  background: #0a0a0a;
-  color: #ffffff;
+  background: var(--fg-bg);
+  color: var(--fg-text);
   line-height: 1.5;
 }
 
@@ -60,13 +60,13 @@ h3 {
   flex: 1;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0 1.5rem;
+  padding: 0 var(--fg-space-4);
   width: 100%;
 }
 
 @media (max-width: 768px) {
   .main-content {
-    padding: 0 1rem;
+    padding: 0 var(--fg-space-3);
   }
 }
 
@@ -84,8 +84,9 @@ h3 {
   top: 0;
   left: 0;
   right: 0;
-  background: #000000;
-  border-bottom: 2px solid #333;
+  background: rgba(9, 11, 16, 0.9);
+  border-bottom: 1px solid var(--fg-border);
+  backdrop-filter: blur(8px);
   z-index: 9999;
   height: 70px;
 }
@@ -93,7 +94,7 @@ h3 {
 .header-container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 var(--fg-space-4);
   height: 100%;
   display: flex;
   align-items: center;
@@ -147,8 +148,8 @@ h3 {
   top: 70px;
   left: 0;
   right: 0;
-  background: #121212;
-  border-bottom: 2px solid #991b1b;
+  background: var(--fg-bg-elev-1);
+  border-bottom: 1px solid var(--fg-border-strong);
   max-height: 0;
   overflow: hidden;
   transition: max-height 0.3s ease;
@@ -162,8 +163,8 @@ h3 {
 .mobile-menu-content {
   display: flex;
   flex-direction: column;
-  padding: 16px 20px;
-  gap: 8px;
+  padding: var(--fg-space-3) var(--fg-space-4);
+  gap: var(--fg-space-1);
 }
 
 /* Mobile Search Bar - Inline styles in JSX, but ensure visibility */
@@ -175,13 +176,16 @@ h3 {
 /* Mobile Links Styling */
 .mobile-nav-link,
 .mobile-logout-btn {
-  padding: 14px 20px;
+  padding: var(--fg-space-2) var(--fg-space-3);
   font-size: 16px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--fg-text);
   text-decoration: none;
-  border-radius: 8px;
-  transition: all 0.2s ease;
+  border-radius: var(--fg-radius-sm);
+  transition:
+    background-color var(--fg-motion-base) ease,
+    color var(--fg-motion-base) ease,
+    transform var(--fg-motion-fast) ease;
   text-align: left;
   background: transparent;
   border: none;
@@ -190,13 +194,14 @@ h3 {
 }
 
 .mobile-nav-link:hover {
-  background: rgba(153, 27, 27, 0.2);
-  color: #fca5a5;
+  background: color-mix(in srgb, var(--fg-accent) 18%, transparent);
+  color: var(--fg-accent-hover);
+  transform: translateX(1px);
 }
 
 .mobile-logout-btn {
-  background: rgba(153, 27, 27, 0.2);
-  border: 1px solid #991b1b;
+  background: color-mix(in srgb, var(--fg-accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fg-accent) 45%, black);
   text-align: center;
 }
 
@@ -230,31 +235,31 @@ h3 {
     padding: 8px 12px;
     font-size: 14px;
     font-weight: 500;
-    color: #9a9a9a;
+    color: var(--fg-text-muted);
     text-decoration: none;
-    border-radius: 8px;
+    border-radius: var(--fg-radius-sm);
     transition: all 0.2s ease;
     white-space: nowrap;
   }
 
   .nav-link:hover {
-    color: #ffffff;
-    background: #1a1a1a;
+    color: var(--fg-text);
+    background: var(--fg-bg-elev-2);
   }
 
   .nav-username {
     font-weight: 600;
-    color: #ffffff;
+    color: var(--fg-text);
   }
 
   .nav-logout {
     padding: 8px 16px;
     font-size: 13px;
     font-weight: 500;
-    color: #9a9a9a;
+    color: var(--fg-text-muted);
     background: transparent;
-    border: 1px solid #2a2a2a;
-    border-radius: 8px;
+    border: 1px solid var(--fg-border);
+    border-radius: var(--fg-radius-sm);
     cursor: pointer;
     transition: all 0.2s ease;
   }
@@ -264,16 +269,16 @@ h3 {
     width: 100%;
     padding: 8px 12px;
     font-size: 14px;
-    background: #1a1a1a;
-    border: 1px solid #333;
-    border-radius: 6px;
-    color: #ffffff;
+    background: var(--fg-bg-elev-2);
+    border: 1px solid var(--fg-border);
+    border-radius: var(--fg-radius-sm);
+    color: var(--fg-text);
     outline: none;
   }
 
   .search-input:focus {
-    border-color: #991b1b;
-    box-shadow: 0 0 0 3px rgba(153, 27, 27, 0.2);
+    border-color: var(--fg-accent);
+    box-shadow: var(--fg-focus-ring);
   }
 }
 
@@ -287,11 +292,82 @@ h3 {
 }
 
 /* ================================
+   Mobile Bottom Nav
+   ================================ */
+.mobile-bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  background: rgba(9, 11, 16, 0.95);
+  border-top: 1px solid var(--fg-border);
+  backdrop-filter: blur(12px);
+  padding: var(--fg-space-1) var(--fg-space-2) calc(var(--fg-space-1) + env(safe-area-inset-bottom, 0px));
+}
+
+.mobile-bottom-nav-link {
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-decoration: none;
+  color: var(--fg-text-muted);
+  border-radius: var(--fg-radius-sm);
+  transition:
+    color var(--fg-motion-base) ease,
+    background-color var(--fg-motion-base) ease,
+    transform var(--fg-motion-fast) ease;
+}
+
+.mobile-bottom-nav-link:hover {
+  color: var(--fg-text);
+  background: color-mix(in srgb, var(--fg-accent) 10%, transparent);
+  transform: translateY(-1px);
+}
+
+.mobile-bottom-nav-link.active {
+  color: var(--fg-accent-hover);
+  background: color-mix(in srgb, var(--fg-accent) 16%, transparent);
+}
+
+.mobile-bottom-nav-link:active {
+  transform: translateY(0);
+}
+
+.mobile-bottom-nav-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.mobile-bottom-nav-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 767px) {
+  .app-main.has-mobile-bottom-nav {
+    padding-bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (min-width: 768px) {
+  .mobile-bottom-nav {
+    display: none;
+  }
+}
+
+/* ================================
    Footer
    ================================ */
 .app-footer {
-  background: #121212;
-  border-top: 1px solid #1a1a1a;
+  background: var(--fg-bg-elev-1);
+  border-top: 1px solid var(--fg-border);
   padding: 20px 0;
   margin-top: auto;
 }
@@ -299,29 +375,29 @@ h3 {
 .footer-content {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 var(--fg-space-4);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: var(--fg-space-2);
 }
 
 .footer-text {
   font-size: 13px;
-  color: #666666;
+  color: var(--fg-text-muted);
   margin: 0;
 }
 
 .footer-attribution {
   font-size: 10px;
-  color: #444444;
+  color: color-mix(in srgb, var(--fg-text-muted) 70%, black);
   margin: 0;
   text-align: center;
   line-height: 1.4;
 }
 
 .footer-attribution a {
-  color: #666666;
+  color: var(--fg-text-muted);
   text-decoration: none;
 }
 

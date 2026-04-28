@@ -1,7 +1,7 @@
 .discovery-page {
   min-height: 100vh;
-  padding: 60px 24px;
-  background: #0a0a0a;
+  padding: 60px var(--fg-space-4);
+  background: var(--fg-bg);
 }
 
 .discovery-container {
@@ -9,12 +9,23 @@
   margin: 0 auto;
 }
 
+.oracle-hero {
+  margin-bottom: var(--fg-space-4);
+  border: 1px solid color-mix(in srgb, var(--fg-accent) 28%, var(--fg-border));
+  border-radius: var(--fg-radius-lg);
+  background:
+    radial-gradient(circle at top, rgba(249, 115, 22, 0.16), transparent 55%),
+    var(--fg-bg-elev-1);
+  box-shadow: var(--fg-shadow-sm);
+}
+
 /* ============================================
    HEADER
    ============================================ */
 .discovery-header {
   text-align: center;
-  margin-bottom: 48px;
+  margin-bottom: 0;
+  padding: var(--fg-space-5) var(--fg-space-4);
 }
 
 .oracle-icon {
@@ -48,7 +59,7 @@
 
 .oracle-tagline {
   font-size: 16px;
-  color: #717171;
+  color: var(--fg-text-muted);
   margin: 0;
 }
 
@@ -58,7 +69,7 @@
 .mood-bubbles {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 12px;
+  gap: var(--fg-space-2);
   margin-bottom: 40px;
 }
 
@@ -69,16 +80,16 @@
   gap: 8px;
   padding: 20px 16px;
   min-height: 44px;
-  background: #171717;
-  border: 1px solid #262626;
-  border-radius: 16px;
+  background: var(--fg-bg-elev-1);
+  border: 1px solid var(--fg-border);
+  border-radius: var(--fg-radius-lg);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .mood-bubble:hover {
-  background: #262626;
-  border-color: #f97316;
+  background: var(--fg-bg-elev-2);
+  border-color: var(--fg-accent);
   transform: translateY(-2px);
 }
 
@@ -88,7 +99,7 @@
     rgba(249, 115, 22, 0.2) 0%,
     rgba(251, 146, 60, 0.1) 100%
   );
-  border-color: #f97316;
+  border-color: var(--fg-accent);
   box-shadow: 0 0 20px rgba(249, 115, 22, 0.3);
 }
 
@@ -99,11 +110,11 @@
 .mood-label {
   font-size: 14px;
   font-weight: 600;
-  color: #a3a3a3;
+  color: var(--fg-text-muted);
 }
 
 .mood-bubble.active .mood-label {
-  color: #f97316;
+  color: var(--fg-accent-hover);
 }
 
 /* ============================================
@@ -113,11 +124,54 @@
   margin-bottom: 40px;
 }
 
+.provider-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.provider-chip {
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--fg-border);
+  border-radius: var(--fg-radius-sm);
+  background: var(--fg-bg-elev-1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.provider-chip:hover {
+  border-color: color-mix(in srgb, var(--fg-accent) 55%, var(--fg-border));
+}
+
+.provider-chip.active {
+  border-color: var(--fg-accent);
+  background: color-mix(in srgb, var(--fg-accent) 16%, var(--fg-bg-elev-1));
+}
+
+.provider-chip-label {
+  color: var(--fg-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.provider-chip.active .provider-chip-label {
+  color: var(--fg-accent-hover);
+}
+
+.provider-filtering-note {
+  margin: 0 0 10px;
+  color: #f59e0b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .prompt-label {
   display: block;
   font-size: 14px;
   font-weight: 600;
-  color: #a3a3a3;
+  color: var(--fg-text-muted);
   margin-bottom: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -130,10 +184,10 @@
 .prompt-input {
   width: 100%;
   padding: 16px 20px;
-  background: #171717;
-  border: 1px solid #262626;
-  border-radius: 12px;
-  color: #ffffff;
+  background: var(--fg-bg-elev-1);
+  border: 1px solid var(--fg-border);
+  border-radius: var(--fg-radius-md);
+  color: var(--fg-text);
   font-size: 15px;
   font-family: inherit;
   resize: none;
@@ -142,12 +196,12 @@
 }
 
 .prompt-input:focus {
-  border-color: #f97316;
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  border-color: var(--fg-accent);
+  box-shadow: var(--fg-focus-ring);
 }
 
 .prompt-input::placeholder {
-  color: #525252;
+  color: color-mix(in srgb, var(--fg-text-muted) 55%, black);
 }
 
 .prompt-input:disabled {
@@ -167,7 +221,7 @@
   background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
   color: #ffffff;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--fg-radius-sm);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -176,7 +230,7 @@
 
 .discover-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+  box-shadow: 0 10px 24px rgba(249, 115, 22, 0.35);
 }
 
 .discover-btn:disabled {
@@ -230,11 +284,22 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  padding: 32px;
-  background: #171717;
-  border: 1px solid #262626;
+  padding: var(--fg-space-5);
+  background: var(--fg-bg-elev-1);
+  border: 1px solid var(--fg-border);
   border-radius: 20px;
+  box-shadow: var(--fg-shadow-sm);
   overflow: hidden;
+  transition:
+    border-color var(--fg-motion-base) ease,
+    box-shadow var(--fg-motion-base) ease,
+    transform var(--fg-motion-base) ease;
+}
+
+.recommendation-card:hover {
+  border-color: color-mix(in srgb, var(--fg-accent) 32%, var(--fg-border));
+  box-shadow: var(--fg-shadow-md);
+  transform: translateY(-1px);
 }
 
 @media (min-width: 768px) {
@@ -312,26 +377,26 @@
 .rec-title {
   font-size: 28px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--fg-text);
   margin: 0;
 }
 
 .rec-title-link {
   font-size: 28px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--fg-text);
   margin: 0;
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 .rec-title-link:hover {
-  color: #f97316;
+  color: var(--fg-accent-hover);
 }
 
 .rec-year {
   font-size: 16px;
-  color: #717171;
+  color: var(--fg-text-muted);
 }
 
 .rec-vibe-check {
@@ -374,7 +439,7 @@
 .rationale-text {
   font-size: 15px;
   line-height: 1.7;
-  color: #d4d4d4;
+  color: color-mix(in srgb, var(--fg-text) 86%, black);
   margin: 0;
 }
 
@@ -386,7 +451,7 @@
   flex-wrap: wrap;
   gap: 12px;
   padding: 20px 0;
-  border-top: 1px solid #262626;
+  border-top: 1px solid var(--fg-border);
   margin-top: 20px;
 }
 
@@ -481,7 +546,7 @@
   flex-wrap: wrap;
   gap: 12px;
   padding-top: 20px;
-  border-top: 1px solid #262626;
+  border-top: 1px solid var(--fg-border);
   align-items: center;
 }
 
@@ -495,11 +560,18 @@
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition:
+    background-color var(--fg-motion-base) ease,
+    transform var(--fg-motion-fast) ease;
 }
 
 .tmdb-link:hover {
   background: #404040;
+  transform: translateY(-1px);
+}
+
+.tmdb-link:active {
+  transform: translateY(0);
 }
 
 /* Reject & Reroll Button - Deep Ember Theme */
@@ -557,7 +629,7 @@
 }
 
 .rejected-text {
-  color: #717171;
+  color: var(--fg-text-muted);
   font-size: 12px;
 }
 
@@ -567,7 +639,7 @@
 .empty-state {
   text-align: center;
   padding: 80px 20px;
-  color: #525252;
+  color: color-mix(in srgb, var(--fg-text-muted) 65%, black);
 }
 
 .empty-icon {
@@ -604,7 +676,7 @@
    ============================================ */
 @media (max-width: 640px) {
   .discovery-page {
-    padding: 40px 16px;
+    padding: 40px var(--fg-space-3);
   }
 
   .discovery-header h1 {
@@ -632,7 +704,7 @@
   }
 
   .recommendation-card {
-    padding: 20px;
+    padding: var(--fg-space-4);
   }
 
   .rec-title {

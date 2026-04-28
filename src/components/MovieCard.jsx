@@ -38,6 +38,13 @@ function MovieCard({
       : 'https://via.placeholder.com/300x450/1a1a1a/444444?text=No+Poster';
 
   const userRating = movie.rating;
+  const listMoviePayload = {
+    tmdb_id: movie.tmdb_id,
+    title: movie.title,
+    poster_path:
+      movie.poster_path ||
+      movie.poster?.replace("https://image.tmdb.org/t/p/w500", ""),
+  };
 
   return (
     <>
@@ -90,11 +97,7 @@ function MovieCard({
                     </button>
 
                     <AddToListButton
-                      movie={{
-                        tmdb_id: movie.tmdb_id,
-                        title: movie.title,
-                        poster_path: movie.poster_path || movie.poster?.replace('https://image.tmdb.org/t/p/w500', '')
-                      }}
+                      movie={listMoviePayload}
                       variant="icon"
                     />
 
@@ -111,11 +114,7 @@ function MovieCard({
                 ) : (
                   <>
                     <AddToListButton
-                      movie={{
-                        tmdb_id: movie.tmdb_id,
-                        title: movie.title,
-                        poster_path: movie.poster_path || movie.poster?.replace('https://image.tmdb.org/t/p/w500', '')
-                      }}
+                      movie={listMoviePayload}
                       variant="icon"
                     />
 
@@ -142,7 +141,7 @@ function MovieCard({
           </div>
 
           {/* Mobile: compact action bar — equal thirds so icons never spill past narrow posters */}
-          {isLibraryCard && (
+          {isLibraryCard ? (
             <div className="movie-card-mobile-actions md:hidden pointer-events-auto">
               <div className="movie-card-mobile-actions-inner">
                 <div className="movie-card-mobile-action-slot">
@@ -160,11 +159,7 @@ function MovieCard({
                 </div>
                 <div className="movie-card-mobile-action-slot">
                   <AddToListButton
-                    movie={{
-                      tmdb_id: movie.tmdb_id,
-                      title: movie.title,
-                      poster_path: movie.poster_path || movie.poster?.replace('https://image.tmdb.org/t/p/w500', '')
-                    }}
+                    movie={listMoviePayload}
                     variant="icon"
                     className="movie-card-mobile-add"
                   />
@@ -178,6 +173,33 @@ function MovieCard({
                   >
                     <svg className="w-4 h-4 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="movie-card-mobile-actions md:hidden pointer-events-auto">
+              <div className="movie-card-mobile-actions-inner movie-card-mobile-actions-inner--duo">
+                <div className="movie-card-mobile-action-slot">
+                  <AddToListButton
+                    movie={listMoviePayload}
+                    variant="icon"
+                    className="movie-card-mobile-add"
+                  />
+                </div>
+                <div className="movie-card-mobile-action-slot">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowModal(true);
+                    }}
+                    className="movie-card-mobile-icon-btn movie-card-mobile-icon-btn--log"
+                    title="Log Movie"
+                  >
+                    <svg className="w-4 h-4 text-orange-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 5v14M5 12h14" />
                     </svg>
                   </button>
                 </div>

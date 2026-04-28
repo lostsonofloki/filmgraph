@@ -328,6 +328,120 @@
   font-weight: bold;
 }
 
+/* Founders Surface */
+.founders-section {
+  background: radial-gradient(circle at top right, rgba(251, 191, 36, 0.12), rgba(18, 18, 18, 1) 45%);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.founders-count-chip {
+  margin-left: auto;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fde68a;
+  background: rgba(120, 53, 15, 0.55);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+.founders-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.founders-lead {
+  margin: 0;
+  color: #f3f4f6;
+  line-height: 1.6;
+}
+
+.founders-preview {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.founders-badge-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #fef3c7;
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.6), rgba(146, 64, 14, 0.95));
+  border: 1px solid rgba(252, 211, 77, 0.5);
+  box-shadow: 0 6px 18px rgba(251, 191, 36, 0.2);
+}
+
+.founders-preview-text {
+  margin: 0;
+  font-size: 13px;
+  color: #d1d5db;
+}
+
+.founders-benefits {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.founders-benefits li {
+  color: #d1d5db;
+  font-size: 14px;
+}
+
+.founders-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.founders-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 10px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+  border: 1px solid rgba(251, 191, 36, 0.55);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.founders-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(245, 158, 11, 0.35);
+}
+
+.founders-secondary-link {
+  color: #f9a84b;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.founders-secondary-link:hover {
+  color: #fcd34d;
+}
+
 /* Footer */
 .about-footer {
   margin-top: 20px;
@@ -388,8 +502,14 @@
 
   .about-section,
   .changelog-section,
-  .roadmap-section {
+  .roadmap-section,
+  .founders-section {
     padding: 24px 20px;
+  }
+
+  .founders-preview {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .footer-content {

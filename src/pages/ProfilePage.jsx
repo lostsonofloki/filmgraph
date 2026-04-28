@@ -83,6 +83,7 @@ function ProfilePage() {
   const [isLoadingFriends, setIsLoadingFriends] = useState(false);
   const [stats, setStats] = useState({
     moviesWatched: 0,
+    watchedThisYear: 0,
     reviewsWritten: 0,
     daysLogged: 0,
     totalWatched: 0,
@@ -157,6 +158,12 @@ function ProfilePage() {
           // Estimate hours (avg movie = 1.5 hours)
           const hoursWatched = Math.round(watched * 1.5);
           const physicalOwned = movieLogs.filter((m) => !!m.source_upc).length;
+          const currentYear = new Date().getFullYear();
+          const watchedThisYear = movieLogs.filter((m) => {
+            const dateSource = m.watched_at || m.created_at;
+            if (!dateSource) return false;
+            return new Date(dateSource).getFullYear() === currentYear;
+          }).length;
 
           const ratingCounts = {};
           watchedMovies.forEach((movie) => {
@@ -227,6 +234,7 @@ function ProfilePage() {
 
           setStats({
             moviesWatched: watched,
+            watchedThisYear,
             reviewsWritten: reviews,
             daysLogged: uniqueDays,
             totalWatched: watchedMovies.length,
@@ -698,13 +706,13 @@ function ProfilePage() {
             <span className="stat-number">
               {isLoading ? "..." : stats.moviesWatched}
             </span>
-            <span className="stat-label">Movies Logged</span>
+            <span className="stat-label">Total Films</span>
           </div>
           <div className="stat-card">
             <span className="stat-number">
-              {isLoading ? "..." : stats.hoursWatched}
+              {isLoading ? "..." : stats.watchedThisYear}
             </span>
-            <span className="stat-label">Hours Watched</span>
+            <span className="stat-label">Watched This Year</span>
           </div>
           <div className="stat-card">
             <span className="stat-number">
@@ -712,6 +720,9 @@ function ProfilePage() {
             </span>
             <span className="stat-label">Average Rating</span>
           </div>
+        </div>
+
+        <div className="secondary-stats-grid">
           <div className="stat-card">
             <span className="stat-number">
               {isLoading ? "..." : stats.daysLogged}
