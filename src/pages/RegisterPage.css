@@ -49,6 +49,13 @@
   gap: 8px;
 }
 
+.signup-helper-text {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #64748b;
+}
+
 .form-label {
   font-size: 14px;
   font-weight: 600;

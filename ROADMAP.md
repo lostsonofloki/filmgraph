@@ -485,7 +485,7 @@ $ git log --all --full-history -- .env
 
 **Phase**: Phase 7.1 + 7.2 + 7.3 core foundations + Streaming Oracle MVP + UI foundation shipped ✅
 
-**Current Version**: v1.12.7 - Optional enrichment scaffold (feature-flagged)
+**Current Version**: v1.12.11 - Auth email deliverability UX messaging pass
 
 **Completed Features**:
 

@@ -12,6 +12,7 @@ import { MovieGridSkeleton } from '../components/Skeleton';
 import { runPosterMigration } from '../utils/posterMigration';
 import { parseLibraryQuery } from '../utils/naturalLanguageSort';
 import { buildListSharePayload, buildMovieSharePayload, executeShare } from '../utils/share';
+import SeoHead from '../components/seo/SeoHead';
 import './LibraryPage.css';
 
 const SORT_OPTIONS = [
@@ -28,6 +29,7 @@ function LibraryPage() {
   const {
     lists,
     fetchLists,
+    deleteList,
     removeMovieFromList,
     inviteCollaborator,
     changeCollaboratorRole,
@@ -96,12 +98,22 @@ function LibraryPage() {
     setError('');
     try {
       const supabase = getSupabase();
-      const { data, error } = await supabase
+      let query = supabase
         .from('movie_logs')
         .select('*')
         .eq('user_id', user.id)
-        .eq('watch_status', activeTab === 'watched' ? 'watched' : 'to-watch')
         .order('created_at', { ascending: false });
+
+      if (activeTab === 'collection') {
+        query = query.not('source_upc', 'is', null);
+      } else {
+        query = query.eq(
+          'watch_status',
+          activeTab === 'watched' ? 'watched' : 'to-watch',
+        );
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setMovies(data || []);
@@ -196,10 +208,7 @@ function LibraryPage() {
   const handleDeleteList = async (listId) => {
     if (!confirm('Delete this list?')) return;
     try {
-      const supabase = getSupabase();
-      await supabase.from('list_items').delete().eq('list_id', listId);
-      await supabase.from('lists').delete().eq('id', listId);
-      fetchLists();
+      await deleteList(listId);
       setSelectedList(null);
       toast.success('List deleted.');
     } catch (err) {
@@ -347,6 +356,11 @@ function LibraryPage() {
 
   return (
     <div className="library-page">
+      <SeoHead
+        title="My Library"
+        description="Track watched films, watchlist picks, physical collection scans, and curated lists in your Filmgraph library."
+        pathname="/library"
+      />
       <div className="library-container">
         <header className="library-top">
           <div className="library-top-text">
@@ -435,6 +449,18 @@ function LibraryPage() {
             onClick={() => { setActiveTab('to-watch'); setSelectedList(null); }}
           >
             Watchlist
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'collection'}
+            className={`library-tab ${activeTab === 'collection' ? 'library-tab--active' : ''}`}
+            onClick={() => {
+              setActiveTab('collection');
+              setSelectedList(null);
+            }}
+          >
+            Collection
           </button>
           <button
             type="button"
@@ -768,6 +794,7 @@ function LibraryPage() {
                     <MovieCard
                       movie={movie}
                       isLibraryCard={true}
+                      showOwnedBadge={activeTab === 'collection' || !!movie.source_upc}
                       onEdit={handleEdit}
                       onDelete={handleDelete}
                     />

@@ -12,7 +12,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🧪 Next
 
 - Continue optional enrichment rollout (Streaming Availability+) behind feature flags.
-- Add live scanner diagnostics in barcode modal (secure-context/API/mode visibility) for phone-first debugging on production URLs.
+- Onboarding for streaming preferences (first-launch modal, inline display).
+- Server-side cache table for UPC results.
+- Confidence scoring in TMDB matching with user confirmation for ambiguous titles.
+- Enrichment failure telemetry into Oracle analytics.
+
+---
+
+## [1.12.11] - April 28, 2026
+
+### 🛠️ Changed
+
+- **Auth email deliverability UX**
+  - Added explicit spam/promotions-folder guidance to password-reset flow in `LoginPage` helper and success messaging.
+  - Added the same spam/promotions guidance to signup flow success messaging and email field helper copy in `RegisterPage`.
+- **Release metadata sync**
+  - Aligned app/package versions and roadmap pointer for this UX pass.
+
+### ✅ Quality
+
+- Verified no linter issues in updated auth pages after copy and style updates.
+
+---
+
+## [1.12.10] - April 28, 2026
+
+### 🛠️ Changed
+
+- **Primary-domain SEO hardening**
+  - Updated SEO defaults/canonical fallback from `filmgraph.vercel.app` to `filmgraph.app` in the shared head component.
+  - Updated crawler metadata to the primary domain (`robots.txt` sitemap URL + sitemap generator default URL).
+  - Regenerated `public/sitemap.xml` against `https://filmgraph.app`.
+  - Updated launch artifact links to point at the primary domain.
+
+### ✅ Quality
+
+- Domain property is now aligned across head/crawler/link surfaces for Search Console indexing consistency.
+
+---
+
+## [1.12.9] - April 28, 2026
+
+### 🚀 Added
+
+- **SEO discoverability foundation**
+  - Added route-level SEO head management with `react-helmet-async` and reusable `SeoHead` component.
+  - Added dynamic titles/descriptions/canonical/OG/Twitter tags on key routes (Trending, Search, Discovery, Library, Movie Detail).
+  - Added `Movie` JSON-LD schema on `MovieDetail` with title/year/poster/overview plus Filmgraph mood/rating properties when available.
+- **Crawler assets + sitemap automation**
+  - Added `public/robots.txt` with sitemap declaration.
+  - Added sitemap generation script (`scripts/generate-sitemap.mjs`) and npm command `seo:sitemap`.
+  - Generated `public/sitemap.xml` from static routes with optional dynamic movie ID support via `SITEMAP_MOVIE_IDS`.
+- **Launch content artifact pack**
+  - Added reusable launch/reply templates under `artifacts/launch/` for Reddit/Facebook/community posting workflows.
+
+### 🛠️ Changed
+
+- **Shared list reliability**
+  - Added adapter-backed `deleteList` API in `src/api/sharedLists.js` and moved UI deletion flow onto that single path.
+  - Updated library list deletion to use context adapter flow instead of duplicated direct Supabase calls.
+  - Added duplicate list-name guard in shared list creation to prevent accidental repeated list creation by the same user.
+
+### ✅ Quality
+
+- Verified sitemap generation (`npm run seo:sitemap`) and production build (`npm run build`) succeed after SEO integration.
+
+---
+
+## [1.12.8] - April 27, 2026
+
+### 📚 Documentation
+
+- **NotebookLM grounding bundle**
+  - Added `artifacts/architecture-overview.md` — top-down system map (client, Supabase, Vercel functions, external APIs, AI orchestration) for grounding NotebookLM Q&A.
+  - Added `artifacts/data-model.md` — Supabase schema reference covering `profiles`, `movie_logs`, `lists` family, `oracle_provider_events`, RLS principles, and chronological migration index.
+  - Added `artifacts/failure-modes.md` — battle-scar catalog with 12 high-signal regressions (mobile camera black preview, UPC CORS, stale Vite/SW caches, env drift, native secure-context, enrichment crashes, etc.) and a template for adding new entries.
+- Joined the existing `artifacts/barcode-scanner-implementation-summary.md` to form a complete NotebookLM source set: architecture + schema + failure modes + feature deep-dive.
+
+### ✅ Quality
+
+- Version bump (`1.12.7` → `1.12.8`) reflects documentation surface area only — no runtime behavior changes.
 
 ---
 

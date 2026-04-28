@@ -13,6 +13,7 @@ import { useToast } from "../context/ToastContext";
 import { getSupabase } from "../supabaseClient";
 import LogMovieModal from "../components/LogMovieModal";
 import AddToListButton from "../components/AddToListButton";
+import SeoHead from "../components/seo/SeoHead";
 import { buildMovieSharePayload, executeShare } from "../utils/share";
 import { fetchMovieEnrichment } from "../utils/movieEnrichment";
 import "./MovieDetail.css";
@@ -198,6 +199,7 @@ function MovieDetail() {
   const [editingLog, setEditingLog] = useState(null);
   const [watchProviders, setWatchProviders] = useState(null);
   const [enrichment, setEnrichment] = useState(null);
+  const [isOwnedPhysical, setIsOwnedPhysical] = useState(false);
 
   useEffect(() => {
     const fetchMovieData = async () => {
@@ -264,9 +266,18 @@ function MovieDetail() {
         // FIX 2: Use .maybeSingle() instead of .single()
         const { data, error } = await supabase
           .from("movie_logs")
-          .select("id, rating, review, moods, genres, tmdb_id, user_id")
+          .select("id, rating, review, moods, genres, tmdb_id, user_id, source_upc")
           .eq("tmdb_id", movie.id)
           .eq("user_id", user.id)
+          .maybeSingle();
+
+        const { data: ownedRow } = await supabase
+          .from("movie_logs")
+          .select("id")
+          .eq("tmdb_id", movie.id)
+          .eq("user_id", user.id)
+          .not("source_upc", "is", null)
+          .limit(1)
           .maybeSingle();
 
         if (error) {
@@ -276,6 +287,7 @@ function MovieDetail() {
         } else {
           setUserLog(null);
         }
+        setIsOwnedPhysical(!!ownedRow);
       } catch (err) {
         console.error("Error fetching user log:", err);
       }
@@ -401,6 +413,11 @@ function MovieDetail() {
   if (isLoading) {
     return (
       <div className="loading-page">
+        <SeoHead
+          title="Movie Details"
+          description="Loading movie details, streaming availability, and mood insights on Filmgraph."
+          pathname={`/movie/${id}`}
+        />
         <div className="loading-spinner-large"></div>
         <p>Loading movie details...</p>
       </div>
@@ -411,6 +428,11 @@ function MovieDetail() {
   if (!movie || !movie.title) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+        <SeoHead
+          title="Movie Not Found"
+          description="The requested movie could not be found in Filmgraph's archive."
+          pathname={`/movie/${id}`}
+        />
         <h2 className="text-4xl font-creepster text-accent mb-4">
           Signal Lost
         </h2>
@@ -428,6 +450,49 @@ function MovieDetail() {
   const backdropUrl = getBackdropUrl(movie.backdrop_path, "original");
   const posterUrl = getPosterUrl(movie.poster_path, "w500");
   const rtNumeric = rtScore ? parseInt(rtScore) : null;
+  const releaseYear = movie.release_date?.split("-")[0] || "Unknown";
+  const seoDescription = movie.overview
+    ? movie.overview.slice(0, 160)
+    : `Explore ${movie.title} (${releaseYear}) with ratings, streaming providers, and personal mood notes on Filmgraph.`;
+  const movieJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Movie",
+    name: movie.title,
+    datePublished: movie.release_date || undefined,
+    image: posterUrl || backdropUrl || undefined,
+    description: movie.overview || undefined,
+    aggregateRating: movie.vote_average
+      ? {
+          "@type": "AggregateRating",
+          ratingValue: Number(movie.vote_average.toFixed(1)),
+          bestRating: 10,
+          worstRating: 0,
+          ratingCount: movie.vote_count || undefined,
+        }
+      : undefined,
+    additionalProperty: userLog
+      ? [
+          ...(typeof userLog.rating === "number"
+            ? [
+                {
+                  "@type": "PropertyValue",
+                  name: "Filmgraph user rating",
+                  value: userLog.rating,
+                },
+              ]
+            : []),
+          ...(Array.isArray(userLog.moods) && userLog.moods.length
+            ? [
+                {
+                  "@type": "PropertyValue",
+                  name: "Filmgraph moods",
+                  value: userLog.moods.join(", "),
+                },
+              ]
+            : []),
+        ]
+      : undefined,
+  };
 
   const crewList = movie.credits?.crew || [];
   const directors = pickDirectors(crewList);
@@ -437,6 +502,14 @@ function MovieDetail() {
 
   return (
     <>
+      <SeoHead
+        title={`${movie.title} (${releaseYear}) - Mood & Stats`}
+        description={seoDescription}
+        pathname={`/movie/${movie.id}`}
+        image={backdropUrl || posterUrl || undefined}
+        type="video.movie"
+        jsonLd={movieJsonLd}
+      />
       <div className="movie-detail-page">
         {/* Hero Section with Backdrop */}
         <div className="movie-hero">
@@ -530,6 +603,23 @@ function MovieDetail() {
                   </span>
                 ))}
               </div>
+
+              {isOwnedPhysical && (
+                <div
+                  style={{
+                    marginTop: "12px",
+                    padding: "8px 12px",
+                    borderRadius: "8px",
+                    border: "1px solid rgba(16, 185, 129, 0.45)",
+                    background: "rgba(6, 78, 59, 0.35)",
+                    color: "#a7f3d0",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                  }}
+                >
+                  You own this physically (UPC scanned in your collection).
+                </div>
+              )}
 
               {(directors.length > 0 || writers.length > 0) && (
                 <div className="crew-hero-lines">

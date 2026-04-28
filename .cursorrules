@@ -1,0 +1,42 @@
+# Filmgraph Grounding Rules (Notebook-Aligned)
+
+## Mission focus
+- Prioritize shipping stable user-facing value for Filmgraph phases in `ROADMAP.md`.
+- Keep Oracle, scanner, and collection flows resilient on mobile and production first.
+- Never let optional enrichment block core discovery, logging, or rendering.
+
+## Current phase context
+- Current shipped baseline: Streaming Oracle MVP + UI foundation + physical-media collection surfaces.
+- Active next-up work: Optional API Enrichment families behind flags (`editorial`, `visual`, `trakt`).
+- Guardrail: enrichments fail-soft to TMDB/core metadata.
+
+## High-level system logic
+- Discovery/Oracle:
+  - Use hybrid recommendation orchestration in `src/utils/gemini.js`.
+  - Respect provider preferences from `profiles.user_providers`.
+  - Provider filters and enrichments must degrade gracefully.
+- Physical media:
+  - UPC scan and lookup starts in `src/components/LogMovieModal.jsx`.
+  - UPC lookup logic lives in `src/api/upc.js`.
+  - Server-side UPC proxy endpoint is `api/upc-lookup.js`.
+  - Ownership source-of-truth is `movie_logs.source_upc`.
+- Collection views:
+  - Library `Collection` shelf is filtered by `source_upc IS NOT NULL`.
+  - Profile and movie detail surfaces should reuse this ownership signal.
+
+## Implementation constraints
+- Keep existing stack conventions (React + Vite + custom CSS + Supabase).
+- Reuse existing API modules; avoid scattering raw fetches in UI components.
+- Prefer minimal, low-risk changes over broad rewrites.
+- Keep mobile compatibility first (camera, touch targets, loading/perf).
+
+## Definition of done for phase work
+- User-visible behavior works on live deployment.
+- Lints clean for touched files and production build passes.
+- `CHANGELOG.md` and relevant roadmap status are updated when features ship.
+
+## Documentation export protocol
+- After each major feature/phase:
+  - produce a concise implementation summary (what/where/why/fallbacks/tests),
+  - include key paths touched,
+  - include known risks + next actions.

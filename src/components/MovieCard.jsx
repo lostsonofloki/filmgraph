@@ -4,7 +4,13 @@ import LogMovieModal from './LogMovieModal';
 import AddToListButton from './AddToListButton';
 import './MovieCard.css';
 
-function MovieCard({ movie, isLibraryCard = false, onEdit, onDelete }) {
+function MovieCard({
+  movie,
+  isLibraryCard = false,
+  showOwnedBadge = false,
+  onEdit,
+  onDelete,
+}) {
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
 
@@ -55,6 +61,14 @@ function MovieCard({ movie, isLibraryCard = false, onEdit, onDelete }) {
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
               <span className="text-white font-bold text-sm">{userRating.toFixed(1)}</span>
+            </div>
+          )}
+
+          {showOwnedBadge && (
+            <div className="absolute top-3 left-3 bg-emerald-900/80 backdrop-blur-md px-2.5 py-1 rounded-lg border border-emerald-500/40 shadow-lg">
+              <span className="text-emerald-200 font-semibold text-xs">
+                Owned
+              </span>
             </div>
           )}
 

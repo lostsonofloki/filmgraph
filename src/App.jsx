@@ -7,6 +7,7 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
+import { Suspense, lazy } from "react";
 import { UserProvider, useUser } from "./context/UserContext";
 import { ListProvider } from "./context/ListContext";
 import { ToastProvider } from "./context/ToastContext";
@@ -14,27 +15,28 @@ import { Analytics } from "@vercel/analytics/react";
 import FilmgraphLogo from "./components/FilmgraphLogo";
 import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
-import SearchPage from "./pages/SearchPage";
-import TrendingMovies from "./pages/TrendingMovies";
-import MovieDetail from "./pages/MovieDetail";
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
-import LibraryPage from "./pages/LibraryPage";
-import ProfilePage from "./pages/ProfilePage";
-import WatchHistory from "./pages/WatchHistory";
-import ActorPage from "./pages/ActorPage";
-import UpdatePasswordPage from "./pages/UpdatePasswordPage";
-import AboutPage from "./pages/AboutPage";
-import ChangelogPage from "./pages/ChangelogPage";
-import BugList from "./components/BugList";
-import DiscoveryPage from "./pages/DiscoveryPage";
-import MatchmakerPage from "./pages/MatchmakerPage";
-import SynergyDashboard from "./pages/SynergyDashboard";
-import OracleAnalyticsPage from "./pages/OracleAnalyticsPage";
 import { useState, useEffect } from "react";
 import { flushQueuedMovieLogs } from "./utils/offlineQueue";
 import { useInstallPrompt } from "./pwa/useInstallPrompt";
 import "./App.css";
+
+const SearchPage = lazy(() => import("./pages/SearchPage"));
+const TrendingMovies = lazy(() => import("./pages/TrendingMovies"));
+const MovieDetail = lazy(() => import("./pages/MovieDetail"));
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const RegisterPage = lazy(() => import("./pages/RegisterPage"));
+const LibraryPage = lazy(() => import("./pages/LibraryPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const WatchHistory = lazy(() => import("./pages/WatchHistory"));
+const ActorPage = lazy(() => import("./pages/ActorPage"));
+const UpdatePasswordPage = lazy(() => import("./pages/UpdatePasswordPage"));
+const AboutPage = lazy(() => import("./pages/AboutPage"));
+const ChangelogPage = lazy(() => import("./pages/ChangelogPage"));
+const BugList = lazy(() => import("./components/BugList"));
+const DiscoveryPage = lazy(() => import("./pages/DiscoveryPage"));
+const MatchmakerPage = lazy(() => import("./pages/MatchmakerPage"));
+const SynergyDashboard = lazy(() => import("./pages/SynergyDashboard"));
+const OracleAnalyticsPage = lazy(() => import("./pages/OracleAnalyticsPage"));
 
 // ============================================
 // HEADER - SOLID SEARCH SYSTEM (NO MORE BUGS)
@@ -330,57 +332,59 @@ function AppContent() {
       )}
       <main className="app-main">
         <div className="main-content">
-          <Routes>
-            <Route path="/" element={<TrendingMovies />} />
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/movie/:id" element={<MovieDetail />} />
-            <Route path="/actor/:id" element={<ActorPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/update-password" element={<UpdatePasswordPage />} />
-            <Route path="/library" element={<LibraryPage />} />
-            <Route path="/history" element={<WatchHistory />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/changelog" element={<ChangelogPage />} />
-            <Route path="/admin/bugs" element={<BugList />} />
-            <Route
-              path="/admin/oracle-analytics"
-              element={<OracleAnalyticsPage />}
-            />
-            <Route
-              path="/discover"
-              element={
-                <ProtectedRoute>
-                  <DiscoveryPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <ProfilePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/matchmaker"
-              element={
-                <ProtectedRoute>
-                  <MatchmakerPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/matchmaker/:friendId"
-              element={
-                <ProtectedRoute>
-                  <SynergyDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <Suspense fallback={<div className="loading-state">Loading...</div>}>
+            <Routes>
+              <Route path="/" element={<TrendingMovies />} />
+              <Route path="/search" element={<SearchPage />} />
+              <Route path="/movie/:id" element={<MovieDetail />} />
+              <Route path="/actor/:id" element={<ActorPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/update-password" element={<UpdatePasswordPage />} />
+              <Route path="/library" element={<LibraryPage />} />
+              <Route path="/history" element={<WatchHistory />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/changelog" element={<ChangelogPage />} />
+              <Route path="/admin/bugs" element={<BugList />} />
+              <Route
+                path="/admin/oracle-analytics"
+                element={<OracleAnalyticsPage />}
+              />
+              <Route
+                path="/discover"
+                element={
+                  <ProtectedRoute>
+                    <DiscoveryPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/matchmaker"
+                element={
+                  <ProtectedRoute>
+                    <MatchmakerPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/matchmaker/:friendId"
+                element={
+                  <ProtectedRoute>
+                    <SynergyDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </div>
       </main>
       <Footer />

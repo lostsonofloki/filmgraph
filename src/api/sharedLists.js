@@ -24,6 +24,24 @@ export async function createList(userId, name, description = '') {
     return { data: null, error: new Error('List name is required.') };
   }
 
+  const { data: existingList, error: existingListError } = await supabase
+    .from('lists')
+    .select('id, name')
+    .eq('user_id', userId)
+    .ilike('name', trimmedName)
+    .maybeSingle();
+
+  if (existingListError) {
+    return { data: null, error: existingListError };
+  }
+
+  if (existingList) {
+    return {
+      data: null,
+      error: new Error('A list with this name already exists.'),
+    };
+  }
+
   const { data: list, error: insertListError } = await supabase
     .from('lists')
     .insert({
@@ -472,4 +490,30 @@ export async function getListEntries(listId) {
   }
 
   return { data: data || [], error: null };
+}
+
+/**
+ * Delete a list and rely on DB cascade to remove list_items/list_members.
+ *
+ * @param {string} listId
+ * @param {string} userId - current user id for owner guard
+ * @returns {Promise<{ data: boolean, error: Error | null }>}
+ */
+export async function deleteList(listId, userId) {
+  const supabase = getSupabase();
+  if (!listId || !userId) {
+    return { data: false, error: new Error('listId and userId are required.') };
+  }
+
+  const { error } = await supabase
+    .from('lists')
+    .delete()
+    .eq('id', listId)
+    .eq('user_id', userId);
+
+  if (error) {
+    return { data: false, error };
+  }
+
+  return { data: true, error: null };
 }

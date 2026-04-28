@@ -75,6 +75,14 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
     typeof navigator !== 'undefined' &&
     !!navigator.mediaDevices &&
     typeof navigator.mediaDevices.getUserMedia === 'function';
+  const isNativePlatform =
+    typeof window !== 'undefined' &&
+    !!window.Capacitor &&
+    typeof window.Capacitor.isNativePlatform === 'function' &&
+    window.Capacitor.isNativePlatform();
+  const isMobileDevice =
+    typeof navigator !== 'undefined' &&
+    /android|iphone|ipad|ipod/i.test(navigator.userAgent || '');
   const effectiveMovie = lookupResult?.tmdbMovie || movie;
   const waitForElement = async (id, attempts = 12) => {
     for (let i = 0; i < attempts; i += 1) {
@@ -115,6 +123,19 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
 
   useEffect(() => () => stopScanner(), []);
 
+  useEffect(() => {
+    if (!isScannerOpen || scannerMode !== 'native') return;
+    if (!videoRef.current || !streamRef.current) return;
+
+    const videoEl = videoRef.current;
+    videoEl.srcObject = streamRef.current;
+    videoEl
+      .play()
+      .catch(() => {
+        // Some mobile browsers may delay autoplay until the stream settles.
+      });
+  }, [isScannerOpen, scannerMode]);
+
   const startHtml5QrcodeScanner = async () => {
     const { Html5Qrcode } = await import('html5-qrcode');
     setScannerMode('html5');
@@ -148,8 +169,8 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
   const startScanner = async () => {
     setScannerError('');
 
-    if (!window.isSecureContext) {
-      setScannerError('Camera scanning requires HTTPS or localhost.');
+    if (!window.isSecureContext && !isNativePlatform) {
+      setScannerError('Camera scanning requires HTTPS (or native mobile app context).');
       return;
     }
     if (!cameraApiAvailable) {
@@ -158,7 +179,9 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
     }
 
     try {
-      if (!scannerSupported) {
+      // On mobile/native environments, html5-qrcode is more reliable than
+      // BarcodeDetector + manual video attachment across WebView variants.
+      if (isNativePlatform || isMobileDevice || !scannerSupported) {
         await startHtml5QrcodeScanner();
         return;
       }
@@ -175,11 +198,6 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
       streamRef.current = stream;
       setScannerMode('native');
       setIsScannerOpen(true);
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
 
       const desiredFormats = ['ean_13', 'ean_8', 'upc_a', 'upc_e'];
       const supportedFormats = await window.BarcodeDetector.getSupportedFormats();
@@ -203,6 +221,10 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
         }
       }, 450);
     } catch (scanError) {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
       // Fall back to html5-qrcode when native detector setup fails.
       try {
         await startHtml5QrcodeScanner();

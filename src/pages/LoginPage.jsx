@@ -65,7 +65,9 @@ function LoginPage() {
         redirectTo: redirectUrl,
       });
 
-      setSuccess('Check your email for the Filmgraph reset link!');
+      setSuccess(
+        'Check your email for the Filmgraph reset link. If you do not see it in a minute, check your spam or promotions folder.',
+      );
       setResetEmail('');
       setShowResetForm(false);
     } catch (err) {
@@ -189,6 +191,9 @@ function LoginPage() {
                     disabled={isSubmitting}
                     autoComplete="email"
                   />
+                  <p className="reset-helper-text">
+                    Reset emails can land in spam or promotions on first send.
+                  </p>
                 </div>
 
                 <button

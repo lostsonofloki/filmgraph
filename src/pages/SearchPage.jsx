@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import SearchResults from '../components/SearchResults';
 import { searchMulti, discoverMovies } from '../api/tmdb';
+import SeoHead from '../components/seo/SeoHead';
 import './SearchPage.css';
 
 const TMDB_GENRES = [
@@ -39,6 +40,7 @@ const YEAR_RANGE = Array.from({ length: 100 }, (_, i) => CURRENT_YEAR - i);
  * SearchPage - Main page for searching and logging movies with Power Filter
  */
 function SearchPage() {
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const [movies, setMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -163,6 +165,11 @@ function SearchPage() {
 
   return (
     <div className="search-page">
+      <SeoHead
+        title="Search Movies"
+        description="Search Filmgraph for movies, people, genres, and discover curated titles with advanced filters."
+        pathname={`${location.pathname}${location.search}`}
+      />
       {/* Power Filter Bar */}
       <div className="power-filter-bar">
         <div className="filter-group">

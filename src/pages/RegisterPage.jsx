@@ -104,7 +104,9 @@ function RegisterPage() {
         if (profileError) {
           throw profileError;
         }
-        setSuccess('Account created! Please check your email to confirm your account.');
+        setSuccess(
+          'Account created! Please check your email to confirm your account. If you do not see it in a minute, check your spam or promotions folder.',
+        );
         setEmail('');
         setUsername('');
         setPassword('');
@@ -179,6 +181,9 @@ function RegisterPage() {
                 disabled={isSubmitting}
                 autoComplete="email"
               />
+              <p className="signup-helper-text">
+                Confirmation emails can land in spam or promotions on first send.
+              </p>
             </div>
 
             <div className="form-group">

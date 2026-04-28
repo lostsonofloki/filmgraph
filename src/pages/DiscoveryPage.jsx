@@ -13,7 +13,9 @@ import {
 import { fetchTMDBMovie } from "../api/tmdb";
 import { Link } from "react-router-dom";
 import LogMovieModal from "../components/LogMovieModal";
+import SeoHead from "../components/seo/SeoHead";
 import "./DiscoveryPage.css";
+import { TOP_STREAMING_PROVIDERS_US } from "../constants/streamingProviders";
 
 const MOOD_PRESETS = [
   {
@@ -100,6 +102,7 @@ function DiscoveryPage() {
   const [selectedMovieForModal, setSelectedMovieForModal] = useState(null);
   const [isListDropdownOpen, setIsListDropdownOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [selectedProviderIds, setSelectedProviderIds] = useState([]);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -111,6 +114,44 @@ function DiscoveryPage() {
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
+
+  useEffect(() => {
+    const fetchProviderPreferences = async () => {
+      if (!user?.id) return;
+      try {
+        const supabase = getSupabase();
+        const { data } = await supabase
+          .from("profiles")
+          .select("user_providers")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (Array.isArray(data?.user_providers)) {
+          setSelectedProviderIds(data.user_providers);
+        }
+      } catch (providerErr) {
+        console.error("Failed to load provider preferences:", providerErr);
+      }
+    };
+    fetchProviderPreferences();
+  }, [user?.id]);
+
+  const toggleProvider = async (providerId) => {
+    const next = selectedProviderIds.includes(providerId)
+      ? selectedProviderIds.filter((id) => id !== providerId)
+      : [...selectedProviderIds, providerId];
+    setSelectedProviderIds(next);
+
+    if (!user?.id) return;
+    try {
+      const supabase = getSupabase();
+      await supabase
+        .from("profiles")
+        .update({ user_providers: next, updated_at: new Date().toISOString() })
+        .eq("id", user.id);
+    } catch (providerErr) {
+      console.error("Failed to save provider preferences:", providerErr);
+    }
+  };
 
   /**
    * Optimized History Fetch - Watched + To-Watch + Custom Lists
@@ -370,6 +411,11 @@ function DiscoveryPage() {
 
   return (
     <div className="discovery-page">
+      <SeoHead
+        title="Oracle Discovery"
+        description="Use Filmgraph Oracle to get vibe-based movie recommendations with provider-aware filtering and rationale."
+        pathname="/discover"
+      />
       <div className="discovery-container">
         {!isOnline && (
           <div className="error" style={{ marginBottom: "12px" }}>
@@ -399,6 +445,47 @@ function DiscoveryPage() {
         </div>
 
         <div className="prompt-section">
+          <label className="prompt-label">My Streaming Services:</label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "14px" }}>
+            {TOP_STREAMING_PROVIDERS_US.map((provider) => {
+              const active = selectedProviderIds.includes(provider.id);
+              return (
+                <button
+                  key={provider.id}
+                  type="button"
+                  onClick={() => toggleProvider(provider.id)}
+                  className="mood-bubble"
+                  style={{
+                    minHeight: "unset",
+                    padding: "8px 10px",
+                    borderColor: active ? "#f97316" : "#262626",
+                    background: active ? "rgba(249, 115, 22, 0.16)" : "#171717",
+                  }}
+                >
+                  <span className="mood-label" style={{ color: active ? "#f97316" : "#a3a3a3" }}>
+                    {provider.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {selectedProviderIds.length > 0 && (
+            <p
+              style={{
+                margin: "0 0 10px",
+                color: "#f59e0b",
+                fontSize: "12px",
+                fontWeight: 600,
+              }}
+            >
+              Filtering toward:{" "}
+              {TOP_STREAMING_PROVIDERS_US.filter((p) =>
+                selectedProviderIds.includes(p.id),
+              )
+                .map((p) => p.name)
+                .join(" · ")}
+            </p>
+          )}
           <label className="prompt-label">Or describe your vibe:</label>
           <form onSubmit={handleSubmit} className="prompt-input-wrapper">
             <textarea

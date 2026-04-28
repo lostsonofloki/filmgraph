@@ -5,6 +5,7 @@ import {
   addMovieToList as addMovieToSharedList,
   canEditRole,
   createList as createSharedList,
+  deleteList as deleteSharedList,
   getUserLists,
   inviteListMember,
   removeListMember,
@@ -137,11 +138,7 @@ export function ListProvider({ children }) {
     }
 
     try {
-      const { error: deleteError } = await supabase
-        .from('lists')
-        .delete()
-        .eq('id', listId)
-        .eq('user_id', user.id); // Ensure user owns the list
+      const { error: deleteError } = await deleteSharedList(listId, user.id);
 
       if (deleteError) throw deleteError;
 

@@ -21,6 +21,7 @@ import {
   Legend,
 } from "recharts";
 import "./ProfilePage.css";
+import { TOP_STREAMING_PROVIDERS_US } from "../constants/streamingProviders";
 
 const GENRE_COLORS = [
   "#f97316", // Orange
@@ -87,11 +88,13 @@ function ProfilePage() {
     totalWatched: 0,
     avgRating: 0,
     hoursWatched: 0,
+    physicalOwned: 0,
   });
   const [ratingsData, setRatingsData] = useState([]);
   const [genreData, setGenreData] = useState([]);
   const [moodData, setMoodData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [userProviders, setUserProviders] = useState([]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -100,13 +103,16 @@ function ProfilePage() {
         const supabase = getSupabase();
         const { data } = await supabase
           .from("profiles")
-          .select("display_name, username, bio, avatar_url")
+          .select("display_name, username, bio, avatar_url, user_providers")
           .eq("id", user.id)
           .maybeSingle();
         if (data?.username) setUsername(data.username);
         if (data?.display_name) setDisplayName(data.display_name);
         if (data?.bio) setBio(data.bio);
         if (data?.avatar_url) setAvatarUrl(data.avatar_url);
+        if (Array.isArray(data?.user_providers)) {
+          setUserProviders(data.user_providers);
+        }
       } catch (err) {
         console.error("Error fetching profile:", err);
       }
@@ -150,6 +156,7 @@ function ProfilePage() {
 
           // Estimate hours (avg movie = 1.5 hours)
           const hoursWatched = Math.round(watched * 1.5);
+          const physicalOwned = movieLogs.filter((m) => !!m.source_upc).length;
 
           const ratingCounts = {};
           watchedMovies.forEach((movie) => {
@@ -225,6 +232,7 @@ function ProfilePage() {
             totalWatched: watchedMovies.length,
             avgRating: avg.toFixed(1),
             hoursWatched,
+            physicalOwned,
           });
           setRatingsData(ratingsArray);
           setGenreData(genreDataWithPercent);
@@ -378,6 +386,7 @@ function ProfilePage() {
         username: normalizedUsername,
         display_name: displayName.trim(),
         bio: bio || null,
+        user_providers: userProviders,
         updated_at: new Date().toISOString(),
       });
       if (profileError) throw profileError;
@@ -398,6 +407,14 @@ function ProfilePage() {
     setIsEditing(false);
     setError("");
     setSuccess("");
+  };
+
+  const toggleProviderPreference = (providerId) => {
+    setUserProviders((prev) =>
+      prev.includes(providerId)
+        ? prev.filter((id) => id !== providerId)
+        : [...prev, providerId],
+    );
   };
 
   if (!user) return null;
@@ -525,6 +542,36 @@ function ProfilePage() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Social Hub Section */}
+        <div className="social-hub-section">
+          <div className="social-hub-header">
+            <h2 className="social-hub-title font-creepster">Streaming Preferences</h2>
+          </div>
+          <p className="profile-email" style={{ marginBottom: "10px" }}>
+            Pick services you currently have. Oracle uses this to guide recommendations.
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+            {TOP_STREAMING_PROVIDERS_US.map((provider) => {
+              const active = userProviders.includes(provider.id);
+              return (
+                <button
+                  key={provider.id}
+                  type="button"
+                  onClick={() => toggleProviderPreference(provider.id)}
+                  className="edit-profile-btn"
+                  style={{
+                    padding: "8px 12px",
+                    opacity: active ? 1 : 0.65,
+                    border: active ? "1px solid #fb923c" : "1px solid transparent",
+                  }}
+                >
+                  {provider.name}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Social Hub Section */}
@@ -670,6 +717,12 @@ function ProfilePage() {
               {isLoading ? "..." : stats.daysLogged}
             </span>
             <span className="stat-label">Days Logged</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-number">
+              {isLoading ? "..." : stats.physicalOwned}
+            </span>
+            <span className="stat-label">Physical Owned</span>
           </div>
         </div>
 

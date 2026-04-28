@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getTrendingMovies, getBackdropUrl, discoverMovies } from '../api/tmdb';
+import SeoHead from '../components/seo/SeoHead';
 import './TrendingMovies.css';
 
 const TMDB_GENRES = [
@@ -80,6 +81,11 @@ function TrendingMovies() {
 
   return (
     <div className="trending-page">
+      <SeoHead
+        title="Trending Movies"
+        description="Browse trending films, filter by genre and year, and jump into detailed movie insights on Filmgraph."
+        pathname="/"
+      />
       <div className="trending-header">
         <h1 className="trending-title">Trending Movies</h1>
         <div className="time-window-toggle">
