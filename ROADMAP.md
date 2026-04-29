@@ -485,7 +485,7 @@ $ git log --all --full-history -- .env
 
 **Phase**: Phase 7.1 + 7.2 + 7.3 core foundations + Streaming Oracle MVP + UI foundation shipped ✅
 
-**Current Version**: v1.12.12 - Resend bug-report admin email notifications
+**Current Version**: v1.12.14 - Pre-launch bug squash (Oracle reroll + shared-list uniqueness + streaming logos)
 
 **Completed Features**:
 
@@ -998,6 +998,29 @@ User Query → Groq LPU (llama-3.3-70b-versatile) → Genre IDs (300-600ms)
 - [x] Re-scanning the same UPC avoids repeated upstream API calls.
 - [x] Cache write failures never block UPC lookup responses.
 - [x] Mobile scanner flow remains unchanged from user perspective (faster on repeat scans).
+
+---
+
+## Phase 7.8: Pre-Launch Bug Squash (v1.12.14)
+
+**Status**: ✅ **Complete**
+**Priority**: 🔥 **Critical (Launch Blocking)**
+
+**Goal**: Resolve launch-blocking regressions in Oracle reroll behavior, duplicate collaborator list rendering, and streaming-context visibility for recommendations.
+
+### Tasks
+
+| # | Task | Description | Status |
+| --- | --- | --- | --- |
+| 7.8.1 | **Fix Reroll Logic** | Ensure single-card reroll replaces only the targeted recommendation using TMDB-aware index replacement, not global refresh. | ✅ |
+| 7.8.2 | **Unique Membership Guard** | Enforce `list_members(list_id,user_id)` uniqueness with defensive dedupe migration and race-safe upsert writes. | ✅ |
+| 7.8.3 | **Streaming Badges** | Show matched provider logos on Oracle result cards based on user provider preferences. | ✅ |
+
+### Success Criteria
+
+- [x] Rerolling a single recommendation updates only that card.
+- [x] Collaborator list views no longer show duplicate list entries from duplicate membership rows.
+- [x] Oracle cards display only streaming logos that match `user_providers`.
 
 ---
 

@@ -409,6 +409,41 @@
   border-radius: 8px;
 }
 
+.oracle-provider-logos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.oracle-provider-logos-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-text-muted);
+}
+
+.oracle-provider-logos-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.oracle-provider-logo-chip {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--fg-border);
+  background: #0f0f10;
+  display: inline-flex;
+}
+
+.oracle-provider-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .vibe-label {
   font-size: 12px;
   font-weight: 700;
@@ -601,6 +636,18 @@
 .reject-reroll-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.reject-reroll-btn--all {
+  background: #232327;
+  color: #e4e4e7;
+  border-color: #3f3f46;
+}
+
+.reject-reroll-btn--all:hover:not(:disabled) {
+  background: #2f2f34;
+  border-color: #52525b;
+  box-shadow: 0 4px 12px rgba(82, 82, 91, 0.25);
 }
 
 /* Rejected Count Badge */

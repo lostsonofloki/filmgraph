@@ -24,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Wired cache-first behavior into `api/upc-lookup` with fail-soft upsert semantics.
   - Added TTL-based cache aging + stale fallback handling so older UPC entries refresh automatically while still returning cached data during upstream errors/timeouts.
   - Added optional server-side Supabase env documentation for cache operations.
+- **Pre-launch bug squash (v1.12.14)**
+  - Refactored Oracle recommendation rendering into `OracleContext` + `ResultCard` and fixed reroll regression so single-card rerolls replace only the targeted recommendation instead of globally refreshing the entire set.
+  - Added Oracle streaming context badges by mapping TMDB provider logos and rendering matched `user_providers` directly on each result card.
+  - Added list-membership race guard migration (`list_members` dedupe + unique index on `list_id,user_id`) and hardened shared-list API writes with `upsert(..., { onConflict: 'list_id,user_id' })`.
 
 ---
 

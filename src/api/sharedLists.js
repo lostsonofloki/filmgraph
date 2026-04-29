@@ -58,11 +58,14 @@ export async function createList(userId, name, description = '') {
     return { data: null, error: insertListError };
   }
 
-  const { error: memberError } = await supabase.from('list_members').insert({
-    list_id: list.id,
-    user_id: userId,
-    role: 'owner',
-  });
+  const { error: memberError } = await supabase.from('list_members').upsert(
+    {
+      list_id: list.id,
+      user_id: userId,
+      role: 'owner',
+    },
+    { onConflict: 'list_id,user_id' }
+  );
 
   if (memberError) {
     console.error('sharedLists.createList list_members insert:', memberError);
@@ -266,6 +269,9 @@ export async function getUserLists(userId) {
 
   const membersByList = (membersData || []).reduce((acc, member) => {
     const listMembers = acc[member.list_id] || [];
+    if (listMembers.some((existingMember) => existingMember.user_id === member.user_id)) {
+      return acc;
+    }
     listMembers.push({
       ...member,
       profile: profileMap[member.user_id] || null,
@@ -287,7 +293,9 @@ export async function getUserLists(userId) {
     };
   });
 
-  return { data: enriched, error: null };
+  const dedupedById = Array.from(new Map(enriched.map((list) => [list.id, list])).values());
+
+  return { data: dedupedById, error: null };
 }
 
 /**
