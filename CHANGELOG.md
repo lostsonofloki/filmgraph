@@ -602,25 +602,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## Latest Version: 1.8.0 (March 29, 2026)
-
-**Highlights:**
-
-- 🔮 **Oracle** - AI-powered movie discovery with mood-based recommendations
-- 🤝 **The Matchmaker** - Social compatibility feature for comparing movie tastes with friends
-- 🎭 **6 Mood Presets** - Quick-select bubbles for instant vibe matching
-- 📱 **Mobile Navigation** - Discover page movie cards now clickable
-- 🎨 **Deep Ember Theme** - Consistent dark aesthetic with amber/orange accents
-
-**Quick Links:**
-
-- [Full v1.8.0 Notes](#180---march-29-2026)
-- [Previous: v1.7.0](#170---march-28-2026)
-- [Roadmap](./ROADMAP.md)
-- [README](./README.md)
-
----
-
 ## [1.8.0] - March 29, 2026
 
 ### 🚀 Added
@@ -1119,97 +1100,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Better Component Structure** - Separated skeleton loading components
 - **Reduced Code Bloat** - Net reduction of 110 lines while adding features
 
-### 🛠️ Changed
-
-#### Frontend (`src/pages/LibraryPage.jsx`)
-
-- **Magic Import Button** - Added "✨ Magic Import" button in library header
-- **Import Modal Integration** - `showImportModal` state and `ArchiveImporterModal` component
-- **Refresh Handler** - Library refreshes automatically after successful import
-
-#### New Files
-
-- **ArchiveImporterModal.jsx** - 4-step modal component with React Portal
-- **ArchiveImporterModal.css** - Deep Ember themed modal styling
-- **importer.js** - Utility module with Groq parsing and TMDB verification
-
-#### Backend (`src/utils/importer.js`)
-
-- **`parseArchiveWithGroq()`** - Groq API integration with system prompt engineering
-- **`verifyBatchWithTMDB()`** - Batch TMDB verification with error handling
-- **`batchSaveMovies()`** - Optimized single-request UPSERT for movie_logs table
-
-### ⚡ Performance
-
-#### Parallel Processing
-
-- **Groq Parsing** - ~300-600ms for typical lists (10-30 movies)
-- **TMDB Verification** - Parallel fetching reduces total time by 70-80%
-- **Batch Save** - Single network request vs. N individual inserts
-
-#### Deduplication Efficiency
-
-- **Database-Level** - `onConflict` constraint handles duplicates automatically
-- **No Pre-Checks Needed** - Eliminates need for separate existence queries
-- **Skipped Count Tracking** - Reports how many movies were already in library
-
-### 🎨 UI/UX
-
-#### Modal Design
-
-- **Step-by-Step Wizard** - Clear progression with visual feedback
-- **Review Grid** - Card-based layout with posters and parsed vs. TMDB titles
-- **Checkbox Selection** - Individual toggle with select/deselect all actions
-- **Loading States** - Spinner and progress indicators during verification
-- **Success Stats** - Post-import breakdown of saved/skipped/errors
-
-#### Deep Ember Theme
-
-- **Dark Zinc Backgrounds** - Consistent with app aesthetic
-- **Amber Accents** - Orange highlights for primary actions
-- **Status Indicators** - Red for not found, green for success
-- **Responsive Grid** - Multi-column layout for review cards
-
-### 📝 Documentation
-
-#### Updated Files
-
-- **CHANGELOG.md** - Comprehensive v1.5.0 release notes
-- **README.md** - Magic Importer feature documentation
-- **ROADMAP.md** - Bulk import marked as complete
-
-### 🐛 Fixed
-
-#### Bug Fixes
-
-- **Modal Portal Rendering** - Uses `createPortal` for proper z-index stacking
-- **Checkbox Event Bubbling** - `stopPropagation` prevents card click conflicts
-- **Empty State Handling** - Graceful handling of lists with no custom lists
-- **Year Parsing** - Handles "N/A" for movies without release years
-- **Poster Fallback** - Shows "No Poster" placeholder when TMDB has no image
-- **Groq JSON Parsing** - Handles single movie objects in addition to arrays
-- **Single Movie Import** - Now accepts titles without years (e.g., "Shrek", "Jaws")
-
----
-
-## [1.4.1] - March 26, 2026
-
-**Highlights:**
-
-- 🧠 **Personalized Oracle** - AI now knows your ENTIRE movie history (zero duplicates guaranteed)
-- 📚 **Three-Bucket Memory Fetch** - Watched + Watchlist + Custom Lists loaded in parallel
-- 🎯 **Taste Triangulation** - AI analyzes your high-rated films before recommending
-- ⚡ **Optimized Supabase Joins** - Efficient `lists!inner(user_id)` join for custom lists
-
-**Quick Links:**
-
-- [Full v1.4.1 Notes](#141---march-26-2026)
-- [Previous: v1.4.0](#140---march-26-2026)
-- [Roadmap](./ROADMAP.md)
-- [README](./README.md)
-
----
-
 ## [1.4.1] - March 26, 2026
 
 ### 🚀 Added
@@ -1431,26 +1321,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## Latest Version: 1.3.8 (March 24, 2026)
-
-**Highlights:**
-
-- 🔧 Logo text "FILMGRAPH" now visible on all screen sizes
-- 📝 Changelog page with dedicated route (/changelog)
-- 🤖 Oracle with Reject & Reroll feature
-- 🔐 Remember Me checkbox with dynamic storage
-- 📱 Responsive library grid (`grid-cols-2 md:grid-cols-4 lg:grid-cols-6`)
-- 🎯 Oracle vibe mapping fixed - "Brain Mush" now works
-
-**Quick Links:**
-
-- [Full v1.3.8 Notes](#138---march-24-2026)
-- [Oracle v1.3.2](#132---march-24-2026)
-- [Roadmap](./ROADMAP.md)
-- [README](./README.md)
-
----
-
 ## [1.3.8] - March 24, 2026
 
 ### 🐛 Fixed
@@ -1531,7 +1401,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.3.5] - 2026-03-24
+## [1.3.5] - March 24, 2026
 
 ### 🐛 Fixed
 
@@ -1571,7 +1441,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.3.4] - 2026-03-24
+## [1.3.4] - March 24, 2026
 
 ### 🧠 Fixed
 
@@ -1599,7 +1469,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.3.3] - 2026-03-24
+## [1.3.3] - March 24, 2026
 
 ### 🔐 Added
 
@@ -1634,7 +1504,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.3.2] - 2026-03-24
+## [1.3.2] - March 24, 2026
 
 ### 🎉 Added
 
@@ -1673,7 +1543,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.3.1] - 2026-03-24
+## [1.3.1] - March 24, 2026
 
 ### 🐛 Fixed
 
@@ -1701,7 +1571,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.3.0] - 2026-03-24
+## [1.3.0] - March 24, 2026
 
 ### 🎉 Added
 
@@ -1774,7 +1644,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.2.0] - 2026-03-24
+## [1.2.0] - March 24, 2026
 
 ### 🎉 Added
 
@@ -1848,7 +1718,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.1.0] - 2026-03-24
+## [1.1.0] - March 24, 2026
 
 ### 🎉 Added
 
@@ -1904,7 +1774,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.0.0] - 2026-03-XX
+## [1.0.0] - March XX, 2026
 
 ### 🎉 Initial Release
 

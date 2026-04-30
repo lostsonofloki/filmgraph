@@ -6,8 +6,8 @@ A phased approach to building Filmgraph from a static UI to a fully-featured mov
 
 ## 🔥 Immediate Priority: Oracle Intelligence Pass (Phase 7.9)
 
-**Status**: 🚧 **In Progress**  
-**Priority**: 🔥 **Critical (Next Priority)**
+**Status**: 🟡 **Partially Complete (Sprints A-C shipped; follow-ons deferred)**  
+**Priority**: 🔥 **Critical (Deferred Follow-Ons)**
 
 Use this as the primary execution track when Oracle work resumes.
 
@@ -1043,12 +1043,12 @@ User Query → Groq LPU (llama-3.3-70b-versatile) → Genre IDs (300-600ms)
 
 ## Phase 7.9: Oracle Intelligence Pass 🧠
 
-**Status**: 🚧 **In Progress**
-**Priority**: 🔥 **Critical (Next Priority)**
+**Status**: 🟡 **Partially Complete (Sprints A-C shipped; follow-ons deferred)**
+**Priority**: 🔥 **Critical (Deferred Follow-Ons)**
 
 **Goal**: Make Oracle recommendations smarter, stricter, and more resilient by enforcing post-generation quality checks and improving recommendation relevance.
 
-> **Execution Note**: Keep this track prioritized in planning, but defer remaining implementation work to a later sprint.
+> **Execution Note**: Sprint A/B/C integration is complete in the current release pass; keep this track prioritized for follow-up work in telemetry expansion (`7.9.4`) and provider-aware relevance ranking (`7.9.5`).
 
 ### Ranked Implementation Order (Now / Next / Later)
 
