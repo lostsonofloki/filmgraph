@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 function ProviderLogos({ logos }) {
@@ -43,6 +43,66 @@ function ResultCard({
   onRerollAll,
 }) {
   const [isListDropdownOpen, setIsListDropdownOpen] = useState(false);
+  const addToListInFlightRef = useRef(new Set());
+  const perfDebugEnabled =
+    String(import.meta.env.VITE_FEATURE_ORACLE_PERF_DEBUG || "").toLowerCase() === "true";
+  const renderCountRef = useRef(0);
+  renderCountRef.current += 1;
+
+  const listOptions = useMemo(
+    () =>
+      lists.map((list) => ({
+        ...list,
+        isInList: isMovieInList(list.id, movieTmdb?.id),
+        isReadOnly: !canEditList(list.id),
+      })),
+    [canEditList, isMovieInList, lists, movieTmdb?.id]
+  );
+
+  const handleOpenWatched = useCallback(() => {
+    if (movieTmdb) onOpenWatchedModal(movieTmdb);
+  }, [movieTmdb, onOpenWatchedModal]);
+
+  const handleAddWatchlist = useCallback(() => {
+    onAddToWatchlist(movieTmdb);
+  }, [movieTmdb, onAddToWatchlist]);
+
+  const handleToggleListDropdown = useCallback(() => {
+    setIsListDropdownOpen((open) => !open);
+  }, []);
+
+  const handleRerollOne = useCallback(() => {
+    onRerollOne(movieTmdb?.id, rec.title, rec.year);
+  }, [movieTmdb?.id, onRerollOne, rec.title, rec.year]);
+
+  const handleAddToList = useCallback(
+    async (list) => {
+      if (!movieTmdb?.id || list.isInList || list.isReadOnly) return;
+      const inFlightKey = `${list.id}:${movieTmdb.id}`;
+      if (addToListInFlightRef.current.has(inFlightKey)) return;
+
+      addToListInFlightRef.current.add(inFlightKey);
+      try {
+        await addMovieToList(list.id, {
+          tmdb_id: movieTmdb.id,
+          title: movieTmdb.title,
+          poster_path: movieTmdb.poster_path,
+        });
+        toast.success(`Added to ${list.name}`);
+        setIsListDropdownOpen(false);
+      } catch (err) {
+        console.error("Add to list error:", err);
+        toast.error(err.message?.includes("duplicate") ? "Already in this list" : "Failed to add to list");
+      } finally {
+        addToListInFlightRef.current.delete(inFlightKey);
+      }
+    },
+    [addMovieToList, movieTmdb?.id, movieTmdb?.poster_path, movieTmdb?.title, toast]
+  );
+
+  if (perfDebugEnabled && renderCountRef.current % 10 === 0) {
+    console.log(`[OraclePerf] ResultCard(${rec.title}) render count=${renderCountRef.current}`);
+  }
 
   return (
     <div
@@ -123,7 +183,7 @@ function ResultCard({
             </a>
           )}
 
-          <button onClick={() => movieTmdb && onOpenWatchedModal(movieTmdb)} className="lib-action-btn">
+          <button onClick={handleOpenWatched} className="lib-action-btn">
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
               <polyline points="22 4 12 14.01 9 11.01" />
@@ -131,7 +191,7 @@ function ResultCard({
             Watched
           </button>
 
-          <button onClick={() => onAddToWatchlist(movieTmdb)} className="lib-action-btn">
+          <button onClick={handleAddWatchlist} className="lib-action-btn">
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 5v14M5 12h14" />
             </svg>
@@ -140,7 +200,7 @@ function ResultCard({
 
           <div className="relative" style={{ zIndex: 100 }}>
             <button
-              onClick={() => setIsListDropdownOpen((open) => !open)}
+              onClick={handleToggleListDropdown}
               className="lib-action-btn"
               disabled={lists.length === 0}
             >
@@ -153,34 +213,16 @@ function ResultCard({
             </button>
             {isListDropdownOpen && lists.length > 0 && (
               <div className="list-dropdown" style={{ right: 0, overflow: "visible", zIndex: 9999 }}>
-                {lists.map((list) => {
-                  const isInList = isMovieInList(list.id, movieTmdb?.id);
-                  const isReadOnly = !canEditList(list.id);
+                {listOptions.map((list) => {
                   return (
                     <button
                       key={list.id}
-                      onClick={async () => {
-                        if (!movieTmdb?.id || isInList || isReadOnly) return;
-                        try {
-                          await addMovieToList(list.id, {
-                            tmdb_id: movieTmdb.id,
-                            title: movieTmdb.title,
-                            poster_path: movieTmdb.poster_path,
-                          });
-                          toast.success(`Added to ${list.name}`);
-                          setIsListDropdownOpen(false);
-                        } catch (err) {
-                          console.error("Add to list error:", err);
-                          toast.error(
-                            err.message?.includes("duplicate") ? "Already in this list" : "Failed to add to list"
-                          );
-                        }
-                      }}
+                      onClick={() => handleAddToList(list)}
                       className="list-dropdown-item"
-                      disabled={isInList || isReadOnly}
+                      disabled={list.isInList || list.isReadOnly}
                     >
                       {list.name}
-                      {isInList ? " • Added" : isReadOnly ? " • Viewer" : ""}
+                      {list.isInList ? " • Added" : list.isReadOnly ? " • Viewer" : ""}
                     </button>
                   );
                 })}
@@ -190,7 +232,7 @@ function ResultCard({
 
           <button
             className="reject-reroll-btn"
-            onClick={() => onRerollOne(movieTmdb?.id, rec.title, rec.year)}
+            onClick={handleRerollOne}
             disabled={isDiscovering}
             title="Replace only this recommendation"
           >
@@ -215,4 +257,4 @@ function ResultCard({
   );
 }
 
-export default ResultCard;
+export default memo(ResultCard);

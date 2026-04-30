@@ -108,3 +108,119 @@ NO text, NO explanation.`;
     throw error;
   }
 };
+
+const normalizeOracleIntentPayload = (payload, fallbackPrompt = "") => {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const normalizedGenreIds = [...new Set((payload.genreIds || [])
+    .map((id) => Number.parseInt(String(id), 10))
+    .filter((id) => Number.isFinite(id) && TMDB_GENRES[id]))];
+  const normalizedGenreNames = [...new Set((payload.genreNames || [])
+    .map((name) => String(name || "").trim().toLowerCase())
+    .filter(Boolean))];
+
+  const safeYearMin = Number.isFinite(Number(payload.yearMin)) ? Number(payload.yearMin) : null;
+  const safeYearMax = Number.isFinite(Number(payload.yearMax)) ? Number(payload.yearMax) : null;
+  const safeWatchStatus =
+    payload.watchStatus === "watched" || payload.watchStatus === "to-watch"
+      ? payload.watchStatus
+      : null;
+  const strippedPrompt =
+    typeof payload.strippedPrompt === "string" ? payload.strippedPrompt.trim() : String(fallbackPrompt || "").trim();
+
+  return {
+    normalizedText: String(fallbackPrompt || "").trim().toLowerCase(),
+    yearMin: safeYearMin,
+    yearMax: safeYearMax,
+    watchStatus: safeWatchStatus,
+    genreIds: normalizedGenreIds,
+    genreNames: normalizedGenreNames,
+    hasConstraints: Boolean(
+      safeWatchStatus || Number.isFinite(safeYearMin) || Number.isFinite(safeYearMax) || normalizedGenreIds.length > 0
+    ),
+    strippedPrompt,
+  };
+};
+
+/**
+ * Parse Oracle query constraints with Groq for low-latency intent extraction.
+ * Returns strict normalized JSON used by Oracle query filtering.
+ *
+ * @param {string} prompt - User discovery prompt
+ * @returns {Promise<Object>} - Oracle constraints object
+ */
+export const parseOracleIntentWithGroq = async (prompt) => {
+  if (!GROQ_API_KEY) {
+    throw new Error("VITE_GROQ_API_KEY is not configured");
+  }
+
+  const userPrompt = String(prompt || "").trim();
+  if (!userPrompt) {
+    return {
+      normalizedText: "",
+      yearMin: null,
+      yearMax: null,
+      watchStatus: null,
+      genreIds: [],
+      genreNames: [],
+      hasConstraints: false,
+      strippedPrompt: "",
+    };
+  }
+
+  const systemPrompt = `You are a strict JSON intent parser for Filmgraph Oracle.
+Extract only query constraints from the user prompt.
+
+Allowed fields and exact JSON shape:
+{
+  "yearMin": null | number,
+  "yearMax": null | number,
+  "watchStatus": null | "watched" | "to-watch",
+  "genreIds": number[],
+  "genreNames": string[],
+  "strippedPrompt": string
+}
+
+Rules:
+- If user asks for pre/before year, set yearMax accordingly.
+- If user asks for after/post year, set yearMin accordingly.
+- If no explicit constraint exists, use null/empty arrays.
+- Always return valid JSON only.`;
+
+  const response = await fetch(GROQ_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.0,
+      max_tokens: 120,
+      response_format: { type: "json_object" },
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error?.message || `Groq intent parser error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const content = data?.choices?.[0]?.message?.content;
+  if (!content) {
+    throw new Error("Groq intent parser returned empty response");
+  }
+  const parsed = JSON.parse(content);
+  const normalized = normalizeOracleIntentPayload(parsed, userPrompt);
+  if (!normalized) {
+    throw new Error("Groq intent parser returned invalid payload");
+  }
+  return normalized;
+};

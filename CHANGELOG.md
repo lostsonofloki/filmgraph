@@ -28,6 +28,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Refactored Oracle recommendation rendering into `OracleContext` + `ResultCard` and fixed reroll regression so single-card rerolls replace only the targeted recommendation instead of globally refreshing the entire set.
   - Added Oracle streaming context badges by mapping TMDB provider logos and rendering matched `user_providers` directly on each result card.
   - Added list-membership race guard migration (`list_members` dedupe + unique index on `list_id,user_id`) and hardened shared-list API writes with `upsert(..., { onConflict: 'list_id,user_id' })`.
+- **Oracle intelligence pass (Phase 7.9)**
+  - Added post-generation recommendation guardrails in `src/utils/gemini.js` to normalize output, remove duplicates, and enforce rejected-title exclusion before cards render.
+  - Added quality-floor enforcement so thin model output is topped up with deterministic TMDB fallback picks to preserve stable recommendation sets.
+  - Applied the same quality guardrail pass across both Gemini and OpenRouter Oracle response paths for more consistent discovery behavior.
+  - Upgraded Oracle taste-context hydration in `src/context/OracleContext.jsx` to derive user vibe signals from moods, genres, rating polarity, decade preference, and recent behavior before prompt assembly.
+  - Expanded taste weighting with deterministic mood/genre affinity scoring (frequency + bounded recency + high-rating lift), rating polarity buckets, and strict per-section caps to keep prompt context stable for large libraries.
+  - Added explicit avoid-like guidance from low-rated watched logs (`<= 2.5`) and ensured it remains in the Oracle context even when slices are truncated.
+  - Added Oracle weighting regression tests validating weighted context sections and avoid-like truncation behavior in `tests/oracle-query-intelligence.spec.ts`.
+  - Added Supabase RPC `get_oracle_taste_profile(p_user_id)` for server-side Oracle context hydration, then wired Oracle to use RPC-first with fail-soft fallback to local taste aggregation when RPC is unavailable.
+  - Added feature-flagged low-latency Groq intent parsing for Oracle query constraints (`VITE_FEATURE_ORACLE_GROQ_INTENT_PARSER=true`) with deterministic parser fallback to preserve reliability.
+  - Added Oracle constraint resolver tests covering Groq success/fallback behavior and RPC-compatible context ordering assertions.
+  - Documented rollout toggles in `.env.example` for Oracle RPC hydration (`VITE_FEATURE_ORACLE_TASTE_RPC`) and Groq constraint parsing (`VITE_FEATURE_ORACLE_GROQ_INTENT_PARSER`).
+  - Added a ranked `Now / Next / Later` execution order in `ROADMAP.md` for deferred Oracle upgrades (filter intelligence, reliability, media expansion, and polish tracks).
+  - Implemented Sprint A query intelligence: Oracle now parses compound prompt constraints (year bounds, genre hints, watch-status intent), passes deterministic `queryConstraints` through orchestration, and applies year/genre-aligned fallback filtering.
+  - Added safety toggle `VITE_FEATURE_ORACLE_QUERY_CONSTRAINTS` so constraint behavior can be enabled without removing legacy Oracle flow.
+  - Added parser validation coverage in `tests/oracle-query-intelligence.spec.ts` including prompts like “pre-1960 horror on my watchlist”.
+  - Implemented Sprint C reliability hardening: provider-specific timeout/retry contracts (`Gemini/OpenRouter=9000ms`, `TMDB=6000ms`) with deterministic fallback progression across Gemini -> OpenRouter -> TMDB.
+  - Added abort-aware Oracle request orchestration in `OracleContext` so rerolls/new discovery/unmount cancel in-flight work and ignore stale late responses.
+  - Added UI-safe fallback payload normalization to guarantee non-empty `rationale` and `vibeCheck` fields when metadata fallback paths are used.
+  - Expanded Oracle failure observability with normalized `failure_bucket` (`rate_limit`, `parse_fail`, `timeout`, `upstream_unavailable`, `unknown`) and additive `failure_stage` tags for Supabase analytics compatibility.
+  - Added reliability regression coverage for bucket mapping, retry policy boundaries, fallback shape safety, and abort classification in `tests/oracle-query-intelligence.spec.ts`.
 
 ---
 

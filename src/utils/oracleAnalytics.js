@@ -1,4 +1,5 @@
 import { getSupabase } from "../supabaseClient";
+import { getOracleFailureBucket } from "./oracleReliability";
 
 const ADMIN_EMAIL = "sonofloke@gmail.com";
 
@@ -27,6 +28,8 @@ export const classifyOracleError = (error) => {
   const tagged = raw.match(/\[oracle:([a-z]+)(?::(\d+))?\]/i);
   const taggedProvider = tagged?.[1] || provider || null;
   const taggedStatus = tagged?.[2] || status || null;
+  const failureBucket = getOracleFailureBucket(error);
+  const failureStage = taggedProvider || "orchestration";
   if (!raw) return { errorCode: null, fallbackReason: null };
 
   if (raw.includes("daily oracle limit")) {
@@ -35,6 +38,8 @@ export const classifyOracleError = (error) => {
       fallbackReason: "budget_limit",
       provider: taggedProvider,
       statusCode: taggedStatus,
+      failureBucket,
+      failureStage,
     };
   }
   if (raw.includes("openrouter")) {
@@ -44,6 +49,8 @@ export const classifyOracleError = (error) => {
       fallbackReason: "openrouter_unavailable",
       provider: taggedProvider || "openrouter",
       statusCode: taggedStatus,
+      failureBucket,
+      failureStage,
     };
   }
   if (raw.includes("tmdb")) {
@@ -52,6 +59,8 @@ export const classifyOracleError = (error) => {
       fallbackReason: "tmdb_unavailable",
       provider: taggedProvider || "tmdb",
       statusCode: taggedStatus,
+      failureBucket,
+      failureStage,
     };
   }
   if (raw.includes("gemini") || raw.includes("oracle is silent")) {
@@ -61,6 +70,8 @@ export const classifyOracleError = (error) => {
       fallbackReason: "gemini_unavailable",
       provider: taggedProvider || "gemini",
       statusCode: taggedStatus,
+      failureBucket,
+      failureStage,
     };
   }
   if (raw.includes("network") || raw.includes("fetch")) {
@@ -69,6 +80,8 @@ export const classifyOracleError = (error) => {
       fallbackReason: "network_error",
       provider: taggedProvider,
       statusCode: taggedStatus,
+      failureBucket,
+      failureStage,
     };
   }
 
@@ -77,6 +90,8 @@ export const classifyOracleError = (error) => {
     fallbackReason: null,
     provider: taggedProvider,
     statusCode: taggedStatus,
+    failureBucket,
+    failureStage,
   };
 };
 
@@ -86,6 +101,8 @@ export const buildOracleEventPayload = ({
   success,
   fallbackReason,
   errorCode,
+  failureBucket,
+  failureStage,
   errorMessage,
   budgetSource,
   requestSource,
@@ -107,6 +124,8 @@ export const buildOracleEventPayload = ({
     success: Boolean(success),
     fallback_reason: cleanText(fallbackReason || meta?.fallbackReason),
     error_code: cleanText(errorCode),
+    failure_bucket: cleanText(failureBucket),
+    failure_stage: cleanText(failureStage),
     error_message: cleanText(errorMessage),
     budget_source: cleanText(budgetSource),
     request_source: cleanText(requestSource),
