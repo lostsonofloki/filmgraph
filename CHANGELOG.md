@@ -52,6 +52,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.12.15] - April 29, 2026
+
+### 🛠️ Changed
+
+- **Oracle intelligence integration pass (Phase 7.9)**
+  - Merged Sprint B taste-weighting upgrades and Sprint C reliability hardening into one release-ready branch.
+  - Preserved RPC-first taste hydration (`get_oracle_taste_profile`) with deterministic local fallback (`buildUserTasteProfile` / `buildTasteContextString`).
+  - Preserved Groq intent parsing fast-path with deterministic query parser fallback for Oracle constraints.
+  - Added provider-specific reliability controls in Oracle orchestration (timeouts, bounded retries, abort-safe reroll/discover flow, and deterministic fallback sequencing).
+  - Added normalized failure telemetry buckets/stage tagging for `oracle_provider_events` compatibility and observability.
+  - Kept UI-safe recommendation payload normalization for fallback paths (`rationale` / `vibeCheck` always present).
+
+### ✅ Quality
+
+- Combined Oracle regression suite passes: `npx playwright test "tests/oracle-query-intelligence.spec.ts"` (55 passed).
+- Production build succeeds: `npm run build`.
+- Release metadata synced to `v1.12.15` across `package.json`, `src/constants.js`, and roadmap current-version status.
+
+---
+
 ## [1.12.12] - April 28, 2026
 
 ### 🚀 Added

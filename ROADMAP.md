@@ -6,7 +6,7 @@ A phased approach to building Filmgraph from a static UI to a fully-featured mov
 
 ## 🔥 Immediate Priority: Oracle Intelligence Pass (Phase 7.9)
 
-**Status**: 🛠️ **Planned (Queued)**  
+**Status**: 🚧 **In Progress**  
 **Priority**: 🔥 **Critical (Next Priority)**
 
 Use this as the primary execution track when Oracle work resumes.
@@ -502,7 +502,7 @@ $ git log --all --full-history -- .env
 
 **Phase**: Phase 7.1 + 7.2 + 7.3 core foundations + Streaming Oracle MVP + UI foundation shipped ✅
 
-**Current Version**: v1.12.14 - Pre-launch bug squash (Oracle reroll + shared-list uniqueness + streaming logos)
+**Current Version**: v1.12.15 - Oracle intelligence integration pass (Sprint B taste weighting + Sprint C reliability hardening)
 
 **Completed Features**:
 
@@ -1043,7 +1043,7 @@ User Query → Groq LPU (llama-3.3-70b-versatile) → Genre IDs (300-600ms)
 
 ## Phase 7.9: Oracle Intelligence Pass 🧠
 
-**Status**: 🛠️ **Planned (Queued)**
+**Status**: 🚧 **In Progress**
 **Priority**: 🔥 **Critical (Next Priority)**
 
 **Goal**: Make Oracle recommendations smarter, stricter, and more resilient by enforcing post-generation quality checks and improving recommendation relevance.
