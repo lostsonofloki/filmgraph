@@ -1,5 +1,13 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { fetchGroqGenres, TMDB_GENRES } from "./groq";
+import {
+  ORACLE_PROVIDER_MAX_RETRIES,
+  ORACLE_PROVIDER_TIMEOUT_MS,
+  ensureOracleRecommendationShape,
+  getOracleFailureBucket,
+  isAbortLikeError,
+  shouldRetryOracleError,
+} from "./oracleReliability";
 
 // Initialize Gemini AI client
 
@@ -63,8 +71,6 @@ const OPENROUTER_MODELS = [
   "openai/gpt-4o-mini",
 ];
 
-const toErrorString = (error) =>
-  String(error?.message || error || "").toLowerCase();
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const extractStatusCode = (error) => {
@@ -74,6 +80,44 @@ const extractStatusCode = (error) => {
   return match ? Number.parseInt(match[1], 10) : null;
 };
 
+const createAbortError = (provider, reason = "Request aborted") => {
+  const error = withTaggedError(reason, provider, 499);
+  error.name = "AbortError";
+  error.isAbort = true;
+  return error;
+};
+
+const makeTimeoutError = (provider, timeoutMs) => {
+  const error = withTaggedError(
+    `${provider} timeout after ${timeoutMs}ms`,
+    provider,
+    408,
+  );
+  error.isTimeout = true;
+  return error;
+};
+
+const runWithSignalAndTimeout = (promiseFactory, provider, timeoutMs, signal) =>
+  new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(createAbortError(provider));
+      return;
+    }
+    const timer = timeoutMs
+      ? setTimeout(() => reject(makeTimeoutError(provider, timeoutMs)), timeoutMs)
+      : null;
+    const onAbort = () => reject(createAbortError(provider));
+    signal?.addEventListener("abort", onAbort, { once: true });
+    Promise.resolve()
+      .then(promiseFactory)
+      .then(resolve)
+      .catch(reject)
+      .finally(() => {
+        if (timer) clearTimeout(timer);
+        signal?.removeEventListener("abort", onAbort);
+      });
+  });
+
 const withTaggedError = (message, provider, status = null) => {
   const prefix = `[ORACLE:${provider}${status ? `:${status}` : ""}]`;
   const error = new Error(`${prefix} ${message}`);
@@ -82,22 +126,20 @@ const withTaggedError = (message, provider, status = null) => {
   return error;
 };
 
-const isRetryableGeminiError = (error) => {
-  const status = extractStatusCode(error);
-  if (status === 404) return false;
-  if (status === 429 || status === 500 || status === 503) return true;
-  const raw = toErrorString(error);
-  return raw.includes("high demand") || raw.includes("overloaded");
-};
+const isRetryableGeminiError = (error) => shouldRetryOracleError(error);
 
-const runWithRetries = async (fn, shouldRetry, maxAttempts = 3) => {
+const runWithRetries = async (fn, shouldRetry, maxAttempts = 1) => {
   let lastError;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
       return await fn(attempt);
     } catch (error) {
       lastError = error;
-      if (attempt === maxAttempts || !shouldRetry(error)) {
+      if (
+        attempt === maxAttempts ||
+        !shouldRetry(error) ||
+        isAbortLikeError(error)
+      ) {
         throw error;
       }
       const delayMs =
@@ -119,6 +161,7 @@ const runOpenRouterWithFallback = async (
   prompt,
   generationConfig,
   validator,
+  options = {},
 ) => {
   const openRouterApiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
   if (!openRouterApiKey) {
@@ -135,30 +178,43 @@ const runOpenRouterWithFallback = async (
     const modelName = OPENROUTER_MODELS[i];
     try {
       const response = await runWithRetries(
-        async () =>
-          fetch(OPENROUTER_API_URL, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${openRouterApiKey}`,
-              "Content-Type": "application/json",
-              "HTTP-Referer": window.location.origin,
-              "X-Title": "Filmgraph Oracle",
-            },
-            body: JSON.stringify({
-              model: modelName,
-              response_format: { type: "json_object" },
-              messages: [
-                { role: "system", content: "Return valid JSON only." },
-                { role: "user", content: prompt },
-              ],
-              temperature: generationConfig?.temperature ?? 0.9,
-              max_tokens: generationConfig?.maxOutputTokens ?? 1200,
-            }),
-          }),
-        (error) => {
-          const status = extractStatusCode(error);
-          return status === 429 || status === 500 || status === 503;
+        async () => {
+          const controller = new AbortController();
+          const onAbort = () => controller.abort();
+          options.signal?.addEventListener("abort", onAbort, { once: true });
+          try {
+            return await runWithSignalAndTimeout(
+              () =>
+                fetch(OPENROUTER_API_URL, {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${openRouterApiKey}`,
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": window.location.origin,
+                    "X-Title": "Filmgraph Oracle",
+                  },
+                  signal: controller.signal,
+                  body: JSON.stringify({
+                    model: modelName,
+                    response_format: { type: "json_object" },
+                    messages: [
+                      { role: "system", content: "Return valid JSON only." },
+                      { role: "user", content: prompt },
+                    ],
+                    temperature: generationConfig?.temperature ?? 0.9,
+                    max_tokens: generationConfig?.maxOutputTokens ?? 1200,
+                  }),
+                }),
+              "openrouter",
+              ORACLE_PROVIDER_TIMEOUT_MS.openrouter,
+              options.signal,
+            );
+          } finally {
+            options.signal?.removeEventListener("abort", onAbort);
+          }
         },
+        shouldRetryOracleError,
+        ORACLE_PROVIDER_MAX_RETRIES.openrouter + 1,
       );
 
       if (!response.ok) {
@@ -171,17 +227,31 @@ const runOpenRouterWithFallback = async (
 
       const data = await response.json();
       const message = data?.choices?.[0]?.message?.content;
-      const parsed = parseJsonResponse(message);
+      let parsed;
+      try {
+        parsed = parseJsonResponse(message);
+      } catch (_parseErr) {
+        const parseError = withTaggedError(
+          "OpenRouter parse failure",
+          "openrouter",
+          422,
+        );
+        parseError.failureBucket = "parse_fail";
+        throw parseError;
+      }
       if (validator) validator(parsed);
       return { parsed, modelUsed: modelName };
     } catch (error) {
       lastError = error;
+      if (isAbortLikeError(error)) throw error;
       if (i === OPENROUTER_MODELS.length - 1) {
-        throw withTaggedError(
+        const taggedError = withTaggedError(
           error.message || "OpenRouter failure",
           "openrouter",
           extractStatusCode(error),
         );
+        taggedError.failureBucket = getOracleFailureBucket(error);
+        throw taggedError;
       }
       console.warn(
         `⚠️ OpenRouter model failed (${modelName}). Trying next model.`,
@@ -196,7 +266,12 @@ const runOpenRouterWithFallback = async (
   );
 };
 
-const runGeminiWithFallback = async (prompt, generationConfig, validator) => {
+const runGeminiWithFallback = async (
+  prompt,
+  generationConfig,
+  validator,
+  options = {},
+) => {
   if (!genAI) {
     throw withTaggedError(
       "Gemini unavailable: missing VITE_GEMINI_API_KEY",
@@ -212,34 +287,53 @@ const runGeminiWithFallback = async (prompt, generationConfig, validator) => {
 
     try {
       const chunks = await runWithRetries(async () => {
-        const model = genAI.getGenerativeModel({
-          model: modelName,
-          generationConfig,
-        });
-        const result = await model.generateContentStream(prompt);
-        const streamed = [];
-        for await (const chunk of result.stream) {
-          streamed.push(chunk.text());
-        }
-        return streamed;
-      }, isRetryableGeminiError);
+        return runWithSignalAndTimeout(
+          async () => {
+            if (options.signal?.aborted) throw createAbortError("gemini");
+            const model = genAI.getGenerativeModel({
+              model: modelName,
+              generationConfig,
+            });
+            const result = await model.generateContentStream(prompt);
+            const streamed = [];
+            for await (const chunk of result.stream) {
+              if (options.signal?.aborted) throw createAbortError("gemini");
+              streamed.push(chunk.text());
+            }
+            return streamed;
+          },
+          "gemini",
+          ORACLE_PROVIDER_TIMEOUT_MS.gemini,
+          options.signal,
+        );
+      }, isRetryableGeminiError, ORACLE_PROVIDER_MAX_RETRIES.gemini + 1);
 
-      const parsed = parseJsonResponse(chunks.join(""));
+      let parsed;
+      try {
+        parsed = parseJsonResponse(chunks.join(""));
+      } catch (_parseErr) {
+        const parseError = withTaggedError("Gemini parse failure", "gemini", 422);
+        parseError.failureBucket = "parse_fail";
+        throw parseError;
+      }
       if (validator) validator(parsed);
 
       return { parsed, modelUsed: modelName };
     } catch (error) {
       lastError = error;
+      if (isAbortLikeError(error)) throw error;
       const status = extractStatusCode(error);
       if (
         i === GEMINI_MODEL_CANDIDATES.length - 1 ||
         (!isRetryableGeminiError(error) && status !== 404)
       ) {
-        throw withTaggedError(
+        const taggedError = withTaggedError(
           error.message || "Gemini request failed",
           "gemini",
           status,
         );
+        taggedError.failureBucket = getOracleFailureBucket(error);
+        throw taggedError;
       }
       console.warn(`⚠️ Gemini model failed (${modelName}). Trying next model.`);
     }
@@ -259,10 +353,132 @@ const getLocalVibeCheck = (vibe) => {
   return `${words}${words.length < trimmed.length ? "..." : ""}`;
 };
 
+const normalizeTitle = (title) =>
+  String(title || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+
+const normalizeYear = (year) => {
+  if (year == null) return "";
+  const parsed = Number.parseInt(String(year), 10);
+  return Number.isFinite(parsed) ? String(parsed) : "";
+};
+
+const buildRecommendationKey = (title, year) =>
+  `${normalizeTitle(title)}::${normalizeYear(year)}`;
+
+const hasYearConstraint = (constraints) =>
+  Number.isFinite(constraints?.yearMin) || Number.isFinite(constraints?.yearMax);
+
+const recommendationMeetsConstraints = (rec, queryConstraints) => {
+  if (!queryConstraints?.hasConstraints) return true;
+
+  if (hasYearConstraint(queryConstraints)) {
+    const parsedYear = Number.parseInt(String(rec?.year || ""), 10);
+    if (!Number.isFinite(parsedYear)) return false;
+    if (
+      Number.isFinite(queryConstraints.yearMin) &&
+      parsedYear < queryConstraints.yearMin
+    ) {
+      return false;
+    }
+    if (
+      Number.isFinite(queryConstraints.yearMax) &&
+      parsedYear > queryConstraints.yearMax
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+const sanitizeRecommendations = (
+  recommendations,
+  rejectedTitles = [],
+  queryConstraints = null,
+) => {
+  const rejectedSet = new Set(rejectedTitles.map((title) => normalizeTitle(title)));
+  const seen = new Set();
+  const cleaned = [];
+
+  for (const rec of recommendations || []) {
+    if (!rec || typeof rec !== "object") continue;
+    const title = String(rec.title || "").trim();
+    if (!title) continue;
+
+    const normalizedTitle = normalizeTitle(title);
+    if (!normalizedTitle || rejectedSet.has(normalizedTitle)) continue;
+
+    const year = normalizeYear(rec.year);
+    const key = buildRecommendationKey(title, year);
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    cleaned.push({
+      title,
+      year: year ? Number.parseInt(year, 10) : null,
+      rationale: String(rec.rationale || "").trim() || "Curated for your current vibe and taste profile.",
+      vibeCheck: String(rec.vibeCheck || "").trim() || getLocalVibeCheck(""),
+    });
+  }
+
+  return cleaned.filter((rec) =>
+    recommendationMeetsConstraints(rec, queryConstraints),
+  );
+};
+
+const ensureRecommendationQuality = async ({
+  recommendations,
+  vibe,
+  rejectedTitles = [],
+  genreIds = [],
+  queryConstraints = null,
+  signal = null,
+}) => {
+  const MIN_RECOMMENDATIONS = 3;
+  const MAX_RECOMMENDATIONS = 5;
+
+  let cleaned = sanitizeRecommendations(
+    recommendations,
+    rejectedTitles,
+    queryConstraints,
+  ).slice(0, MAX_RECOMMENDATIONS);
+
+  if (cleaned.length < MIN_RECOMMENDATIONS) {
+    try {
+      const fallback = await buildTmdbFallbackRecommendations(
+        vibe,
+        genreIds,
+        rejectedTitles,
+        queryConstraints,
+        { signal },
+      );
+      const merged = sanitizeRecommendations(
+        [...cleaned, ...fallback],
+        rejectedTitles,
+        queryConstraints,
+      );
+      cleaned = merged.slice(0, MAX_RECOMMENDATIONS);
+    } catch (_fallbackError) {
+      // Keep existing cleaned results if fallback cannot top up.
+    }
+  }
+
+  if (cleaned.length === 0) {
+    throw new Error("No valid recommendations after filtering.");
+  }
+
+  return cleaned;
+};
+
 const buildTmdbFallbackRecommendations = async (
   vibe,
   genreIds,
   rejectedTitles = [],
+  queryConstraints = null,
+  options = {},
 ) => {
   const tmdbApiKey = import.meta.env.VITE_TMDB_API_KEY;
   if (!tmdbApiKey) {
@@ -272,20 +488,41 @@ const buildTmdbFallbackRecommendations = async (
   const rejected = new Set(
     rejectedTitles.map((t) => String(t || "").toLowerCase()),
   );
-  const uniqueGenreIds = (genreIds || []).filter(Boolean);
+  const uniqueGenreIds = [
+    ...new Set([...(queryConstraints?.genreIds || []), ...(genreIds || [])]),
+  ].filter(Boolean);
   const genreParam =
     uniqueGenreIds.length > 0 ? `&with_genres=${uniqueGenreIds.join("|")}` : "";
+  const yearMinParam = Number.isFinite(queryConstraints?.yearMin)
+    ? `&primary_release_date.gte=${queryConstraints.yearMin}-01-01`
+    : "";
+  const yearMaxParam = Number.isFinite(queryConstraints?.yearMax)
+    ? `&primary_release_date.lte=${queryConstraints.yearMax}-12-31`
+    : "";
   const page = 1 + Math.floor(Math.random() * 3);
 
   const response = await runWithRetries(
-    async () =>
-      fetch(
-        `https://api.themoviedb.org/3/discover/movie?api_key=${tmdbApiKey}&include_adult=false&sort_by=vote_average.desc&vote_count.gte=300&page=${page}${genreParam}`,
-      ),
-    (error) => {
-      const status = extractStatusCode(error);
-      return status === 429 || status === 500 || status === 503;
+    async () => {
+      const controller = new AbortController();
+      const onAbort = () => controller.abort();
+      options.signal?.addEventListener("abort", onAbort, { once: true });
+      try {
+        return await runWithSignalAndTimeout(
+          () =>
+            fetch(
+              `https://api.themoviedb.org/3/discover/movie?api_key=${tmdbApiKey}&include_adult=false&sort_by=vote_average.desc&vote_count.gte=300&page=${page}${genreParam}${yearMinParam}${yearMaxParam}`,
+              { signal: controller.signal },
+            ),
+          "tmdb",
+          ORACLE_PROVIDER_TIMEOUT_MS.tmdb,
+          options.signal,
+        );
+      } finally {
+        options.signal?.removeEventListener("abort", onAbort);
+      }
     },
+    shouldRetryOracleError,
+    ORACLE_PROVIDER_MAX_RETRIES.tmdb + 1,
   );
 
   if (!response.ok) {
@@ -297,7 +534,8 @@ const buildTmdbFallbackRecommendations = async (
   }
 
   const data = await response.json();
-  const picks = (data?.results || [])
+  const picks = ensureOracleRecommendationShape(
+    (data?.results || [])
     .filter(
       (movie) =>
         movie?.title && !rejected.has(String(movie.title).toLowerCase()),
@@ -310,7 +548,8 @@ const buildTmdbFallbackRecommendations = async (
         : null,
       rationale: `Gemini is currently unavailable, so this pick is sourced from TMDB based on your vibe and genre fit. ${movie.title} has strong audience reception and should align with your current request.`,
       vibeCheck: getLocalVibeCheck(vibe),
-    }));
+    })),
+  );
 
   if (picks.length === 0) {
     throw withTaggedError(
@@ -322,6 +561,35 @@ const buildTmdbFallbackRecommendations = async (
 
   return picks;
 };
+
+const buildConstraintPromptBlock = (queryConstraints) => {
+  if (!queryConstraints?.hasConstraints) return "";
+
+  const lines = [];
+  if (Number.isFinite(queryConstraints.yearMin)) {
+    lines.push(`- Release year must be >= ${queryConstraints.yearMin}`);
+  }
+  if (Number.isFinite(queryConstraints.yearMax)) {
+    lines.push(`- Release year must be <= ${queryConstraints.yearMax}`);
+  }
+  if (queryConstraints.watchStatus === "to-watch") {
+    lines.push("- Prioritize picks that align with watchlist intent and avoid already-seen framing.");
+  } else if (queryConstraints.watchStatus === "watched") {
+    lines.push("- Prioritize fresh watched-style discoveries rather than watchlist-oriented picks.");
+  }
+  if (Array.isArray(queryConstraints.genreNames) && queryConstraints.genreNames.length > 0) {
+    lines.push(`- Genre focus: ${queryConstraints.genreNames.join(", ")}`);
+  }
+
+  if (lines.length === 0) return "";
+  return `\n\nQUERY CONSTRAINTS (STRICT):\n${lines.join("\n")}`;
+};
+
+const ORACLE_TASTE_CONTEXT_RULES = `\n\nTASTE CONTEXT INTERPRETATION (APPLIES TO ALL PROVIDERS):
+- Treat USER CONTEXT lines (TopMoods, TopGenres, MoodAffinityWeighted, GenreAffinityWeighted, LovedTitles, AvoidSimilarTo, RecentWatched, RecentToWatch, CuratedLists) as weighted signals.
+- Prioritize alignment with LovedTitles + weighted mood/genre affinity.
+- Use AvoidSimilarTo as an advisory penalty (strongly discourage close tonal matches), not an absolute ban.
+- Keep recommendations diverse enough to avoid overfitting to only the newest entries while still respecting RecentWatched/RecentToWatch context.`;
 
 /**
  * Get AI-powered movie recommendations with caching
@@ -612,6 +880,8 @@ export const getHybridRecommendation = async (vibe, options = {}) => {
     userContext = "No favorite films provided",
     systemPrompt = BASE_SYSTEM_PROMPT,
     rejectedTitles = [],
+    queryConstraints = null,
+    signal = null,
   } = options;
 
   const rejectedContext =
@@ -620,6 +890,7 @@ export const getHybridRecommendation = async (vibe, options = {}) => {
       : "";
 
   const fullSystemPrompt = `${systemPrompt}${rejectedContext}`;
+  const constraintPromptBlock = buildConstraintPromptBlock(queryConstraints);
 
   let genreIds = [];
   let groqSuccess = false;
@@ -638,6 +909,10 @@ export const getHybridRecommendation = async (vibe, options = {}) => {
     );
   }
 
+  if (Array.isArray(queryConstraints?.genreIds) && queryConstraints.genreIds.length > 0) {
+    genreIds = [...new Set([...queryConstraints.genreIds, ...genreIds])];
+  }
+
   const genreContext =
     groqSuccess && genreIds.length > 0
       ? `\n\nEXTRACTED GENRE IDS: [${genreIds.join(", ")}]
@@ -651,7 +926,7 @@ USER CONTEXT (Curated Favorites):
 ${userContext}
 
 CURRENT MOOD/REQUEST:
-"${vibe}"${genreContext}
+"${vibe}"${genreContext}${constraintPromptBlock}
 
 CRITICAL REQUIREMENTS:
 1. Return EXACTLY 3 to 5 unique movies - no more, no less
@@ -673,6 +948,8 @@ Your job is to suggest NEW discoveries they haven't logged yet.`
 
 🎯 TASTE TRIANGULATION:
 Use the USER CONTEXT above to understand their niche interests. If they love atmospheric horror, don't suggest slapstick comedy. If they appreciate slow-burn indie dramas, don't recommend Michael Bay. Match their aesthetic while expanding their horizons.
+
+${ORACLE_TASTE_CONTEXT_RULES}
 
 Return ONLY valid JSON. NO text before or after. NO markdown formatting.
 
@@ -705,10 +982,20 @@ Format:
           throw new Error("Invalid response format from Gemini");
         }
       },
+      { signal },
     );
 
-    return {
+    const smartRecommendations = await ensureRecommendationQuality({
       recommendations: parsed.recommendations,
+      vibe,
+      rejectedTitles,
+      genreIds,
+      queryConstraints,
+      signal,
+    });
+
+    return {
+      recommendations: smartRecommendations,
       _meta: {
         provider: "gemini",
         groqUsed: groqSuccess,
@@ -720,6 +1007,7 @@ Format:
       },
     };
   } catch (error) {
+    if (isAbortLikeError(error)) throw error;
     console.error("❌ Hybrid recommendation failed:", error.message);
 
     try {
@@ -738,10 +1026,20 @@ Format:
             throw new Error("Invalid response format from OpenRouter");
           }
         },
+        { signal },
       );
 
-      return {
+      const smartRecommendations = await ensureRecommendationQuality({
         recommendations: parsed.recommendations,
+        vibe,
+        rejectedTitles,
+        genreIds,
+        queryConstraints,
+        signal,
+      });
+
+      return {
+        recommendations: smartRecommendations,
         _meta: {
           provider: "openrouter",
           groqUsed: groqSuccess,
@@ -752,6 +1050,7 @@ Format:
         },
       };
     } catch (openRouterError) {
+      if (isAbortLikeError(openRouterError)) throw openRouterError;
       console.warn("⚠️ OpenRouter fallback failed:", openRouterError.message);
     }
 
@@ -760,6 +1059,8 @@ Format:
         vibe,
         genreIds,
         rejectedTitles,
+        queryConstraints,
+        { signal },
       );
       return {
         recommendations: fallbackRecommendations,
@@ -773,6 +1074,7 @@ Format:
         },
       };
     } catch (fallbackError) {
+      if (isAbortLikeError(fallbackError)) throw fallbackError;
       console.error("❌ TMDB fallback failed:", fallbackError.message);
       throw withTaggedError(
         "All recommendation providers are unavailable. Please try again shortly.",

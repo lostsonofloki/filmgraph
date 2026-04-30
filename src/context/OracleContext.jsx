@@ -1,16 +1,26 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useUser } from "./UserContext";
 import { getSupabase } from "../supabaseClient";
 import { getHybridRecommendation, BASE_SYSTEM_PROMPT } from "../utils/gemini";
 import { canUseOracle, recordOracleUse } from "../utils/oracleBudget";
+import { parseOracleIntentWithGroq } from "../utils/groq";
+import { buildTasteContextString, buildUserTasteProfile } from "../utils/oracleTasteProfile";
+import { resolveOracleQueryConstraints } from "../utils/oracleQueryConstraints";
 import {
   buildOracleEventPayload,
   classifyOracleError,
   trackOracleProviderEventSafe,
 } from "../utils/oracleAnalytics";
+import { isAbortLikeError } from "../utils/oracleReliability";
 import { fetchTMDBMovie, fetchWatchProviders } from "../api/tmdb";
 
 const OracleContext = createContext(null);
+const ORACLE_QUERY_CONSTRAINTS_ENABLED =
+  String(import.meta.env.VITE_FEATURE_ORACLE_QUERY_CONSTRAINTS || "").toLowerCase() === "true";
+const ORACLE_GROQ_INTENT_PARSER_ENABLED =
+  String(import.meta.env.VITE_FEATURE_ORACLE_GROQ_INTENT_PARSER || "").toLowerCase() === "true";
+const ORACLE_TASTE_RPC_ENABLED =
+  String(import.meta.env.VITE_FEATURE_ORACLE_TASTE_RPC || "").toLowerCase() === "true";
 
 const toKey = (title, year) => `${String(title || "").trim().toLowerCase()}::${String(year || "").trim()}`;
 
@@ -70,9 +80,50 @@ export function OracleProvider({ children }) {
   const [tmdbResults, setTmdbResults] = useState([]);
   const [providerResults, setProviderResults] = useState([]);
   const [error, setError] = useState("");
-  const [rejectedIds, setRejectedIds] = useState([]);
   const [rejectedTitles, setRejectedTitles] = useState([]);
   const [selectedProviderIds, setSelectedProviderIds] = useState([]);
+  const [historyCache, setHistoryCache] = useState({
+    fingerprint: "",
+    logs: [],
+    recentToWatch: [],
+    listItems: [],
+  });
+  const activeRequestRef = useRef({
+    requestId: 0,
+    controller: null,
+  });
+  const queryConstraintsCacheRef = useRef(new Map());
+  const historyFetchCacheRef = useRef({ key: "", expiresAt: 0, value: null });
+
+  const beginOracleRequest = useCallback(() => {
+    if (activeRequestRef.current.controller) {
+      activeRequestRef.current.controller.abort("superseded");
+    }
+    const controller = new AbortController();
+    const requestId = activeRequestRef.current.requestId + 1;
+    activeRequestRef.current = { requestId, controller };
+    return { requestId, signal: controller.signal };
+  }, []);
+
+  const isCurrentRequest = useCallback(
+    (requestId) => activeRequestRef.current.requestId === requestId,
+    []
+  );
+
+  useEffect(
+    () => () => {
+      if (activeRequestRef.current.controller) {
+        activeRequestRef.current.controller.abort("unmount");
+      }
+    },
+    []
+  );
+
+  const memoizedTasteProfile = useMemo(
+    () => buildUserTasteProfile(historyCache.logs, historyCache.recentToWatch, historyCache.listItems),
+    [historyCache.listItems, historyCache.logs, historyCache.recentToWatch]
+  );
+  const memoizedTasteContext = useMemo(() => buildTasteContextString(memoizedTasteProfile), [memoizedTasteProfile]);
 
   useEffect(() => {
     const fetchProviderPreferences = async () => {
@@ -114,11 +165,57 @@ export function OracleProvider({ children }) {
 
   const fetchUserMovieHistory = useCallback(async () => {
     if (!user?.id) return { allKnownTitles: [], userTasteContext: "" };
+    const cacheKey = `${user.id}:${ORACLE_TASTE_RPC_ENABLED ? "rpc" : "local"}`;
+    const now = Date.now();
+    if (historyFetchCacheRef.current.key === cacheKey && historyFetchCacheRef.current.expiresAt > now) {
+      return historyFetchCacheRef.current.value;
+    }
+
+    try {
+      const supabase = getSupabase();
+      const [logTitlesResult, listItemsResult, tasteProfileRpcResult] = await Promise.all([
+        supabase.from("movie_logs").select("title").eq("user_id", user.id),
+        supabase.from("list_items").select("title, lists!inner(user_id)").eq("lists.user_id", user.id),
+        ORACLE_TASTE_RPC_ENABLED
+          ? supabase.rpc("get_oracle_taste_profile", { p_user_id: user.id })
+          : Promise.resolve({ data: null, error: null }),
+      ]);
+
+      const listItems = listItemsResult.data || [];
+      const allKnownTitles = [
+        ...new Set([...(logTitlesResult.data || []).map((l) => l.title), ...listItems.map((i) => i.title)]),
+      ];
+      if (tasteProfileRpcResult.error) {
+        throw tasteProfileRpcResult.error;
+      }
+      const rpcPayload = tasteProfileRpcResult.data;
+      if (rpcPayload?.contextString && typeof rpcPayload.contextString === "string") {
+        const value = { allKnownTitles, userTasteContext: rpcPayload.contextString };
+        historyFetchCacheRef.current = { key: cacheKey, expiresAt: Date.now() + 10000, value };
+        return value;
+      }
+      if (rpcPayload?.summary) {
+        const value = {
+          allKnownTitles,
+          userTasteContext: buildTasteContextString(rpcPayload),
+        };
+        historyFetchCacheRef.current = { key: cacheKey, expiresAt: Date.now() + 10000, value };
+        return value;
+      }
+      if (ORACLE_TASTE_RPC_ENABLED) {
+        throw new Error("Oracle taste profile RPC returned empty payload.");
+      }
+    } catch (rpcHistoryErr) {
+      console.warn("Oracle taste profile RPC unavailable; falling back to local builder.", rpcHistoryErr);
+    }
 
     try {
       const supabase = getSupabase();
       const [watchedResult, recentToWatchResult, listItemsResult] = await Promise.all([
-        supabase.from("movie_logs").select("title, watch_status, rating").eq("user_id", user.id),
+        supabase
+          .from("movie_logs")
+          .select("title, watch_status, rating, moods, genres, year, created_at")
+          .eq("user_id", user.id),
         supabase
           .from("movie_logs")
           .select("title, created_at")
@@ -132,30 +229,53 @@ export function OracleProvider({ children }) {
       const logs = watchedResult.data || [];
       const recentToWatch = recentToWatchResult.data || [];
       const listItems = listItemsResult.data || [];
+      const historyFingerprint = JSON.stringify({
+        logs: logs.map(
+          (entry) =>
+            `${entry.title || ""}|${entry.rating || ""}|${entry.watch_status || ""}|${entry.created_at || ""}`
+        ),
+        recentToWatch: recentToWatch.map((entry) => `${entry.title || ""}|${entry.created_at || ""}`),
+        listItems: listItems.map((entry) => String(entry.title || "")),
+      });
 
       const allKnownTitles = [...new Set([...logs.map((l) => l.title), ...listItems.map((i) => i.title)])];
+      if (historyFingerprint === historyCache.fingerprint) {
+        const value = { allKnownTitles, userTasteContext: memoizedTasteContext };
+        historyFetchCacheRef.current = { key: cacheKey, expiresAt: Date.now() + 10000, value };
+        return value;
+      }
+      const tasteProfile = buildUserTasteProfile(logs, recentToWatch, listItems);
+      const userTasteContext = buildTasteContextString(tasteProfile);
+      setHistoryCache({
+        fingerprint: historyFingerprint,
+        logs,
+        recentToWatch,
+        listItems,
+      });
 
-      const positiveWatched = logs
-        .filter((l) => l.watch_status === "watched" && (l.rating >= 4 || !l.rating))
-        .slice(0, 20)
-        .map((l) => l.title);
-      const curatedTitles = listItems.map((i) => i.title);
-      const recentToWatchTitles = recentToWatch.map((m) => m.title).filter(Boolean);
-
-      const tasteProfile = [...new Set([...positiveWatched, ...recentToWatchTitles, ...curatedTitles])];
-      const userTasteContext =
-        tasteProfile.length > 0
-          ? `TopWatched20: ${positiveWatched.join(", ")}\nLastToWatch5: ${recentToWatchTitles.join(", ")}\nCuratedLists: ${curatedTitles
-              .slice(0, 20)
-              .join(", ")}`
-          : "No history found.";
-
-      return { allKnownTitles, userTasteContext };
+      const value = { allKnownTitles, userTasteContext };
+      historyFetchCacheRef.current = { key: cacheKey, expiresAt: Date.now() + 10000, value };
+      return value;
     } catch (historyErr) {
       console.error("Oracle Memory Fetch Error:", historyErr);
       return { allKnownTitles: [], userTasteContext: "" };
     }
-  }, [user?.id]);
+  }, [historyCache.fingerprint, memoizedTasteContext, user?.id]);
+
+  const getResolvedQueryConstraints = useCallback(async (prompt) => {
+    if (!ORACLE_QUERY_CONSTRAINTS_ENABLED) return null;
+    const normalizedPrompt = String(prompt || "").trim().toLowerCase();
+    if (queryConstraintsCacheRef.current.has(normalizedPrompt)) {
+      return queryConstraintsCacheRef.current.get(normalizedPrompt);
+    }
+    const resolved = await resolveOracleQueryConstraints(prompt, {
+      constraintsEnabled: ORACLE_QUERY_CONSTRAINTS_ENABLED,
+      groqIntentEnabled: ORACLE_GROQ_INTENT_PARSER_ENABLED,
+      groqIntentParser: parseOracleIntentWithGroq,
+    });
+    queryConstraintsCacheRef.current.set(normalizedPrompt, resolved);
+    return resolved;
+  }, []);
 
   const enrichRecommendationsWithTmdb = useCallback(
     async (recs) => {
@@ -182,6 +302,7 @@ export function OracleProvider({ children }) {
   const handleDiscover = useCallback(
     async (_additionalRejectedIds = [], additionalRejectedTitles = [], requestSource = "discover") => {
       if (!tempPrompt.trim()) return;
+      const { requestId, signal } = beginOracleRequest();
 
       setIsDiscovering(true);
       setError("");
@@ -203,18 +324,23 @@ export function OracleProvider({ children }) {
         const allRejectedTitles = [
           ...new Set([...rejectedTitles, ...additionalRejectedTitles, ...allKnownTitles]),
         ];
+        const queryConstraints = await getResolvedQueryConstraints(tempPrompt);
 
         const aiResponse = await getHybridRecommendation(tempPrompt, {
           userContext: userTasteContext,
           systemPrompt: BASE_SYSTEM_PROMPT,
           rejectedTitles: allRejectedTitles,
+          queryConstraints,
+          signal,
         });
+        if (!isCurrentRequest(requestId)) return;
         orchestrationMeta = aiResponse?._meta || null;
         if (!aiResponse?.recommendations?.length) {
           throw new Error("The Oracle is silent. Please try again.");
         }
 
         const { mappedTmdb, providerResponses } = await enrichRecommendationsWithTmdb(aiResponse.recommendations);
+        if (!isCurrentRequest(requestId)) return;
         setRecommendations(aiResponse.recommendations);
         setTmdbResults(mappedTmdb);
         setProviderResults(providerResponses);
@@ -236,12 +362,16 @@ export function OracleProvider({ children }) {
           );
         }
       } catch (discoverErr) {
+        if (isAbortLikeError(discoverErr) || !isCurrentRequest(requestId)) {
+          return;
+        }
         console.error("Discovery error:", discoverErr);
         setError(getDiscoveryErrorMessage(discoverErr));
 
         if (user?.id) {
           const promptType = selectedMood?.prompt === tempPrompt ? "mood_preset" : "custom_prompt";
-          const { errorCode, fallbackReason, provider, statusCode } = classifyOracleError(discoverErr);
+          const { errorCode, fallbackReason, provider, statusCode, failureBucket, failureStage } =
+            classifyOracleError(discoverErr);
           trackOracleProviderEventSafe(
             buildOracleEventPayload({
               userId: user.id,
@@ -249,6 +379,8 @@ export function OracleProvider({ children }) {
               success: false,
               fallbackReason,
               errorCode,
+              failureBucket,
+              failureStage,
               errorMessage: discoverErr?.message || "Unknown error",
               budgetSource,
               requestSource,
@@ -257,16 +389,21 @@ export function OracleProvider({ children }) {
           );
         }
       } finally {
-        setIsDiscovering(false);
+        if (isCurrentRequest(requestId)) {
+          setIsDiscovering(false);
+        }
       }
     },
     [
       enrichRecommendationsWithTmdb,
       fetchUserMovieHistory,
+      getResolvedQueryConstraints,
       rejectedTitles,
       selectedMood?.prompt,
       tempPrompt,
       user?.id,
+      beginOracleRequest,
+      isCurrentRequest,
     ]
   );
 
@@ -274,13 +411,13 @@ export function OracleProvider({ children }) {
     if (recommendations.length === 0) return;
     const allNewRejectedTitles = recommendations.map((rec) => rec.title);
     const allNewRejectedIds = tmdbResults.filter(Boolean).map((t) => t.id);
-    setRejectedIds((prev) => [...prev, ...allNewRejectedIds]);
     setRejectedTitles((prev) => [...prev, ...allNewRejectedTitles]);
     await handleDiscover(allNewRejectedIds, allNewRejectedTitles, "reroll_all");
   }, [handleDiscover, recommendations, tmdbResults]);
 
   const handleRerollByTmdbId = useCallback(
     async (tmdbId, fallbackTitle = "", fallbackYear = "") => {
+      const { requestId, signal } = beginOracleRequest();
       const fallbackKey = toKey(fallbackTitle, fallbackYear);
       const targetIndex = tmdbResults.findIndex((movie) => movie?.id === tmdbId);
       const byKeyIndex =
@@ -290,15 +427,13 @@ export function OracleProvider({ children }) {
       if (byKeyIndex < 0) return;
 
       const currentRec = recommendations[byKeyIndex];
-      const currentMovie = tmdbResults[byKeyIndex];
       const rejectedTitle = currentRec?.title || fallbackTitle;
-      const rejectedId = currentMovie?.id || tmdbId || null;
-
       const { allKnownTitles, userTasteContext } = await fetchUserMovieHistory();
       const currentTitles = recommendations.map((rec) => rec.title);
       const excludedTitles = [
         ...new Set([...rejectedTitles, ...allKnownTitles, ...currentTitles, rejectedTitle].filter(Boolean)),
       ];
+      const queryConstraints = await getResolvedQueryConstraints(tempPrompt);
 
       setIsDiscovering(true);
       setError("");
@@ -307,7 +442,10 @@ export function OracleProvider({ children }) {
           userContext: userTasteContext,
           systemPrompt: BASE_SYSTEM_PROMPT,
           rejectedTitles: excludedTitles,
+          queryConstraints,
+          signal,
         });
+        if (!isCurrentRequest(requestId)) return;
         const nextRec = (aiResponse?.recommendations || []).find(
           (candidate) => !excludedTitles.includes(candidate.title)
         );
@@ -317,6 +455,7 @@ export function OracleProvider({ children }) {
 
         const nextMovie = await fetchTMDBMovie(nextRec.title, nextRec.year?.toString() || "");
         const nextProviders = nextMovie?.id ? await fetchWatchProviders(nextMovie.id) : null;
+        if (!isCurrentRequest(requestId)) return;
         const enrichedNextMovie = nextMovie
           ? {
               ...nextMovie,
@@ -330,23 +469,28 @@ export function OracleProvider({ children }) {
           prev.map((providers, idx) => (idx === byKeyIndex ? nextProviders : providers))
         );
         setRejectedTitles((prev) => [...prev, rejectedTitle].filter(Boolean));
-        if (rejectedId) {
-          setRejectedIds((prev) => [...prev, rejectedId]);
-        }
       } catch (rerollErr) {
+        if (isAbortLikeError(rerollErr) || !isCurrentRequest(requestId)) {
+          return;
+        }
         console.error("Oracle targeted reroll failed:", rerollErr);
         setError(getDiscoveryErrorMessage(rerollErr));
       } finally {
-        setIsDiscovering(false);
+        if (isCurrentRequest(requestId)) {
+          setIsDiscovering(false);
+        }
       }
     },
     [
       fetchUserMovieHistory,
+      getResolvedQueryConstraints,
       recommendations,
       rejectedTitles,
       selectedProviderIds,
       tempPrompt,
       tmdbResults,
+      beginOracleRequest,
+      isCurrentRequest,
     ]
   );
 
@@ -379,6 +523,7 @@ export function OracleProvider({ children }) {
       rejectedTitles,
       selectedMood,
       selectedProviderIds,
+      toggleProvider,
       tempPrompt,
       tmdbResults,
     ]

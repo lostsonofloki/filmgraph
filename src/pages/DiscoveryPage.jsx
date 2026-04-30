@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useUser } from "../context/UserContext";
 import { useLists } from "../context/ListContext";
 import { useToast } from "../context/ToastContext";
@@ -74,6 +74,12 @@ function DiscoveryContent() {
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [selectedMovieForModal, setSelectedMovieForModal] = useState(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const watchlistInFlightRef = useRef(new Set());
+  const watchlistKnownIdsRef = useRef(new Set());
+  const discoverRequestStartRef = useRef(null);
+  const rerollOneRequestStartRef = useRef(null);
+  const perfDebugEnabled =
+    String(import.meta.env.VITE_FEATURE_ORACLE_PERF_DEBUG || "").toLowerCase() === "true";
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -86,30 +92,31 @@ function DiscoveryContent() {
     };
   }, []);
 
-  const handleMoodSelect = (mood) => {
+  const handleMoodSelect = useCallback((mood) => {
     setSelectedMood(mood);
     setTempPrompt(mood.prompt);
-  };
+  }, [setSelectedMood, setTempPrompt]);
 
-  const handleChange = (e) => {
+  const handleChange = useCallback((e) => {
     setTempPrompt(e.target.value);
-  };
+  }, [setTempPrompt]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = useCallback((e) => {
     e.preventDefault();
     if (tempPrompt.trim()) {
+      discoverRequestStartRef.current = performance.now();
       handleDiscover();
     }
-  };
+  }, [handleDiscover, tempPrompt]);
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = useCallback((e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
     }
-  };
+  }, [handleSubmit]);
 
-  const getMovieDataForModal = (movie) => {
+  const getMovieDataForModal = useCallback((movie) => {
     if (!movie) return null;
     return {
       id: movie.id,
@@ -118,7 +125,89 @@ function DiscoveryContent() {
       release_date: movie.release_date,
       overview: movie.overview,
     };
-  };
+  }, []);
+
+  const selectedProviderNamesText = useMemo(() => {
+    if (!selectedProviderIds.length) return "";
+    return TOP_STREAMING_PROVIDERS_US.filter((p) => selectedProviderIds.includes(p.id))
+      .map((p) => p.name)
+      .join(" · ");
+  }, [selectedProviderIds]);
+
+  const handleOpenWatchedModal = useCallback((movie) => {
+    setSelectedMovieForModal(movie);
+    setIsLogModalOpen(true);
+  }, []);
+
+  const handleAddToWatchlist = useCallback(
+    async (movie) => {
+      if (!movie || !user?.id || !movie.id) return;
+      if (watchlistInFlightRef.current.has(movie.id)) return;
+      if (watchlistKnownIdsRef.current.has(movie.id)) {
+        toast.info("Already in Watchlist");
+        return;
+      }
+
+      watchlistInFlightRef.current.add(movie.id);
+      try {
+        const supabase = getSupabase();
+        const { data: existing } = await supabase
+          .from("movie_logs")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("tmdb_id", movie.id)
+          .eq("watch_status", "to-watch")
+          .maybeSingle();
+        if (existing) {
+          watchlistKnownIdsRef.current.add(movie.id);
+          toast.info("Already in Watchlist");
+          return;
+        }
+        const { error: insertError } = await supabase.from("movie_logs").insert({
+          user_id: user.id,
+          tmdb_id: movie.id,
+          title: movie.title,
+          poster_path: movie.poster_path,
+          watch_status: "to-watch",
+        });
+        if (insertError) throw insertError;
+        watchlistKnownIdsRef.current.add(movie.id);
+        toast.success("Added to Watchlist");
+      } catch (watchErr) {
+        console.error("Watchlist error:", watchErr);
+        toast.error("Failed to add to watchlist");
+      } finally {
+        watchlistInFlightRef.current.delete(movie.id);
+      }
+    },
+    [toast, user?.id]
+  );
+
+  const handleRerollOne = useCallback(
+    (tmdbId, title, year) => {
+      rerollOneRequestStartRef.current = performance.now();
+      onRerollByTmdbId(tmdbId, title, year);
+    },
+    [onRerollByTmdbId]
+  );
+
+  useEffect(() => {
+    if (!perfDebugEnabled) return;
+    if (!isDiscovering && recommendations.length > 0 && discoverRequestStartRef.current) {
+      const durationMs = Math.round(performance.now() - discoverRequestStartRef.current);
+      console.log(`[OraclePerf] discover->firstCards ${durationMs}ms (${recommendations.length} cards)`);
+      discoverRequestStartRef.current = null;
+    }
+  }, [isDiscovering, perfDebugEnabled, recommendations.length]);
+
+  useEffect(() => {
+    if (!perfDebugEnabled) return;
+    if (!isDiscovering && rerollOneRequestStartRef.current) {
+      const durationMs = Math.round(performance.now() - rerollOneRequestStartRef.current);
+      console.log(`[OraclePerf] rerollOne ${durationMs}ms`);
+      rerollOneRequestStartRef.current = null;
+    }
+  }, [isDiscovering, perfDebugEnabled]);
 
   return (
     <div className="discovery-page">
@@ -178,12 +267,7 @@ function DiscoveryContent() {
           </div>
           {selectedProviderIds.length > 0 && (
             <p className="provider-filtering-note">
-              Filtering toward:{" "}
-              {TOP_STREAMING_PROVIDERS_US.filter((p) =>
-                selectedProviderIds.includes(p.id),
-              )
-                .map((p) => p.name)
-                .join(" · ")}
+              Filtering toward: {selectedProviderNamesText}
             </p>
           )}
           <label className="prompt-label">Or describe your vibe:</label>
@@ -240,40 +324,9 @@ function DiscoveryContent() {
                   isMovieInList={isMovieInList}
                   addMovieToList={addMovieToList}
                   toast={toast}
-                  onOpenWatchedModal={(movie) => {
-                    setSelectedMovieForModal(movie);
-                    setIsLogModalOpen(true);
-                  }}
-                  onAddToWatchlist={async (movie) => {
-                    if (!movie || !user?.id) return;
-                    try {
-                      const supabase = getSupabase();
-                      const { data: existing } = await supabase
-                        .from("movie_logs")
-                        .select("id")
-                        .eq("user_id", user.id)
-                        .eq("tmdb_id", movie.id)
-                        .eq("watch_status", "to-watch")
-                        .maybeSingle();
-                      if (existing) {
-                        toast.info("Already in Watchlist");
-                        return;
-                      }
-                      const { error: insertError } = await supabase.from("movie_logs").insert({
-                        user_id: user.id,
-                        tmdb_id: movie.id,
-                        title: movie.title,
-                        poster_path: movie.poster_path,
-                        watch_status: "to-watch",
-                      });
-                      if (insertError) throw insertError;
-                      toast.success("Added to Watchlist");
-                    } catch (watchErr) {
-                      console.error("Watchlist error:", watchErr);
-                      toast.error("Failed to add to watchlist");
-                    }
-                  }}
-                  onRerollOne={handleRerollByTmdbId}
+                  onOpenWatchedModal={handleOpenWatchedModal}
+                  onAddToWatchlist={handleAddToWatchlist}
+                  onRerollOne={handleRerollOne}
                   onRerollAll={handleRerollAll}
                 />
               );

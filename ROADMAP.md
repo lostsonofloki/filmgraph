@@ -4,6 +4,23 @@ A phased approach to building Filmgraph from a static UI to a fully-featured mov
 
 ---
 
+## 🔥 Immediate Priority: Oracle Intelligence Pass (Phase 7.9)
+
+**Status**: 🟡 **Partially Complete (Sprints A-C shipped; follow-ons deferred)**  
+**Priority**: 🔥 **Critical (Deferred Follow-Ons)**
+
+Use this as the primary execution track when Oracle work resumes.
+
+### Quick Jump
+
+- Full section: **Phase 7.9: Oracle Intelligence Pass 🧠**
+- Deferred implementation plan: **Deferred Sprint Checklist (Now Track)**
+  - **Sprint A**: Query Intelligence
+  - **Sprint B**: Taste Weighting
+  - **Sprint C**: Reliability Hardening
+
+---
+
 ## Phase 1: The "Visuals" (Frontend Layout) 🎨
 
 **Goal**: Create a polished, app-like interface using static/hardcoded data.
@@ -485,7 +502,7 @@ $ git log --all --full-history -- .env
 
 **Phase**: Phase 7.1 + 7.2 + 7.3 core foundations + Streaming Oracle MVP + UI foundation shipped ✅
 
-**Current Version**: v1.12.14 - Pre-launch bug squash (Oracle reroll + shared-list uniqueness + streaming logos)
+**Current Version**: v1.12.15 - Oracle intelligence integration pass (Sprint B taste weighting + Sprint C reliability hardening)
 
 **Completed Features**:
 
@@ -1021,6 +1038,97 @@ User Query → Groq LPU (llama-3.3-70b-versatile) → Genre IDs (300-600ms)
 - [x] Rerolling a single recommendation updates only that card.
 - [x] Collaborator list views no longer show duplicate list entries from duplicate membership rows.
 - [x] Oracle cards display only streaming logos that match `user_providers`.
+
+---
+
+## Phase 7.9: Oracle Intelligence Pass 🧠
+
+**Status**: 🟡 **Partially Complete (Sprints A-C shipped; follow-ons deferred)**
+**Priority**: 🔥 **Critical (Deferred Follow-Ons)**
+
+**Goal**: Make Oracle recommendations smarter, stricter, and more resilient by enforcing post-generation quality checks and improving recommendation relevance.
+
+> **Execution Note**: Sprint A/B/C integration is complete in the current release pass; keep this track prioritized for follow-up work in telemetry expansion (`7.9.4`) and provider-aware relevance ranking (`7.9.5`).
+
+### Ranked Implementation Order (Now / Next / Later)
+
+#### Now (highest ROI)
+
+- **Natural-language Oracle filters**
+  - Goal: Support compound queries like "pre-1960 horror on my watchlist" with year/genre/library-state constraints.
+  - Done when: Oracle reliably parses and applies at least year + genre + watch-status filters in one request.
+- **Prompt + taste-profile weighting refinement**
+  - Goal: Improve relevance using stronger weighting for moods, genre affinity, rating polarity, and recency.
+  - Done when: Prompt context consistently includes weighted taste signals and avoids low-rated lookalikes.
+- **Reliability hardening**
+  - Goal: Reduce failed responses/timeouts under provider instability.
+  - Done when: Oracle maintains stable fallback behavior and provider failures no longer produce user-facing dead-ends.
+
+#### Next (high value, broader scope)
+
+- **Provider freshness + relevance ranking**
+  - Goal: Rank recommendations by likelihood of immediate availability on selected services.
+  - Done when: Result ordering prioritizes watch-now options and tracks conversion impact.
+- **TV expansion groundwork**
+  - Goal: Extend Oracle to series-level TV discovery while keeping movie flow stable.
+  - Done when: Movie/TV media-type routing and recommendation verification support both surfaces.
+- **List overlap intelligence ("Matchmaker for Lists")**
+  - Goal: Find intersections across personal and curated lists to drive higher-intent discovery.
+  - Done when: Users can query overlap sets (for example, Criterion vs Watchlist) from discovery workflows.
+
+#### Later (differentiation / polish)
+
+- **Oracle hero interaction polish**
+  - Goal: Make discovery feel premium with progressive reveal animation and richer visual treatment.
+  - Done when: Motion and hierarchy improvements ship without adding interaction friction.
+- **Group discovery ("Porch Talk" protocol)**
+  - Goal: Convert solo discovery into consensus-ready group viewing workflows.
+  - Done when: Bracket-based group voting and winner surfacing are available for shared sessions.
+
+### Deferred Sprint Checklist (Now Track)
+
+#### Sprint A — Query Intelligence
+
+- [x] Implement compound natural-language parsing for Oracle (year range + genre + library-state in a single query).
+- [x] Add deterministic constraint mapping for `watch_status` and decade/year filters before model call.
+- [x] Add validation tests for representative prompts (for example: "pre-1960 horror on my watchlist").
+- [x] Ship behind a safe toggle so fallback Oracle behavior remains available (`VITE_FEATURE_ORACLE_QUERY_CONSTRAINTS=true`).
+
+#### Sprint B — Taste Weighting
+
+- [x] Expand taste-profile weighting rules for mood affinity, genre repetition, rating polarity, and recency.
+- [x] Encode "avoid-like" signals from low-rated watched logs directly into prompt context.
+- [x] Cap and prioritize context slices to prevent token bloat while preserving relevance.
+- [x] Verify recommendation quality on seeded user personas (cozy, noir, deep-cuts, mind-bending).
+- [x] Add server-side taste-profile RPC (`get_oracle_taste_profile`) with fail-soft local fallback (`VITE_FEATURE_ORACLE_TASTE_RPC=true`).
+- [x] Add fast Groq intent-parser lane for Oracle constraints with deterministic-parser fallback (`VITE_FEATURE_ORACLE_GROQ_INTENT_PARSER=true`).
+
+#### Sprint C — Reliability Hardening
+
+- [x] Add stricter timeout/retry behavior per provider with clear fallback reason tagging.
+- [x] Ensure Oracle never returns an empty user-facing state when at least one provider path is healthy.
+- [x] Add observability for failure mode buckets (rate-limit, parse-fail, timeout, upstream unavailable).
+- [x] Run regression pass for discover, reroll-one, and reroll-all flows under simulated provider failures.
+
+### Tasks
+
+| # | Task | Description | Status |
+| --- | --- | --- | --- |
+| 7.9.1 | **Post-Generation Guardrails** | Normalize and validate recommendation payloads (dedupe, rejected-title exclusion, schema safety). | ✅ |
+| 7.9.2 | **Quality Floor Enforcement** | Enforce 3-5 high-quality recommendations and top-up with deterministic fallback when model output is thin. | ✅ |
+| 7.9.3 | **Cross-Provider Consistency** | Apply the same guardrails to Gemini and OpenRouter responses before UI render. | ✅ |
+| 7.9.4 | **Oracle Telemetry Expansion** | Add smarter quality metrics (dedupe drops, rejection-violation attempts, post-filter counts). | ⏳ |
+| 7.9.5 | **Provider-Aware Relevance Ranking** | Prioritize suggestions likely available on selected streaming providers before final card ordering. | ⏳ |
+| 7.9.6 | **Taste-Profile Context Hydration** | Build richer user taste context from moods, genres, ratings, decades, recency, and avoid-signals before Oracle generation. | ✅ |
+
+### Success Criteria
+
+- [x] Duplicate titles are removed before Oracle cards render.
+- [x] Rejected titles are excluded with case-insensitive matching.
+- [x] Oracle returns a stable 3-5 recommendation set whenever providers are available.
+- [x] Oracle prompt context reflects user vibe patterns (moods/genres/ratings/decades/recency), not just raw title history.
+- [ ] Analytics captures recommendation quality signals for ongoing tuning.
+- [ ] Provider-aware ranking improves watch-now conversion in discovery flow.
 
 ---
 
