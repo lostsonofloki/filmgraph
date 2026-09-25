@@ -10,19 +10,45 @@
 
 const DEFAULT_PING_TABLES = ["keepalive_heartbeat", "upc_cache", "profiles"];
 const PING_TIMEOUT_MS = 10000;
-const RETRY_BACKOFF_MS = [500, 2000];
+
+// Patient enough to ride out a restored project's warm-up, which is exactly when this job
+// matters most: for ~30s after an unpause, PostgREST is up but cannot reach Postgres yet.
+const RETRY_BACKOFF_MS = [500, 2000, 5000, 10000];
 
 // Retrying three tables through three attempts each can run well past a minute, which
 // outlives the execution limit on a serverless invocation. Callers with a hard ceiling
 // pass a smaller budget; the ping then gives up early and reports why.
 const DEFAULT_BUDGET_MS = 90000;
 
-// Returned by Supabase's edge once a Free plan project has actually been paused.
+// Secondary pause signal: the edge can answer 540/544 while a project is transitioning.
+// The *primary* signal is DNS, see DEFINITIVE_DNS_FAILURE_CODES below.
 const PAUSED_STATUS_CODES = new Set([540, 544]);
 
-// PostgREST answers these from its in-memory schema cache without reaching Postgres, so
-// they mean "wrong table name", not "database is awake".
-const MISSING_TABLE_CODES = new Set(["PGRST002", "PGRST205"]);
+// Pausing tears the instance down and removes the project's DNS record, so in practice a
+// paused project fails to resolve rather than returning an HTTP status. Verified against a
+// real project: `getaddrinfo ENOTFOUND <ref>.supabase.co` while paused, HTTP 401 once
+// restored. Every candidate table shares the host, so this is worth short-circuiting.
+const DEFINITIVE_DNS_FAILURE_CODES = new Set(["ENOTFOUND"]);
+
+// A resolver hiccup rather than a missing record; worth one more try.
+const TRANSIENT_DNS_FAILURE_CODES = new Set(["EAI_AGAIN"]);
+
+// Observed on a freshly restored project: for a while after PostgREST stops returning
+// PGRST002, its schema cache is still empty, so *every* table reports PGRST205 as though it
+// did not exist. Three wrong table names at once is far less likely than one warming cache,
+// so when a whole sweep misses, wait and sweep again instead of giving up.
+const SCHEMA_CACHE_RESWEEP_DELAYS_MS = [5000, 15000];
+
+// PostgREST answers this from its in-memory schema cache without reaching Postgres, so it
+// means "wrong table name", not "database is awake". Failing over to another table is the
+// only useful response.
+const MISSING_TABLE_CODES = new Set(["PGRST205"]);
+
+// PGRST002 is the opposite case and must not be confused with the above: PostgREST is
+// running but could not query Postgres for the schema cache. Observed for ~30s after
+// restoring a paused project. Retrying is correct; failing over is not, because every
+// table on the instance returns it.
+const TRANSIENT_DB_CODES = new Set(["PGRST002"]);
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -104,11 +130,19 @@ const attemptTableRead = async ({ url, apiKey, table, timeoutMs = PING_TIMEOUT_M
       timeoutMs,
     );
   } catch (error) {
-    const timedOut = error?.name === "AbortError";
-    return {
-      outcome: "retry",
-      error: timedOut ? `Request timed out after ${timeoutMs}ms` : `Network error: ${error?.message || error}`,
-    };
+    if (error?.name === "AbortError") {
+      return { outcome: "retry", error: `Request timed out after ${timeoutMs}ms` };
+    }
+
+    const dnsCode = error?.cause?.code;
+    if (DEFINITIVE_DNS_FAILURE_CODES.has(dnsCode)) {
+      return { outcome: "dns-failure", error: `${dnsCode}: host ${error.cause.hostname} does not resolve` };
+    }
+    if (TRANSIENT_DNS_FAILURE_CODES.has(dnsCode)) {
+      return { outcome: "retry", error: `${dnsCode}: temporary DNS failure` };
+    }
+
+    return { outcome: "retry", error: `Network error: ${error?.message || error}` };
   }
 
   if (response.ok) {
@@ -125,10 +159,19 @@ const attemptTableRead = async ({ url, apiKey, table, timeoutMs = PING_TIMEOUT_M
     };
   }
 
+  if (TRANSIENT_DB_CODES.has(body.json?.code)) {
+    return {
+      outcome: "retry",
+      status: response.status,
+      error: describeHttpFailure(response.status, body),
+    };
+  }
+
   if (MISSING_TABLE_CODES.has(body.json?.code) || response.status === 404) {
     return {
       outcome: "next-table",
       status: response.status,
+      code: body.json?.code,
       error: describeHttpFailure(response.status, body),
     };
   }
@@ -234,7 +277,8 @@ const recordHeartbeat = async ({ url, serviceRoleKey, source, timeoutMs }) => {
  * Ping the database and report what happened.
  *
  * Resolves to `{ ok, status, ... }` rather than throwing: `status` is one of `alive`,
- * `paused`, `unreachable`, `timed-out`, or `not-configured`.
+ * `paused`, `host-unresolved`, `no-ping-target`, `unreachable`, `timed-out`, or
+ * `not-configured`.
  */
 export const runKeepalive = async ({
   env = process.env,
@@ -261,63 +305,119 @@ export const runKeepalive = async ({
   }
 
   const tried = [];
+  let sweep = 0;
 
-  for (const table of config.tables) {
-    const result = await readTableWithRetries({
-      url: config.url,
-      apiKey: config.apiKey,
-      table,
-      remainingMs,
-    });
-    tried.push({ table, outcome: result.outcome, status: result.status, attempts: result.attempts, error: result.error });
+  for (;;) {
+    const sweepStartIndex = tried.length;
 
-    if (result.outcome === "alive") {
-      const heartbeat = await recordHeartbeat({
+    for (const table of config.tables) {
+      const result = await readTableWithRetries({
         url: config.url,
-        serviceRoleKey: config.serviceRoleKey,
-        source,
-        timeoutMs: Math.min(PING_TIMEOUT_MS, remainingMs()),
+        apiKey: config.apiKey,
+        table,
+        remainingMs,
+      });
+      tried.push({
+        table,
+        outcome: result.outcome,
+        status: result.status,
+        code: result.code,
+        attempts: result.attempts,
+        error: result.error,
       });
 
-      return {
-        ok: true,
-        status: "alive",
-        source,
-        table,
-        attempts: result.attempts,
-        heartbeat,
-        tried,
-        durationMs: Date.now() - startedAt,
-      };
+      if (result.outcome === "alive") {
+        const heartbeat = await recordHeartbeat({
+          url: config.url,
+          serviceRoleKey: config.serviceRoleKey,
+          source,
+          timeoutMs: Math.min(PING_TIMEOUT_MS, remainingMs()),
+        });
+
+        return {
+          ok: true,
+          status: "alive",
+          source,
+          table,
+          attempts: result.attempts,
+          heartbeat,
+          tried,
+          durationMs: Date.now() - startedAt,
+        };
+      }
+
+      // Both of these describe the project rather than the table, so trying further
+      // candidates against the same host cannot help.
+      if (result.outcome === "paused") {
+        return {
+          ok: false,
+          status: "paused",
+          source,
+          error: `Project appears to be paused (${result.error}). Restore it from the Supabase dashboard.`,
+          tried,
+          durationMs: Date.now() - startedAt,
+        };
+      }
+
+      if (result.outcome === "dns-failure") {
+        return {
+          ok: false,
+          status: "host-unresolved",
+          source,
+          error:
+            `${result.error}. A paused Supabase project loses its DNS record, so this most ` +
+            `likely means the project is paused — restore it from the dashboard. Otherwise ` +
+            `check SUPABASE_URL for a typo or a deleted project.`,
+          tried,
+          durationMs: Date.now() - startedAt,
+        };
+      }
+
+      if (result.outcome === "out-of-time") break;
     }
 
-    // A paused project is a property of the project, not of the table being read.
-    if (result.outcome === "paused") {
+    const thisSweep = tried.slice(sweepStartIndex);
+    const everyCandidateMissing =
+      thisSweep.length === config.tables.length &&
+      thisSweep.every((entry) => entry.code === "PGRST205");
+    const reSweepDelay = SCHEMA_CACHE_RESWEEP_DELAYS_MS[sweep];
+
+    if (everyCandidateMissing && reSweepDelay && remainingMs() > reSweepDelay) {
+      await sleep(reSweepDelay);
+      sweep += 1;
+      continue;
+    }
+
+    if (everyCandidateMissing) {
       return {
         ok: false,
-        status: "paused",
+        status: "no-ping-target",
         source,
-        error: `Project appears to be paused (${result.error}). Restore it from the Supabase dashboard.`,
+        // PGRST205 is served from the schema cache without touching Postgres, so this did
+        // not refresh the inactivity window even though the request "succeeded".
+        error:
+          `None of the candidate tables (${config.tables.join(", ")}) exist in the schema ` +
+          `cache, so nothing actually queried Postgres and the inactivity window was not ` +
+          `reset. Apply the keepalive_heartbeat migration, or set SUPABASE_KEEPALIVE_TABLES ` +
+          `to a table that does exist.`,
         tried,
         durationMs: Date.now() - startedAt,
       };
     }
 
-    if (result.outcome === "out-of-time") break;
+    const ranOutOfTime = remainingMs() <= 0;
+
+    return {
+      ok: false,
+      status: ranOutOfTime ? "timed-out" : "unreachable",
+      source,
+      error: `${
+        ranOutOfTime ? `Exhausted the ${budgetMs}ms ping budget` : "No candidate table could be read"
+      }. Tried: ${tried.map((entry) => `${entry.table} (${entry.error || entry.outcome})`).join("; ")}`,
+      tried,
+      durationMs: Date.now() - startedAt,
+    };
   }
-
-  const ranOutOfTime = remainingMs() <= 0;
-
-  return {
-    ok: false,
-    status: ranOutOfTime ? "timed-out" : "unreachable",
-    source,
-    error: `${
-      ranOutOfTime ? `Exhausted the ${budgetMs}ms ping budget` : "No candidate table could be read"
-    }. Tried: ${tried.map((entry) => `${entry.table} (${entry.error || entry.outcome})`).join("; ")}`,
-    tried,
-    durationMs: Date.now() - startedAt,
-  };
 };
 
 export const formatKeepaliveResult = (result) => {

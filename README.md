@@ -239,10 +239,23 @@ Run it by hand at any time:
 npm run supabase:keepalive
 ```
 
-Exit codes are meaningful. Missing credentials exit 0 (setup state). A database that cannot
-be reached exits non-zero, turning the workflow red and emailing you, and reports `paused`
-distinctly from `unreachable` so the output says whether to restore the project or fix
-configuration.
+Exit codes are meaningful. Missing credentials exit 0 (setup state). Anything else that
+cannot reach the database exits non-zero, turning the workflow red and emailing you, and the
+reported status says what to do:
+
+| Status | Meaning |
+| --- | --- |
+| `alive` | A real query reached Postgres. |
+| `host-unresolved` | The hostname does not resolve. **This is what a paused project looks like** — pausing removes the DNS record. Otherwise a typo in `SUPABASE_URL`. |
+| `paused` | The edge returned 540/544, seen while a project is transitioning. |
+| `no-ping-target` | Connected, but no candidate table exists. `PGRST205` is answered from PostgREST's schema cache without touching Postgres, so this does **not** reset the inactivity window. |
+| `unreachable` / `timed-out` | Network or budget failure. |
+| `not-configured` | Secrets absent; exits 0. |
+
+Two quirks worth knowing, both observed on a freshly restored project: for roughly the first
+minute PostgREST returns `PGRST002` ("could not query the database for the schema cache")
+and then briefly reports *every* table as `PGRST205`, as though the whole schema were empty.
+Both are transient, so the ping retries them rather than failing over or giving up.
 
 > **The only guaranteed fix is the Pro plan.** Paid projects are never auto-paused. The
 > keep-alive removes the practical problem on the Free plan but depends on schedulers that

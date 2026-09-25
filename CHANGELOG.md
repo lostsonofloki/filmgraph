@@ -28,7 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `public.keepalive_heartbeat` migration: a dedicated, RLS-scoped ping target so the keep-alive works with the anon key alone and stays decoupled from application-table policies.
   - Added `scripts/supabase-keepalive.mjs` (+ `npm run supabase:keepalive`) issuing a real PostgREST read, with retry/backoff on transient errors, failover across candidate tables, explicit paused-project detection, and an overall time budget.
   - Added two independent daily triggers — `.github/workflows/supabase-keepalive.yml` and a Vercel cron hitting `api/supabase-keepalive.js` — so neither scheduler failing silently allows the project to pause.
-  - Documented setup, required secrets, and the Pro-plan caveat in `README.md`.
+  - Diagnosed pause state from DNS rather than HTTP: pausing removes the project's DNS record, so `ENOTFOUND` (not status 540) is the real signature, and it short-circuits instead of burning retries.
+  - Hardened against restore warm-up, verified against the live project: `PGRST002` is retried rather than mistaken for a missing table, and a whole sweep of `PGRST205` is treated as an unpopulated schema cache and re-swept.
+  - Reported `no-ping-target` when no candidate table exists, since `PGRST205` is served from the schema cache without touching Postgres and therefore does not reset the inactivity window.
+  - Exited green with a warning annotation when secrets are absent, so an unconfigured job does not redden the schedule daily.
+  - Documented setup, status meanings, and the Pro-plan caveat in `README.md`.
 - **Pre-launch bug squash (v1.12.14)**
   - Refactored Oracle recommendation rendering into `OracleContext` + `ResultCard` and fixed reroll regression so single-card rerolls replace only the targeted recommendation instead of globally refreshing the entire set.
   - Added Oracle streaming context badges by mapping TMDB provider logos and rendering matched `user_providers` directly on each result card.
