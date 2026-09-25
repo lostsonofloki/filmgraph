@@ -47,7 +47,6 @@ export const resolveKeepaliveConfig = (env = process.env) => {
     url,
     apiKey,
     serviceRoleKey,
-    usingServiceRoleForRead: !anonKey && Boolean(serviceRoleKey),
     tables: tables.length ? tables : DEFAULT_PING_TABLES,
     isConfigured: Boolean(url && apiKey),
   };
@@ -343,5 +342,3 @@ export const formatKeepaliveResult = (result) => {
 
   return lines.join("\n");
 };
-
-export const KEEPALIVE_DEFAULT_TABLES = DEFAULT_PING_TABLES;

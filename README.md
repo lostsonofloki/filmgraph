@@ -195,6 +195,48 @@ Set these repository secrets before enabling the workflow:
 
 If `VERCEL_TOKEN` is missing, the workflow exits gracefully and publishes a setup-needed report instead of failing the entire job.
 
+### Supabase Keep-Alive (Free Plan Anti-Pausing)
+
+Supabase pauses Free plan projects after roughly 7 days of low **database** activity. A
+paused project takes the whole app down until someone restores it by hand. Two independent
+scheduled jobs keep the project awake by issuing a real query every day:
+
+| Trigger | Where | Schedule |
+| --- | --- | --- |
+| GitHub Actions | `.github/workflows/supabase-keepalive.yml` | daily at `03:30 UTC` |
+| Vercel Cron | `api/supabase-keepalive.js` (via `vercel.json`) | daily at `15:00 UTC` |
+
+Both run the same logic from `scripts/supabase-keepalive.mjs`, which reads one row from
+`public.keepalive_heartbeat` (created by the `20260925193000_keepalive_heartbeat.sql`
+migration). Two triggers are deliberate: GitHub disables scheduled workflows after 60 days
+of repository inactivity, while Vercel Cron is tied to the deployment instead.
+
+Only a query that reaches Postgres resets the inactivity window. `/auth/v1/health` returns
+200 without touching the database, so pinging it reports success right up until the project
+pauses — which is why the ping is a PostgREST table read.
+
+Setup:
+
+1. Apply the migration to your Supabase project.
+2. Add repository secrets `SUPABASE_URL` and `SUPABASE_ANON_KEY`. The anon key is
+   sufficient; the heartbeat table holds no user data and exposes only a `SELECT` policy.
+3. Optionally set `SUPABASE_SERVICE_ROLE_KEY` to also record each ping's timestamp, and
+   `CRON_SECRET` in Vercel to restrict the endpoint to Vercel's own cron invocations.
+
+Run it by hand at any time:
+
+```bash
+npm run supabase:keepalive
+```
+
+The job exits non-zero (turning the workflow red and emailing you) when the database cannot
+be reached, and reports `paused` distinctly from `unreachable` so the output says whether
+you need to restore the project or fix configuration.
+
+> **The only guaranteed fix is the Pro plan.** Paid projects are never auto-paused. The
+> keep-alive removes the practical problem on the Free plan but depends on schedulers that
+> can be disabled, throttled, or delayed.
+
 ---
 
 ## 📋 Development Roadmap
