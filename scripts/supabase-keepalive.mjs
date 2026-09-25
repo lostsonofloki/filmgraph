@@ -42,8 +42,25 @@ const main = async () => {
   const result = await runKeepalive({ source });
   const report = formatKeepaliveResult(result);
 
+  // Absent credentials are a setup state, not a liveness signal, so they follow the same
+  // convention as the Vercel investigation workflow and exit gracefully rather than
+  // painting the schedule red every day until someone fills the secrets in. A warning
+  // annotation keeps it visible on the run so it cannot rot unnoticed.
+  const isSetupNeeded = result.status === "not-configured";
+
   if (result.ok) {
     console.log(report);
+  } else if (isSetupNeeded) {
+    console.log(`::warning title=Supabase keep-alive not configured::${result.error}`);
+    console.log(
+      [
+        report,
+        "",
+        "Set the SUPABASE_URL and SUPABASE_ANON_KEY repository secrets to enable this job.",
+        "The Vercel cron in api/supabase-keepalive.js pings the same database independently,",
+        "so the project is not necessarily unprotected while this one is idle.",
+      ].join("\n"),
+    );
   } else {
     console.error(report);
   }
@@ -62,10 +79,13 @@ const main = async () => {
       result.status === "paused"
         ? "\n> The project is already paused. Restore it from the Supabase dashboard, then re-run this job."
         : "",
+      isSetupNeeded
+        ? "\n> Add the `SUPABASE_URL` and `SUPABASE_ANON_KEY` repository secrets to enable this job."
+        : "",
     ].join("\n"),
   );
 
-  process.exit(result.ok ? 0 : 1);
+  process.exit(result.ok || isSetupNeeded ? 0 : 1);
 };
 
 main().catch((error) => {

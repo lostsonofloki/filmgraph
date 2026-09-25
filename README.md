@@ -215,13 +215,23 @@ Only a query that reaches Postgres resets the inactivity window. `/auth/v1/healt
 200 without touching the database, so pinging it reports success right up until the project
 pauses — which is why the ping is a PostgREST table read.
 
-Setup:
+**The Vercel cron needs no configuration.** It reuses the `VITE_SUPABASE_URL` /
+`VITE_SUPABASE_ANON_KEY` project environment variables the app already builds with, so it
+starts pinging on the next production deploy.
 
-1. Apply the migration to your Supabase project.
-2. Add repository secrets `SUPABASE_URL` and `SUPABASE_ANON_KEY`. The anon key is
-   sufficient; the heartbeat table holds no user data and exposes only a `SELECT` policy.
-3. Optionally set `SUPABASE_SERVICE_ROLE_KEY` to also record each ping's timestamp, and
-   `CRON_SECRET` in Vercel to restrict the endpoint to Vercel's own cron invocations.
+To also enable the GitHub Actions job, add repository secrets `SUPABASE_URL` and
+`SUPABASE_ANON_KEY`. The anon key is sufficient — the heartbeat table holds no user data
+and exposes only a `SELECT` policy. Until those secrets exist the job exits **green** with
+a `not-configured` warning annotation rather than failing daily, matching the Vercel error
+investigation workflow's behaviour.
+
+Optionally set `SUPABASE_SERVICE_ROLE_KEY` to also record each ping's timestamp, and
+`CRON_SECRET` in Vercel to restrict the endpoint to Vercel's own cron invocations.
+
+Applying the migration is recommended but not strictly required: if
+`keepalive_heartbeat` is absent the ping falls back to `upc_cache` and then `profiles`.
+Prefer the dedicated table so the keep-alive does not depend on another table's RLS
+configuration staying as it is today.
 
 Run it by hand at any time:
 
@@ -229,9 +239,10 @@ Run it by hand at any time:
 npm run supabase:keepalive
 ```
 
-The job exits non-zero (turning the workflow red and emailing you) when the database cannot
-be reached, and reports `paused` distinctly from `unreachable` so the output says whether
-you need to restore the project or fix configuration.
+Exit codes are meaningful. Missing credentials exit 0 (setup state). A database that cannot
+be reached exits non-zero, turning the workflow red and emailing you, and reports `paused`
+distinctly from `unreachable` so the output says whether to restore the project or fix
+configuration.
 
 > **The only guaranteed fix is the Pro plan.** Paid projects are never auto-paused. The
 > keep-alive removes the practical problem on the Free plan but depends on schedulers that
