@@ -11,5 +11,11 @@
   ],
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "framework": "vite"
+  "framework": "vite",
+  "crons": [
+    {
+      "path": "/api/supabase-keepalive",
+      "schedule": "0 15 * * *"
+    }
+  ]
 }

@@ -1,0 +1,44 @@
+name: Supabase Keep-Alive
+
+# Supabase pauses Free plan projects after ~7 days of low database activity. This job
+# makes a real query every day so that window never elapses.
+#
+# GitHub disables scheduled workflows in repositories with no activity for 60 days, so
+# this is deliberately not the only trigger: `api/supabase-keepalive.js` runs the same
+# ping from a Vercel cron, which is tied to the deployment rather than to repo activity.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 03:30 UTC daily. Off the hour because scheduled runs queue on shared runners.
+    - cron: "30 3 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-keepalive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Ping Supabase database
+        env:
+          # Anon key is sufficient: the ping only reads public.keepalive_heartbeat.
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          # Optional. When present the run also records the ping timestamp.
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          KEEPALIVE_SOURCE: github-actions
+        run: node scripts/supabase-keepalive.mjs
