@@ -2,17 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { getSupabase } from '../supabaseClient';
+import { toLocalDayKey } from '../utils/localDay';
 import './WatchHistory.css';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-const toDayKey = (value) => {
-  const date = new Date(value);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
 
 const getMonthLabel = (date) =>
   date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -46,7 +39,7 @@ const buildMonthCells = (monthDate) => {
 
   for (let day = 1; day <= daysInMonth; day += 1) {
     const date = new Date(year, month, day);
-    cells.push({ type: 'day', day, dayKey: toDayKey(date) });
+    cells.push({ type: 'day', day, dayKey: toLocalDayKey(date) });
   }
 
   const trailingFillers = (7 - (cells.length % 7)) % 7;
@@ -74,7 +67,7 @@ function WatchHistory() {
 
   const indexMoviesByDay = (data) => {
     const grouped = data.reduce((acc, movie) => {
-      const dayKey = toDayKey(movie.created_at);
+      const dayKey = toLocalDayKey(movie.created_at);
       if (!acc[dayKey]) {
         acc[dayKey] = [];
       }
@@ -89,7 +82,7 @@ function WatchHistory() {
     setMoviesByDay(grouped);
 
     if (!selectedDayKey && data.length > 0) {
-      setSelectedDayKey(toDayKey(data[0].created_at));
+      setSelectedDayKey(toLocalDayKey(data[0].created_at));
     }
   };
 
@@ -138,7 +131,7 @@ function WatchHistory() {
   const monthCells = buildMonthCells(currentMonthDate);
   const selectedDayMovies = selectedDayKey ? moviesByDay[selectedDayKey] || [] : [];
   const isCurrentMonthSelectedDay = selectedDayKey
-    ? selectedDayKey.startsWith(toDayKey(currentMonthDate).slice(0, 7))
+    ? selectedDayKey.startsWith(toLocalDayKey(currentMonthDate).slice(0, 7))
     : false;
 
   const handlePrevMonth = () => {
@@ -152,7 +145,7 @@ function WatchHistory() {
   const handleJumpToToday = () => {
     const now = new Date();
     setCurrentMonthDate(new Date(now.getFullYear(), now.getMonth(), 1));
-    setSelectedDayKey(toDayKey(now));
+    setSelectedDayKey(toLocalDayKey(now));
   };
 
   if (!isAuthenticated) {

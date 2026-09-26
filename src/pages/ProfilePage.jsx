@@ -23,6 +23,7 @@ import {
 import "./ProfilePage.css";
 import { TOP_STREAMING_PROVIDERS_US } from "../constants/streamingProviders";
 import { setUserProviderPreference } from "../context/OracleContext";
+import { toLocalDayKey } from "../utils/localDay";
 
 const GENRE_COLORS = [
   "#f97316", // Orange
@@ -149,16 +150,19 @@ function ProfilePage() {
           .eq("user_id", user.id);
 
         if (movieLogs) {
-          const watched = movieLogs.filter(
-            (m) => m.watch_status === "watched" || !m.watch_status,
-          ).length;
+          // `watch_status === 'watched'` everywhere: it is what the Library shelf, the calendar
+          // and the stats dashboard already query, so counting legacy null-status rows here was
+          // the one surface that disagreed with all of them.
+          const watchedLogs = movieLogs.filter(
+            (m) => m.watch_status === "watched",
+          );
+          const watched = watchedLogs.length;
           const reviews = movieLogs.filter(
             (m) => m.review && m.review.trim(),
           ).length;
+          // Same helper and the same column the watch-history calendar groups by.
           const uniqueDays = new Set(
-            movieLogs.map(
-              (m) => new Date(m.created_at).toISOString().split("T")[0],
-            ),
+            watchedLogs.map((m) => toLocalDayKey(m.created_at)),
           ).size;
 
           const watchedMovies = movieLogs.filter(
@@ -175,7 +179,7 @@ function ProfilePage() {
           const hoursWatched = Math.round(watched * 1.5);
           const physicalOwned = movieLogs.filter((m) => !!m.source_upc).length;
           const currentYear = new Date().getFullYear();
-          const watchedThisYear = movieLogs.filter((m) => {
+          const watchedThisYear = watchedLogs.filter((m) => {
             const dateSource = m.watched_at || m.created_at;
             if (!dateSource) return false;
             return new Date(dateSource).getFullYear() === currentYear;
