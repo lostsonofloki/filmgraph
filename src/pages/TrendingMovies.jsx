@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getTrendingMovies, getBackdropUrl, discoverMovies } from '../api/tmdb';
+import {
+  getTrendingMoviesStrict,
+  getBackdropUrl,
+  discoverMoviesStrict,
+  isTmdbRequestError,
+} from '../api/tmdb';
 import QuickMovieActions from '../components/QuickMovieActions';
 import SeoHead from '../components/seo/SeoHead';
 import './TrendingMovies.css';
@@ -42,6 +47,8 @@ const YEAR_RANGE = Array.from({ length: 100 }, (_, i) => CURRENT_YEAR - i);
 function TrendingMovies() {
   const [movies, setMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [requestFailed, setRequestFailed] = useState(false);
+  const [retryToken, setRetryToken] = useState(0);
   const [timeWindow, setTimeWindow] = useState('week');
   const [useDiscover, setUseDiscover] = useState(false);
   const navigate = useNavigate();
@@ -52,22 +59,35 @@ function TrendingMovies() {
   const [selectedYear, setSelectedYear] = useState('');
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchMovies = async () => {
       setIsLoading(true);
-      
-      if (useDiscover || (selectedGenre || selectedYear)) {
-        const results = await discoverMovies(selectedGenre, sortBy, selectedYear);
+      setRequestFailed(false);
+
+      try {
+        const results =
+          useDiscover || selectedGenre || selectedYear
+            ? await discoverMoviesStrict(selectedGenre, sortBy, selectedYear)
+            : await getTrendingMoviesStrict(timeWindow);
+        if (cancelled) return;
         setMovies(results);
-      } else {
-        const trending = await getTrendingMovies(timeWindow);
-        setMovies(trending);
+      } catch (error) {
+        if (cancelled) return;
+        console.error('TMDB request failed:', error.message);
+        setMovies([]);
+        // An unreachable TMDB used to render as an empty grid, which reads as "nothing is trending".
+        setRequestFailed(isTmdbRequestError(error));
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
-      
-      setIsLoading(false);
     };
 
     fetchMovies();
-  }, [timeWindow, useDiscover, selectedGenre, sortBy, selectedYear]);
+    return () => {
+      cancelled = true;
+    };
+  }, [timeWindow, useDiscover, selectedGenre, sortBy, selectedYear, retryToken]);
 
   const handleMovieClick = (movie) => {
     navigate(`/movie/${movie.id}`, { state: { movie } });
@@ -183,6 +203,17 @@ function TrendingMovies() {
         <div className="loading-container">
           <div className="loading-spinner-large"></div>
           <p>Loading movies...</p>
+        </div>
+      ) : requestFailed ? (
+        <div className="loading-container">
+          <p>Couldn't reach TMDB. The list is empty because the request failed.</p>
+          <button
+            className="clear-filters-btn"
+            style={{ alignSelf: 'center' }}
+            onClick={() => setRetryToken((token) => token + 1)}
+          >
+            Try again
+          </button>
         </div>
       ) : (
         <div className="backdrop-grid">
