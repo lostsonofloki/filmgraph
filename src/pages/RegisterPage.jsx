@@ -71,6 +71,7 @@ function RegisterPage() {
         options: {
           data: {
             username: normalizedUsername,
+            display_name: normalizedUsername,
           },
         },
       });
@@ -94,16 +95,9 @@ function RegisterPage() {
       }
 
       if (data.user) {
-        const { error: profileError } = await supabase.from('profiles').upsert({
-          id: data.user.id,
-          email,
-          username: normalizedUsername,
-          display_name: normalizedUsername,
-          updated_at: new Date().toISOString(),
-        });
-        if (profileError) {
-          throw profileError;
-        }
+        // The profile row is created by the `on_auth_user_created` trigger from the metadata
+        // above. Writing it from here ran as `anon` with no session, because email
+        // confirmation means sign-up returns a user but no token.
         setSuccess(
           'Account created! Please check your email to confirm your account. If you do not see it in a minute, check your spam or promotions folder.',
         );
