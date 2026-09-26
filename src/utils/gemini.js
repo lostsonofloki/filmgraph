@@ -46,13 +46,28 @@ if (!apiKey) {
 
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
-// Keep a model ladder because Google model availability can change per key/project.
-const GEMINI_MODEL_CANDIDATES = [
-  "gemini-2.0-flash",
-  "gemini-2.0-flash-lite",
-  "gemini-1.5-flash-latest",
-  "gemini-1.5-pro-latest",
-];
+/**
+ * Keep a model ladder because Google model availability can change per key/project.
+ * Every 1.5 and 2.0 id was retired ("no longer available", 404) while still listed here,
+ * which silently pushed every Oracle call onto OpenRouter. The ids below are verified
+ * present on this project's key; `VITE_GEMINI_MODEL` pins one without a code change.
+ * The `-latest` aliases trail the pinned ids because they answer 503 under load.
+ */
+const GEMINI_MODEL_CANDIDATES = import.meta.env.VITE_GEMINI_MODEL
+  ? [import.meta.env.VITE_GEMINI_MODEL]
+  : ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
+
+/**
+ * Gemini 2.5+ ids spend hidden "thinking" tokens out of maxOutputTokens before emitting any
+ * answer: gemini-2.5-flash burns ~1.9k of them on a list-parse prompt, so every budget in
+ * this file (500-1500) would truncate mid-JSON with finishReason MAX_TOKENS, and raising the
+ * budget instead costs ~30s per call. These prompts ask for a fixed JSON shape and do their
+ * reasoning in the output, so thinking is switched off rather than paid for.
+ */
+const withThinkingDisabled = (generationConfig) => ({
+  ...generationConfig,
+  thinkingConfig: { thinkingBudget: 0, ...generationConfig?.thinkingConfig },
+});
 
 // Cache TTL: 24 hours in milliseconds
 const CACHE_TTL = 24 * 60 * 60 * 1000;
@@ -82,12 +97,26 @@ const withTaggedError = (message, provider, status = null) => {
   return error;
 };
 
+/**
+ * Worth trying the next model rather than giving up: 404 means the id was retired, 400 means
+ * this id rejects part of the request (some aliases refuse `thinkingConfig`) and a sibling
+ * may still accept it.
+ */
+const isCandidateRejection = (status) => status === 404 || status === 400;
+
 const isRetryableGeminiError = (error) => {
   const status = extractStatusCode(error);
   if (status === 404) return false;
   if (status === 429 || status === 500 || status === 503) return true;
   const raw = toErrorString(error);
-  return raw.includes("high demand") || raw.includes("overloaded");
+  return (
+    raw.includes("high demand") ||
+    raw.includes("overloaded") ||
+    // Google can abandon an in-flight stream by appending a bare JSON error object to the SSE
+    // body. The SDK surfaces that as an unparseable stream with no status attached, so without
+    // this it reads as a permanent failure and the Oracle gives up on a transient blip.
+    raw.includes("failed to parse stream")
+  );
 };
 
 const runWithRetries = async (fn, shouldRetry, maxAttempts = 3) => {
@@ -214,9 +243,15 @@ const runGeminiWithFallback = async (prompt, generationConfig, validator) => {
       const chunks = await runWithRetries(async () => {
         const model = genAI.getGenerativeModel({
           model: modelName,
-          generationConfig,
+          generationConfig: withThinkingDisabled(generationConfig),
         });
         const result = await model.generateContentStream(prompt);
+
+        // `result.response` rejects in step with a broken stream. Only `result.stream` is read
+        // here, so that sibling promise has no handler and a retried failure would otherwise
+        // escape as an unhandled rejection.
+        result.response?.catch(() => {});
+
         const streamed = [];
         for await (const chunk of result.stream) {
           streamed.push(chunk.text());
@@ -233,7 +268,7 @@ const runGeminiWithFallback = async (prompt, generationConfig, validator) => {
       const status = extractStatusCode(error);
       if (
         i === GEMINI_MODEL_CANDIDATES.length - 1 ||
-        (!isRetryableGeminiError(error) && status !== 404)
+        (!isRetryableGeminiError(error) && !isCandidateRejection(status))
       ) {
         throw withTaggedError(
           error.message || "Gemini request failed",
@@ -250,6 +285,39 @@ const runGeminiWithFallback = async (prompt, generationConfig, validator) => {
     "gemini",
     extractStatusCode(lastError),
   );
+};
+
+/**
+ * A truncated JSON body throws on parse instead of degrading, so never ask for strict JSON on
+ * a starvation budget even if a caller passes one.
+ */
+const MIN_JSON_OUTPUT_TOKENS = 2048;
+
+/**
+ * Strict-JSON Gemini call for non-Oracle features (archive imports, ...).
+ *
+ * Signature mirrors `callGroqJSON` so a caller can treat the two providers as
+ * interchangeable and try one after the other.
+ *
+ * @returns {Promise<unknown>} Parsed JSON body.
+ */
+export const callGeminiJSON = async ({
+  systemPrompt,
+  userMessage,
+  maxTokens,
+  temperature = 0.1,
+}) => {
+  const { parsed, modelUsed } = await runGeminiWithFallback(
+    `${systemPrompt}\n\n${userMessage}`,
+    {
+      temperature,
+      maxOutputTokens: Math.max(maxTokens, MIN_JSON_OUTPUT_TOKENS),
+      responseMimeType: "application/json",
+    },
+  );
+
+  console.log(`✨ Gemini (${modelUsed}) returned JSON.`);
+  return parsed;
 };
 
 const getLocalVibeCheck = (vibe) => {
