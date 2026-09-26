@@ -202,11 +202,15 @@ function MovieDetail() {
   const [isOwnedPhysical, setIsOwnedPhysical] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchMovieData = async () => {
       setIsLoading(true);
+      setRtScore(null);
 
       // Fetch full movie details from TMDB
       const movieData = await getMovieDetails(id);
+      if (cancelled) return;
 
       if (movieData) {
         // SAFETY CHECK: Block adult/blacklisted content
@@ -226,6 +230,7 @@ function MovieDetail() {
 
         // Fetch watch providers for this movie
         const providers = await fetchWatchProviders(id);
+        if (cancelled) return;
         setWatchProviders(providers);
 
         // SAFETY CHECK: Filter recommendations
@@ -237,6 +242,7 @@ function MovieDetail() {
         // Fetch RT score from OMDb using IMDB ID
         if (movieData.imdb_id) {
           const rt = await getRtScoreByImdbId(movieData.imdb_id);
+          if (cancelled) return;
           setRtScore(rt);
         }
 
@@ -245,6 +251,7 @@ function MovieDetail() {
           year: movieData.release_date?.split("-")[0],
           tmdbId: movieData.id,
         });
+        if (cancelled) return;
         setEnrichment(extra);
       }
 
@@ -253,10 +260,16 @@ function MovieDetail() {
 
     fetchMovieData();
     window.scrollTo(0, 0);
+
+    return () => {
+      cancelled = true;
+    };
   }, [id, navigate]);
 
   // Fetch user's log for this movie
   useEffect(() => {
+    let cancelled = false;
+
     const fetchUserLog = async () => {
       if (!isAuthenticated || !user?.id || !movie?.id) return;
 
@@ -282,6 +295,8 @@ function MovieDetail() {
           .limit(1)
           .maybeSingle();
 
+        if (cancelled) return;
+
         if (error) {
           console.error("Error fetching user log:", error);
         } else if (data) {
@@ -296,6 +311,10 @@ function MovieDetail() {
     };
 
     fetchUserLog();
+
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthenticated, user?.id, movie?.id]);
 
   const handleMovieClick = (movieId) => {
