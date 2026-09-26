@@ -220,7 +220,7 @@ function MovieCard({
         <LogMovieModal
           movie={movie}
           onClose={() => setShowModal(false)}
-          onLogged={() => setShowModal(false)}
+          onSaved={() => setShowModal(false)}
         />
       )}
     </>
