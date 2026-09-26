@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useUser } from "../context/UserContext";
 import { getSupabase } from "../supabaseClient";
 import { useNavigate, Link } from "react-router-dom";
@@ -96,6 +96,14 @@ function ProfilePage() {
   const [moodData, setMoodData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userProviders, setUserProviders] = useState([]);
+  // Cancel has to restore what was loaded, not the hardcoded defaults the form started with:
+  // the profile view renders from the same `bio` state, so blanking it looked like data loss
+  // and the next save would have written that blank back.
+  const loadedProfileRef = useRef({
+    username: user?.username || "",
+    displayName: user?.username || "",
+    bio: "",
+  });
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -107,9 +115,15 @@ function ProfilePage() {
           .select("display_name, username, bio, avatar_url, user_providers")
           .eq("id", user.id)
           .maybeSingle();
-        if (data?.username) setUsername(data.username);
-        if (data?.display_name) setDisplayName(data.display_name);
-        if (data?.bio) setBio(data.bio);
+        const loaded = {
+          username: data?.username || user?.username || "",
+          displayName: data?.display_name || data?.username || user?.username || "",
+          bio: data?.bio || "",
+        };
+        loadedProfileRef.current = loaded;
+        setUsername(loaded.username);
+        setDisplayName(loaded.displayName);
+        setBio(loaded.bio);
         if (data?.avatar_url) setAvatarUrl(data.avatar_url);
         if (Array.isArray(data?.user_providers)) {
           setUserProviders(data.user_providers);
@@ -403,6 +417,11 @@ function ProfilePage() {
         updated_at: new Date().toISOString(),
       });
       if (profileError) throw profileError;
+      loadedProfileRef.current = {
+        username: normalizedUsername,
+        displayName: displayName.trim(),
+        bio,
+      };
       setSuccess("Profile updated successfully!");
       setIsEditing(false);
     } catch (err) {
@@ -414,9 +433,10 @@ function ProfilePage() {
   };
 
   const handleCancel = () => {
-    setUsername(user?.username || "");
-    setDisplayName(user?.username || "");
-    setBio("");
+    const loaded = loadedProfileRef.current;
+    setUsername(loaded.username);
+    setDisplayName(loaded.displayName);
+    setBio(loaded.bio);
     setIsEditing(false);
     setError("");
     setSuccess("");
