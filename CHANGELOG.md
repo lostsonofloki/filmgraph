@@ -24,19 +24,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Wired cache-first behavior into `api/upc-lookup` with fail-soft upsert semantics.
   - Added TTL-based cache aging + stale fallback handling so older UPC entries refresh automatically while still returning cached data during upstream errors/timeouts.
   - Added optional server-side Supabase env documentation for cache operations.
-- **Supabase free-plan keep-alive (ops)**
-  - Added `public.keepalive_heartbeat` migration: a dedicated, RLS-scoped ping target so the keep-alive works with the anon key alone and stays decoupled from application-table policies.
-  - Added `scripts/supabase-keepalive.mjs` (+ `npm run supabase:keepalive`) issuing a real PostgREST read, with retry/backoff on transient errors, failover across candidate tables, explicit paused-project detection, and an overall time budget.
-  - Added two independent daily triggers — `.github/workflows/supabase-keepalive.yml` and a Vercel cron hitting `api/supabase-keepalive.js` — so neither scheduler failing silently allows the project to pause.
-  - Diagnosed pause state from DNS rather than HTTP: pausing removes the project's DNS record, so `ENOTFOUND` (not status 540) is the real signature, and it short-circuits instead of burning retries.
-  - Hardened against restore warm-up, verified against the live project: `PGRST002` is retried rather than mistaken for a missing table, and a whole sweep of `PGRST205` is treated as an unpopulated schema cache and re-swept.
-  - Reported `no-ping-target` when no candidate table exists, since `PGRST205` is served from the schema cache without touching Postgres and therefore does not reset the inactivity window.
-  - Exited green with a warning annotation when secrets are absent, so an unconfigured job does not redden the schedule daily.
-  - Documented setup, status meanings, and the Pro-plan caveat in `README.md`.
 - **Pre-launch bug squash (v1.12.14)**
   - Refactored Oracle recommendation rendering into `OracleContext` + `ResultCard` and fixed reroll regression so single-card rerolls replace only the targeted recommendation instead of globally refreshing the entire set.
   - Added Oracle streaming context badges by mapping TMDB provider logos and rendering matched `user_providers` directly on each result card.
   - Added list-membership race guard migration (`list_members` dedupe + unique index on `list_id,user_id`) and hardened shared-list API writes with `upsert(..., { onConflict: 'list_id,user_id' })`.
+
+---
+
+## [1.13.0] - September 26, 2026
+
+### 🚀 Added
+
+- **Supabase free-plan keep-alive (Phase 7.9)**
+  - Added `public.keepalive_heartbeat` migration (`20260925193000_keepalive_heartbeat.sql`): a single-row, RLS-scoped ping target so the keep-alive runs on the anon key alone and stays decoupled from application-table policies. Includes a `record_keepalive_ping()` function granted to `service_role` only.
+  - Added `scripts/lib/supabase-keepalive.mjs` plus the `scripts/supabase-keepalive.mjs` runner and `npm run supabase:keepalive`, issuing a real PostgREST read so the query reaches Postgres. `/auth/v1/health` answers 200 without touching the database and would report success right up until a pause.
+  - Added two independent daily triggers so neither scheduler failing silently allows a pause: `.github/workflows/supabase-keepalive.yml` at `03:30 UTC`, and a Vercel cron hitting `api/supabase-keepalive.js` at `15:00 UTC`. The Vercel path needs no new configuration because it reuses the existing `VITE_SUPABASE_*` project variables.
+
+### 🐛 Fixed
+
+- **Keep-alive diagnostics corrected against the live project** (found while the database was restored mid-development)
+  - Pause detection now keys off DNS, not HTTP. Pausing removes the project's DNS record, so `getaddrinfo ENOTFOUND` is the real signature and HTTP 540 effectively never fires. DNS failure short-circuits in ~0.09s instead of retrying every candidate table against a host that cannot resolve.
+  - `PGRST002` is retried rather than mistaken for a missing table. It means PostgREST cannot query Postgres for its schema cache — what a restored project returns for roughly its first minute — and every table returns it, so failover is useless.
+  - A whole sweep of `PGRST205` is treated as an unpopulated schema cache and re-swept, since a restored project briefly reports every table as absent.
+  - Added a `no-ping-target` status for when no candidate table exists, because `PGRST205` is served from the schema cache without touching Postgres and therefore does **not** reset the inactivity window. Reporting success there would have been silent failure.
+  - Bounded the ping with an overall time budget (8s on the serverless path) so a slow database yields a reported failure instead of a killed invocation.
+  - Absent credentials exit 0 with a warning annotation instead of reddening the schedule daily; genuine failures still exit non-zero.
+
+### 📚 Documentation
+
+- Documented keep-alive setup, every reported status, the restore warm-up quirks, and the Pro-plan caveat (paid projects are never auto-paused) in `README.md`.
 
 ---
 

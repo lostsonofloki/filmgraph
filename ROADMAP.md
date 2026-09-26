@@ -1024,6 +1024,37 @@ User Query → Groq LPU (llama-3.3-70b-versatile) → Genre IDs (300-600ms)
 
 ---
 
+## Phase 7.9: Supabase Free-Plan Keep-Alive (v1.13.0) 🫀
+
+**Status**: ✅ **Complete**
+**Priority**: 🔥 **Critical (Availability)**
+
+**Goal**: Stop the Free plan project from auto-pausing after ~7 days of low database activity, which takes the entire app offline until someone restores it by hand.
+
+### Tasks
+
+| # | Task | Description | Status |
+| --- | --- | --- | --- |
+| 7.9.1 | **Heartbeat Migration** | Add single-row `keepalive_heartbeat` table with a `SELECT`-only anon policy as a dedicated ping target, decoupled from application-table RLS. | ✅ |
+| 7.9.2 | **Ping Core** | Shared `scripts/lib/supabase-keepalive.mjs` issuing a real PostgREST read, with retry/backoff, candidate-table failover, and an overall time budget. | ✅ |
+| 7.9.3 | **Dual Schedulers** | GitHub Actions cron (`03:30 UTC`) plus Vercel cron (`15:00 UTC`), so neither failing alone allows a pause. | ✅ |
+| 7.9.4 | **Accurate Diagnostics** | Detect pauses via DNS `ENOTFOUND`, retry `PGRST002`, re-sweep an all-`PGRST205` schema cache, and report `no-ping-target` rather than a false success. | ✅ |
+
+### Success Criteria
+
+- [x] A real query reaches Postgres daily without any manual action.
+- [x] The Vercel trigger requires no new configuration (reuses existing `VITE_SUPABASE_*` variables).
+- [x] Verified live in production: `/api/supabase-keepalive` returns `{"ok":true,"status":"alive"}`.
+- [x] A ping that cannot reach the database fails loudly; only absent credentials exit green.
+- [x] `PGRST205` responses are never counted as success, since they never touch Postgres.
+
+### Known Limitations
+
+- Pausing is only guaranteed to stop on the Pro plan; paid projects are never auto-paused. This phase removes the practical problem but relies on schedulers that can be throttled, delayed, or disabled.
+- Applying the migration remains a manual step. Until then the ping falls back to `upc_cache`, and heartbeat recording is skipped (fail-soft).
+
+---
+
 ## Phase 8: Multi-Media Expansion (TV Shows) 📺
 
 **Status**: 🛠️ **Planned**
