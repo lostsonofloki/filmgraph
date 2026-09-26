@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "seo:sitemap": "node scripts/generate-sitemap.mjs",
-    "supabase:keepalive": "node scripts/supabase-keepalive.mjs"
+    "supabase:keepalive": "node scripts/supabase-keepalive.mjs",
+    "ai:model-health": "node scripts/ai-model-health.mjs"
   },
   "keywords": [],
   "author": "",

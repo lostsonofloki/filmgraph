@@ -1,0 +1,50 @@
+name: AI Model Health
+
+# Groq, Google, and OpenRouter all retire model ids on their own schedule and none of them
+# warn us. Each time, a hardcoded id turned into a dead user-facing feature that we only heard
+# about from a user: the Archive Importer returning "model does not exist", and the Oracle
+# silently running on its OpenRouter fallback for who knows how long because all four Gemini
+# ids had gone at once.
+#
+# Fallback ladders absorb the first retirement in a list, which is exactly why this job exists:
+# the app keeps working while the ladder is eaten from the top, so nothing surfaces the damage
+# until the last rung goes. This asks each vendor which models it still serves and fails when a
+# configured id is missing. It reads model catalogues instead of sending completions, so a daily
+# run costs no tokens.
+#
+# Required repository secrets (each is optional; a missing one downgrades that provider to a
+# skip rather than failing the run):
+#   GROQ_API_KEY, GEMINI_API_KEY, OPENROUTER_API_KEY
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 04:30 UTC daily, offset from the Supabase keep-alive job so the two do not queue together.
+    - cron: "30 4 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-model-health
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check configured AI models are still served
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: node scripts/ai-model-health.mjs
