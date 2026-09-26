@@ -31,6 +31,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.13.2] - September 26, 2026
+
+### 🐛 Fixed
+
+- **Archive Importer still refused every list, and the Oracle's Gemini path was dead**
+  - Groq rejected every import outright with `Request too large ... on output tokens per minute (OTPM): Limit 1000, Requested 2000`. The free tier bills OTPM against the *requested* `max_tokens`, not what the model writes, so the flat 2000-token ask could never be served regardless of how short the list was. The ask is now sized to the list (40 tokens per title, capped at 900), which measured ~600ms per import and leaves room for several imports inside the same minute.
+  - Google had retired **every** model id in `GEMINI_MODEL_CANDIDATES` (`gemini-2.0-flash`, `gemini-2.0-flash-lite`, `gemini-1.5-flash-latest`, `gemini-1.5-pro-latest`). Verified against the live API: each returns HTTP 404 "no longer available" and none appear in the account's model list. The Oracle's Gemini tier had therefore been failing on all four candidates and silently degrading to OpenRouter. Replaced with ids verified present on the project's key: `gemini-2.5-flash`, `gemini-2.5-flash-lite`, `gemini-flash-latest`.
+  - Disabled Gemini "thinking" for all calls in `src/utils/gemini.js`. Gemini 2.5+ spends hidden reasoning tokens out of `maxOutputTokens` before writing anything, and it burned ~1,919 of them on a parse prompt — more than every budget in the file (500–1500), so each call would have truncated mid-JSON with `finishReason: MAX_TOKENS`. Raising budgets instead cost ~30s per call; with thinking off the same calls answer in ~1s.
+  - Treated Gemini's mid-stream failures as retryable. Google can abandon an in-flight SSE stream by appending a bare JSON `503` object to the body, which the SDK surfaces as "Failed to parse stream" with no status code attached — so the Oracle read a transient blip as a permanent failure and gave up.
+  - Silenced the unhandled rejection from the SDK's `result.response` promise, which rejects alongside a broken stream while nothing awaits it.
+
+### ✨ Added
+
+- **Gemini as the Archive Importer's second parser**
+  - Imports now try Groq, then Gemini, then the offline regex parser, so a retired model or a rate limit at one vendor no longer reaches the user. Verified end-to-end against a live 12-title list: Groq ~600ms, Gemini ~1.3s when Groq is refused, local parser ~200ms when both vendors are down.
+  - Added `callGeminiJSON`, which mirrors `callGroqJSON` so the two providers are interchangeable at the call site, and floors strict-JSON requests at 2048 output tokens because a truncated body throws on parse instead of degrading.
+  - Model replies are now coerced to the `{title, year}` contract the TMDB step expects; models return `year` as a number, `null`, or `"unknown"` regardless of the prompt, and TMDB treats only the literal `"N/A"` as "no year given".
+
+---
+
 ## [1.13.1] - September 26, 2026
 
 ### 🐛 Fixed
