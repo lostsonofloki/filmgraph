@@ -266,7 +266,9 @@ function MovieDetail() {
         // FIX 2: Use .maybeSingle() instead of .single()
         const { data, error } = await supabase
           .from("movie_logs")
-          .select("id, rating, review, moods, genres, tmdb_id, user_id, source_upc")
+          .select(
+            "id, rating, review, moods, genres, tmdb_id, user_id, source_upc, watch_status, title, poster_path, year",
+          )
           .eq("tmdb_id", movie.id)
           .eq("user_id", user.id)
           .maybeSingle();
