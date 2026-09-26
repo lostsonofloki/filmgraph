@@ -2,6 +2,10 @@
 
 const UPC_LOOKUP_URL = "https://api.upcitemdb.com/prod/trial/lookup";
 const UPC_LOOKUP_TIMEOUT_MS = 12000;
+const UPC_MIN_LENGTH = 8;
+// GTIN-14 is the longest real barcode; without a ceiling a caller could push tens of thousands
+// of digits straight into the upstream query string.
+const UPC_MAX_LENGTH = 14;
 const UPC_CACHE_TTL_HOURS = Number(process.env.UPC_CACHE_TTL_HOURS || 24 * 14);
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPABASE_API_KEY =
@@ -95,8 +99,22 @@ const writeCachedUpc = async (cleanUpc, payload) => {
 };
 
 export default async function handler(req, res) {
-  const cleanUpc = normalizeUpc(req.query?.upc || "");
-  if (!cleanUpc || cleanUpc.length < 8) {
+  if (req.method !== "GET") {
+    res.setHeader("Allow", "GET");
+    res.status(405).json({ error: "Method not allowed" });
+    return;
+  }
+
+  const rawUpc = req.query?.upc;
+  // A repeated `?upc=1&upc=2` arrives as an array, and `String(['1','2'])` normalises to "12",
+  // so two unrelated lookups would collide on a single cache key.
+  if (typeof rawUpc !== "string") {
+    res.status(400).json({ error: "Enter a valid UPC before lookup." });
+    return;
+  }
+
+  const cleanUpc = normalizeUpc(rawUpc);
+  if (cleanUpc.length < UPC_MIN_LENGTH || cleanUpc.length > UPC_MAX_LENGTH) {
     res.status(400).json({ error: "Enter a valid UPC before lookup." });
     return;
   }
