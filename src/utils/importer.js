@@ -1,4 +1,4 @@
-import { fetchTMDBMovie } from '../api/tmdb';
+import { fetchTMDBMovieStrict } from '../api/tmdb';
 import { callGroqJSON } from './groq';
 import { callGeminiJSON } from './gemini';
 
@@ -228,9 +228,11 @@ export const parseArchiveList = async (text) => {
 export const verifyBatchWithTMDB = async (parsedMovies) => {
   console.log(`🔍 Verifying ${parsedMovies.length} movies with TMDB...`);
 
+  // The strict client throws when TMDB could not be asked, so a key, quota, or network problem is
+  // reported as an error instead of telling the user their films do not exist.
   const verificationPromises = parsedMovies.map(async (movie) => {
     try {
-      const tmdbData = await fetchTMDBMovie(movie.title, movie.year);
+      const tmdbData = await fetchTMDBMovieStrict(movie.title, movie.year);
       
       return {
         parsed: movie,
