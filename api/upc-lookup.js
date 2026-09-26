@@ -1,4 +1,4 @@
-/* global fetch, process, AbortController, setTimeout, clearTimeout */
+/* global fetch, process, console, AbortController, setTimeout, clearTimeout */
 
 const UPC_LOOKUP_URL = "https://api.upcitemdb.com/prod/trial/lookup";
 const UPC_LOOKUP_TIMEOUT_MS = 12000;
@@ -8,19 +8,29 @@ const UPC_MIN_LENGTH = 8;
 const UPC_MAX_LENGTH = 14;
 const UPC_CACHE_TTL_HOURS = Number(process.env.UPC_CACHE_TTL_HOURS || 24 * 14);
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const SUPABASE_API_KEY =
+// `upc_cache` is readable with the public key but only writable with the service role, because the
+// anon key ships in the browser bundle and a poisoned payload is served straight back into a scan.
+const SUPABASE_READ_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
   process.env.SUPABASE_ANON_KEY ||
   process.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_WRITE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const normalizeUpc = (upc) => String(upc || "").replace(/[^\d]/g, "");
-const hasCacheConfig = Boolean(SUPABASE_URL && SUPABASE_API_KEY);
+const canReadCache = Boolean(SUPABASE_URL && SUPABASE_READ_KEY);
+const canWriteCache = Boolean(SUPABASE_URL && SUPABASE_WRITE_KEY);
 
-const cacheHeaders = {
-  apikey: SUPABASE_API_KEY,
-  Authorization: `Bearer ${SUPABASE_API_KEY}`,
+if (!canWriteCache) {
+  console.warn(
+    "[upc-lookup] SUPABASE_SERVICE_ROLE_KEY is not set; UPC responses will not be cached and every scan will hit the upstream trial endpoint.",
+  );
+}
+
+const cacheHeaders = (apiKey) => ({
+  apikey: apiKey,
+  Authorization: `Bearer ${apiKey}`,
   "Content-Type": "application/json",
-};
+});
 
 const fetchWithTimeout = async (url, options = {}) => {
   const controller = new AbortController();
@@ -43,13 +53,13 @@ const isStaleTimestamp = (value) => {
 };
 
 const readCachedUpc = async (cleanUpc) => {
-  if (!hasCacheConfig) return null;
+  if (!canReadCache) return null;
 
   try {
     const response = await fetchWithTimeout(
       `${SUPABASE_URL}/rest/v1/upc_cache?upc=eq.${encodeURIComponent(cleanUpc)}&select=payload_json,updated_at&limit=1`,
       {
-        headers: cacheHeaders,
+        headers: cacheHeaders(SUPABASE_READ_KEY),
       },
     );
 
@@ -68,7 +78,7 @@ const readCachedUpc = async (cleanUpc) => {
 };
 
 const writeCachedUpc = async (cleanUpc, payload) => {
-  if (!hasCacheConfig) return;
+  if (!canWriteCache) return;
 
   const firstItem = payload?.items?.[0] || null;
   const sourceTitle = firstItem?.title || null;
@@ -85,16 +95,29 @@ const writeCachedUpc = async (cleanUpc, payload) => {
   };
 
   try {
-    await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/upc_cache?on_conflict=upc`, {
-      method: "POST",
-      headers: {
-        ...cacheHeaders,
-        Prefer: "resolution=merge-duplicates,return=minimal",
+    const response = await fetchWithTimeout(
+      `${SUPABASE_URL}/rest/v1/upc_cache?on_conflict=upc`,
+      {
+        method: "POST",
+        headers: {
+          ...cacheHeaders(SUPABASE_WRITE_KEY),
+          Prefer: "resolution=merge-duplicates,return=minimal",
+        },
+        body: JSON.stringify(cacheRow),
       },
-      body: JSON.stringify(cacheRow),
-    });
-  } catch {
+    );
+
+    // A rejected write used to be indistinguishable from a stored one, so a permanently empty
+    // cache looked healthy while every scan went to the rate-limited trial endpoint.
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      console.warn(
+        `[upc-lookup] cache write rejected (${response.status}) for ${cleanUpc}: ${detail}`,
+      );
+    }
+  } catch (error) {
     // Cache writes are optional; never block lookup response.
+    console.warn(`[upc-lookup] cache write failed for ${cleanUpc}:`, error?.message);
   }
 };
 
