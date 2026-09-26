@@ -1,5 +1,3 @@
-/* global process, console */
-
 /**
  * Scheduled Supabase keep-alive runner.
  *

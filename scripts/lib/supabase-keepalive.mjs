@@ -1,5 +1,3 @@
-/* global fetch, process, AbortController, setTimeout, clearTimeout */
-
 /**
  * Shared keep-alive ping used by the scheduled CI job and the Vercel cron endpoint.
  *
