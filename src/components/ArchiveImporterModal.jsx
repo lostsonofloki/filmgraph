@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
 import { getSupabase } from '../supabaseClient';
-import { parseArchiveWithGroq, verifyBatchWithTMDB, batchSaveMovies } from '../utils/importer';
+import { parseArchiveList, verifyBatchWithTMDB, batchSaveMovies } from '../utils/importer';
 import { createPortal } from 'react-dom';
 import './ArchiveImporterModal.css';
 
@@ -60,7 +60,7 @@ function ArchiveImporterModal({ onClose, onImportComplete }) {
     setError('');
 
     try {
-      const parsed = await parseArchiveWithGroq(rawText);
+      const parsed = await parseArchiveList(rawText);
       setParsedMovies(parsed);
       setStep(STEPS.VERIFYING);
 

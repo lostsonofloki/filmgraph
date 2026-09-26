@@ -1,5 +1,6 @@
 import { fetchTMDBMovie } from '../api/tmdb';
 import { callGroqJSON } from './groq';
+import { callGeminiJSON } from './gemini';
 
 // Leading "1." / "-" / "*" list markers.
 const LIST_MARKER = /^\s*(?:\d+[.)]\s*|[-*•·]\s*)/;
@@ -75,14 +76,8 @@ const normalizeParsedMovies = (parsed) => {
   return [];
 };
 
-/**
- * Parse messy movie list text using Groq LPU, falling back to a local parser.
- * Extracts title and year from various formats (Letterboxd, notes, etc.)
- * @param {string} text - Raw text input from user
- * @returns {Promise<Array<{title: string, year: string}>>} - Parsed movie list
- */
-export const parseArchiveWithGroq = async (text) => {
-  const systemPrompt = `You are a movie list parser. Extract movie titles and years from messy text input.
+/** Shared by every provider so Groq and Gemini extract the same shape. */
+const ARCHIVE_PARSER_PROMPT = `You are a movie list parser. Extract movie titles and years from messy text input.
 
 INPUT FORMATS YOU MAY ENCOUNTER:
 - Letterboxd exports: "The Shawshank Redemption (1994) ★★★★☆"
@@ -124,32 +119,87 @@ Goodfellas (1990)
 EXAMPLE OUTPUT 3:
 [{"title": "The Matrix", "year": "N/A"}, {"title": "Goodfellas", "year": "1990"}, {"title": "Pulp Fiction", "year": "N/A"}]`;
 
-  try {
-    const parsed = await callGroqJSON({
-      systemPrompt,
-      userMessage: `Parse this movie list:\n\n${text}`,
-      maxTokens: 2000,
-    });
+const YEAR_ONLY = /^(?:1[89]\d{2}|20\d{2})$/;
 
-    const movies = normalizeParsedMovies(parsed).filter((movie) => movie?.title);
-    if (movies.length > 0) {
-      return movies;
+/**
+ * Coerce whatever a model returned into the `{title, year}` contract the TMDB step expects.
+ * Models answer `year` as a number, null, or "unknown" regardless of the prompt, and TMDB
+ * treats only the literal "N/A" as "no year given".
+ */
+const toMovieRecords = (parsed) =>
+  normalizeParsedMovies(parsed)
+    .filter((movie) => movie?.title)
+    .map((movie) => {
+      const year = String(movie.year ?? '').trim();
+      return { title: String(movie.title).trim(), year: YEAR_ONLY.test(year) ? year : 'N/A' };
+    })
+    .filter((movie) => movie.title);
+
+const AI_PARSERS = [
+  { name: 'Groq', call: callGroqJSON },
+  { name: 'Gemini', call: callGeminiJSON },
+];
+
+/**
+ * Groq's free tier bills output-tokens-per-minute against the *requested* max_tokens rather than
+ * what the model writes, so the flat 2000 this used to send was refused outright ("Request too
+ * large ... Limit 1000") on every import, whatever the list length. Sizing the ask to the list
+ * keeps a short import cheap enough to run several within a minute; 40 tokens per title is about
+ * double what these models actually spend. Gemini applies its own, higher floor, so a list long
+ * enough to truncate Groq simply hands off to it.
+ */
+const groqTokenBudget = (text) => {
+  const lines = String(text || '').split(/\r?\n/).filter((line) => line.trim()).length;
+  return Math.min(900, Math.max(256, lines * 40));
+};
+
+/**
+ * Parse messy movie list text, trying each AI provider before a local parser.
+ * Extracts title and year from various formats (Letterboxd, notes, etc.)
+ *
+ * Both providers retire model ids without warning, and that used to surface as a dead
+ * importer. Independent vendors plus the offline parser mean an import only fails now if the
+ * text itself has no titles in it.
+ *
+ * @param {string} text - Raw text input from user
+ * @returns {Promise<Array<{title: string, year: string}>>} - Parsed movie list
+ */
+export const parseArchiveList = async (text) => {
+  const failures = [];
+  const maxTokens = groqTokenBudget(text);
+
+  for (const { name, call } of AI_PARSERS) {
+    try {
+      const movies = toMovieRecords(
+        await call({
+          systemPrompt: ARCHIVE_PARSER_PROMPT,
+          userMessage: `Parse this movie list:\n\n${text}`,
+          maxTokens,
+        }),
+      );
+
+      if (movies.length > 0) {
+        console.log(`✅ ${name} parsed ${movies.length} titles.`);
+        return movies;
+      }
+
+      failures.push(`${name}: returned no recognisable titles`);
+    } catch (error) {
+      failures.push(`${name}: ${error.message}`);
     }
 
-    throw new Error('Groq returned no recognisable titles');
-  } catch (error) {
-    // Importing a watchlist must not depend on an AI provider being healthy.
-    console.warn(`⚠️ Groq parsing unavailable (${error.message}); using local parser.`);
-
-    const localMovies = parseArchiveLocally(text);
-    if (localMovies.length > 0) {
-      console.log(`📄 Local parser recovered ${localMovies.length} titles.`);
-      return localMovies;
-    }
-
-    console.error('Archive parsing failed:', error.message);
-    throw new Error("Couldn't find any movie titles in that list. Try one title per line.");
+    console.warn(`⚠️ ${failures.at(-1)}; trying the next parser.`);
   }
+
+  // Importing a watchlist must not depend on any AI provider being healthy.
+  const localMovies = parseArchiveLocally(text);
+  if (localMovies.length > 0) {
+    console.log(`📄 Local parser recovered ${localMovies.length} titles.`);
+    return localMovies;
+  }
+
+  console.error('Archive parsing failed:', failures.join(' | '));
+  throw new Error("Couldn't find any movie titles in that list. Try one title per line.");
 };
 
 /**
