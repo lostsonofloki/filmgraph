@@ -1,28 +1,57 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useOracle } from "../../context/OracleContext";
 
+const OFFER_SUFFIX = { rent: " to rent", buy: " to buy" };
+
+function ProviderLogoRow({ logos, label, ariaLabel }) {
+  if (logos.length === 0) return null;
+  return (
+    <>
+      <span className="oracle-provider-logos-label">{label}</span>
+      <div className="oracle-provider-logos-row" aria-label={ariaLabel}>
+        {logos.map((provider) => {
+          const chipLabel = `${provider.provider_name}${OFFER_SUFFIX[provider.offer_type] || ""}`;
+          return (
+            <span
+              key={provider.provider_id}
+              className="oracle-provider-logo-chip"
+              title={chipLabel}
+              aria-label={chipLabel}
+            >
+              <img
+                src={`https://image.tmdb.org/t/p/w92${provider.logo_path}`}
+                alt={chipLabel}
+                loading="lazy"
+                className="oracle-provider-logo"
+              />
+            </span>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+// A rental costs money the user has not already spent, so it never shares a row or a label with
+// the subscriptions they picked.
 function ProviderLogos({ logos }) {
   if (!Array.isArray(logos) || logos.length === 0) return null;
+  const subscription = logos.filter((provider) => provider.offer_type === "flatrate");
+  const paid = logos.filter((provider) => provider.offer_type !== "flatrate");
+
   return (
-    <div className="oracle-provider-logos" aria-label="Available on your streaming services">
-      <span className="oracle-provider-logos-label">Watch now:</span>
-      <div className="oracle-provider-logos-row">
-        {logos.map((provider) => (
-          <span
-            key={provider.provider_id}
-            className="oracle-provider-logo-chip"
-            title={provider.provider_name}
-            aria-label={provider.provider_name}
-          >
-            <img
-              src={`https://image.tmdb.org/t/p/w92${provider.logo_path}`}
-              alt={provider.provider_name}
-              loading="lazy"
-              className="oracle-provider-logo"
-            />
-          </span>
-        ))}
-      </div>
+    <div className="oracle-provider-logos">
+      <ProviderLogoRow
+        logos={subscription}
+        label="Watch now:"
+        ariaLabel="Included with your streaming services"
+      />
+      <ProviderLogoRow
+        logos={paid}
+        label="Rent or buy:"
+        ariaLabel="Available to rent or buy on your services, not included with a subscription"
+      />
     </div>
   );
 }
@@ -43,6 +72,8 @@ function ResultCard({
   onRerollAll,
 }) {
   const [isListDropdownOpen, setIsListDropdownOpen] = useState(false);
+  const { enrichmentFailures } = useOracle();
+  const enrichmentFailed = Boolean(enrichmentFailures[index]);
 
   return (
     <div
@@ -98,6 +129,12 @@ function ResultCard({
           )}
           <span className="rec-year">{movieTmdb?.release_date?.split("-")[0] || rec.year}</span>
         </div>
+
+        {enrichmentFailed && (
+          <span className="oracle-provider-logos-label">
+            Couldn't reach TMDB: no poster or streaming info for this pick.
+          </span>
+        )}
 
         <ProviderLogos logos={movieTmdb?.provider_logos || []} />
 
