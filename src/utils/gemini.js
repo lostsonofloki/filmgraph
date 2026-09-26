@@ -458,12 +458,15 @@ export const getMovieRecommendations = async ({
   // Check cache first (unless bypassing)
   if (!bypassCache && supabase) {
     try {
+      // Without the cache_key comparison the row was returned whatever inputs produced it,
+      // so a new mood re-served the previous mood's films until the TTL expired.
       const { data: cached } = await supabase
         .from("ai_cache")
         .select("recommendations, created_at")
         .eq("user_id", userId)
         .eq("cache_type", "discovery")
-        .single();
+        .eq("cache_key", cacheKey)
+        .maybeSingle();
 
       if (cached) {
         const cacheAge = Date.now() - new Date(cached.created_at).getTime();
@@ -527,7 +530,7 @@ Format:
 
     // Cache the results
     if (supabase && userId) {
-      await supabase.from("ai_cache").upsert(
+      const { error: cacheError } = await supabase.from("ai_cache").upsert(
         {
           user_id: userId,
           cache_type: "discovery",
@@ -539,7 +542,11 @@ Format:
           onConflict: "user_id,cache_type",
         },
       );
-      console.log("💾 Recommendations cached");
+      if (cacheError) {
+        console.warn("Recommendations not cached:", cacheError.message);
+      } else {
+        console.log("💾 Recommendations cached");
+      }
     }
 
     return {
