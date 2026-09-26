@@ -11,11 +11,18 @@ const toAbsoluteUrl = (path = '/') => {
   return `${base}${safePath}`;
 };
 
+// Imported films store the literal 'N/A' when no year was found, which is not a year to share.
+const displayYear = (year) => {
+  const value = String(year ?? '').trim();
+  return value && value.toUpperCase() !== 'N/A' ? value : '';
+};
+
 export const buildMovieSharePayload = ({ title, year, rating, moods = [], tmdbId }) => {
   const safeTitle = title || 'Untitled movie';
   const moodText = moods.length ? ` | moods: ${moods.slice(0, 3).join(', ')}` : '';
   const ratingText = Number.isFinite(rating) ? ` | rating: ${Number(rating).toFixed(1)}/5` : '';
-  const yearText = year ? ` (${year})` : '';
+  const safeYear = displayYear(year);
+  const yearText = safeYear ? ` (${safeYear})` : '';
   const url = tmdbId ? toAbsoluteUrl(`/movie/${tmdbId}`) : toAbsoluteUrl('/library');
   const text = `I logged "${safeTitle}"${yearText} on Filmgraph${ratingText}${moodText}.\n${url}`;
 
