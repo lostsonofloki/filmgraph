@@ -1,4 +1,4 @@
-import { fetchTMDBMovie } from '../api/tmdb';
+import { fetchTMDBMovieStrict } from '../api/tmdb';
 import { callGroqJSON } from './groq';
 import { callGeminiJSON } from './gemini';
 
@@ -11,10 +11,19 @@ const KNOWN_LABEL = /^(?:watched|watch|seen|rewatched|re-watched|movie|film|titl
 
 const PAREN_YEAR = /\((1[89]\d{2}|20\d{2})\)/;
 const COMMA_YEAR = /,\s*(1[89]\d{2}|20\d{2})\s*$/;
-const RATING_CHARS = /[★☆⭐]+/g;
+
+// Half stars are the normal shape of a Letterboxd export, but "½" also has to survive inside a
+// title ("8½"), so it only counts as a rating when it trails a run of stars.
+const RATING_CHARS = /[★☆⭐]+\s*½?/g;
 
 // Requires whitespace around the dash so hyphenated titles like "Spider-Man" survive.
 const TRAILING_NOTE = /\s+[-–—]\s+.*$/;
+
+// A note after a comma ("The Hateful Eight (2015), loved it") only reads as a note when it starts
+// lowercase, so "Crouching Tiger, Hidden Dragon" keeps its second half.
+const TRAILING_COMMA_NOTE = /,\s*[a-z][^,]*$/;
+
+const squashSpaces = (value) => value.replace(/\s{2,}/g, ' ');
 
 const HEADER_LINE = /^(?:my\s+)?(?:watchlist|watch list|list|movies|films|to watch|seen)\s*:?\s*$/i;
 
@@ -36,7 +45,9 @@ export const parseArchiveLocally = (text) => {
     let line = rawLine.trim();
     if (!line) continue;
 
-    line = line.replace(LIST_MARKER, '').replace(KNOWN_LABEL, '').replace(RATING_CHARS, '').trim();
+    line = squashSpaces(
+      line.replace(LIST_MARKER, '').replace(KNOWN_LABEL, '').replace(RATING_CHARS, ''),
+    ).trim();
     if (!line || HEADER_LINE.test(line)) continue;
 
     let year = 'N/A';
@@ -45,15 +56,21 @@ export const parseArchiveLocally = (text) => {
 
     if (parenYear) {
       year = parenYear[1];
-      line = line.replace(parenYear[0], ' ').trim();
+      line = squashSpaces(line.replace(parenYear[0], ' ')).trim();
     } else if (commaYear) {
       year = commaYear[1];
       line = line.slice(0, commaYear.index).trim();
     }
     // A bare trailing number is never read as a year, so "Blade Runner 2049" keeps its title.
 
-    line = line.replace(TRAILING_NOTE, '').replace(/[\s,;:–—-]+$/, '').trim();
-    if (!line || /^\d+$/.test(line)) continue;
+    line = line
+      .replace(TRAILING_NOTE, '')
+      .replace(TRAILING_COMMA_NOTE, '')
+      .replace(/[\s,;:–—-]+$/, '')
+      .trim();
+    // Numeric titles are real ("1917", "300", "9"); only a line that is nothing but the year taken
+    // off it is dropped.
+    if (!line || line === year) continue;
 
     movies.push({ title: line, year });
   }
@@ -211,9 +228,11 @@ export const parseArchiveList = async (text) => {
 export const verifyBatchWithTMDB = async (parsedMovies) => {
   console.log(`🔍 Verifying ${parsedMovies.length} movies with TMDB...`);
 
+  // The strict client throws when TMDB could not be asked, so a key, quota, or network problem is
+  // reported as an error instead of telling the user their films do not exist.
   const verificationPromises = parsedMovies.map(async (movie) => {
     try {
-      const tmdbData = await fetchTMDBMovie(movie.title, movie.year);
+      const tmdbData = await fetchTMDBMovieStrict(movie.title, movie.year);
       
       return {
         parsed: movie,
@@ -275,7 +294,7 @@ export const batchSaveMovies = async (confirmedMovies, userId, supabase) => {
     const { data, error } = await supabase
       .from('movie_logs')
       .upsert(moviesToInsert, { 
-        onConflict: 'user_id, tmdb_id', 
+        onConflict: 'user_id,tmdb_id', 
         ignoreDuplicates: true 
       })
       .select();

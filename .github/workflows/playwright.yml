@@ -20,9 +20,14 @@ jobs:
     - name: Run Playwright tests
       run: npx playwright test --project=chromium
       env:
-        TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
-        TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
-        PLAYWRIGHT_BASE_URL: https://ignes-azure.vercel.app
+        # The specs read TEST_USER_EMAIL/TEST_USER_PASSWORD (as does .env.example and
+        # scripts/actor-badge-check.cjs); this job used to export TEST_EMAIL/TEST_PASSWORD, so
+        # every authenticated spec saw no credentials at all. Either secret name is accepted so
+        # the existing repository secrets keep working.
+        TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL || secrets.TEST_EMAIL }}
+        TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD || secrets.TEST_PASSWORD }}
+        # Was https://ignes-azure.vercel.app, a hostname from before the project was renamed.
+        PLAYWRIGHT_BASE_URL: https://filmgraph.app
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:

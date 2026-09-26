@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useUser } from '../context/UserContext';
 import { useToast } from '../context/ToastContext';
+import { resolveProfileByIdentifier } from '../api/sharedLists';
 import { getSupabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import './MatchmakerPage.css';
@@ -15,6 +16,10 @@ const DEFAULT_AVATAR = 'https://ui-avatars.com/api/?name=?&background=7e22ce&col
 function MatchmakerPage() {
   const { user } = useUser();
   const toast = useToast();
+  // Read through a ref inside the fetch callback so a toast can never change the
+  // callback's identity and refire the effect that produced it.
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
   const navigate = useNavigate();
   const [inviteEmail, setInviteEmail] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -112,15 +117,15 @@ function MatchmakerPage() {
       ].filter(f => f.friend); // Filter out any null profiles
 
       setFriendRequests((incoming || []).filter(r => r.profiles)); // Filter out null profiles
-      setSentRequests((sent || []).filter(r => r.receiver)); // Filter out null receivers
+      setSentRequests((sent || []).filter(r => r.profiles)); // Filter out null receivers
       setFriends(allFriends);
     } catch (err) {
       console.error('Error fetching friendships:', err);
-      toast.error('Failed to load friend requests');
+      toastRef.current.error('Failed to load friend requests');
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, toast]);
+  }, [user?.id]);
 
   // Fetch all friendship data on mount
   useEffect(() => {
@@ -142,12 +147,9 @@ function MatchmakerPage() {
       setIsSending(true);
       const supabase = getSupabase();
 
-      // Find user by email in auth.users
-      const { data: userData, error: userError } = await supabase
-        .from('profiles')
-        .select('id, username, display_name, avatar_url')
-        .eq('email', inviteEmail.trim())
-        .single();
+      // Resolved through the RPC: `profiles.email` is not readable from the browser, and the
+      // address is stored exactly as the user typed it at signup.
+      const { data: userData, error: userError } = await resolveProfileByIdentifier(inviteEmail);
 
       if (userError || !userData) {
         toast.error('User not found. Make sure they have a Filmgraph account.');
@@ -198,12 +200,22 @@ function MatchmakerPage() {
     try {
       const supabase = getSupabase();
 
-      const { error } = await supabase
+      // Without the receiver filter the sender could accept their own request.
+      const { data, error } = await supabase
         .from('friendships')
         .update({ status: 'accepted' })
-        .eq('id', requestId);
+        .eq('id', requestId)
+        .eq('receiver_id', user.id)
+        .eq('status', 'pending')
+        .select('id');
 
       if (error) throw error;
+
+      if (!data?.length) {
+        toast.error('That request is no longer pending.');
+        fetchFriendships();
+        return;
+      }
 
       toast.success('Friend request accepted!');
       fetchFriendships();
@@ -328,16 +340,16 @@ function MatchmakerPage() {
                 <div key={request.id} className="request-card">
                   <div className="request-user">
                     <img 
-                      src={request.receiver?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(request.receiver?.display_name || 'User')}&background=7e22ce&color=fff&size=128`} 
-                      alt={request.receiver?.display_name?.split('@')[0] || request.receiver?.username || 'User'} 
+                      src={request.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(request.profiles?.display_name || 'User')}&background=7e22ce&color=fff&size=128`} 
+                      alt={request.profiles?.display_name?.split('@')[0] || request.profiles?.username || 'User'} 
                       className="user-avatar"
                       onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
                     />
                     <div className="user-info">
                       <span className="user-display-name">
-                        {request.receiver?.display_name?.split('@')[0] || request.receiver?.username || 'User'}
+                        {request.profiles?.display_name?.split('@')[0] || request.profiles?.username || 'User'}
                       </span>
-                      <span className="user-username">@{request.receiver?.username || request.receiver?.display_name?.split('@')[0] || 'user'}</span>
+                      <span className="user-username">@{request.profiles?.username || request.profiles?.display_name?.split('@')[0] || 'user'}</span>
                     </div>
                   </div>
                   <div className="request-actions">

@@ -52,3 +52,7 @@ android/capacitor-cordova-android-plugins/build/
 
 # Capacitor copies `npm run build` output here — contains baked-in VITE_* secrets; regenerate with `npx cap sync`
 android/app/src/main/assets/public/
+
+# Build output. A committed bundle pins whatever keys it was built with into git history forever.
+dist.zip
+*.zip

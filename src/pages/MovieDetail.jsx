@@ -202,11 +202,15 @@ function MovieDetail() {
   const [isOwnedPhysical, setIsOwnedPhysical] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchMovieData = async () => {
       setIsLoading(true);
+      setRtScore(null);
 
       // Fetch full movie details from TMDB
       const movieData = await getMovieDetails(id);
+      if (cancelled) return;
 
       if (movieData) {
         // SAFETY CHECK: Block adult/blacklisted content
@@ -226,6 +230,7 @@ function MovieDetail() {
 
         // Fetch watch providers for this movie
         const providers = await fetchWatchProviders(id);
+        if (cancelled) return;
         setWatchProviders(providers);
 
         // SAFETY CHECK: Filter recommendations
@@ -237,6 +242,7 @@ function MovieDetail() {
         // Fetch RT score from OMDb using IMDB ID
         if (movieData.imdb_id) {
           const rt = await getRtScoreByImdbId(movieData.imdb_id);
+          if (cancelled) return;
           setRtScore(rt);
         }
 
@@ -245,6 +251,7 @@ function MovieDetail() {
           year: movieData.release_date?.split("-")[0],
           tmdbId: movieData.id,
         });
+        if (cancelled) return;
         setEnrichment(extra);
       }
 
@@ -253,10 +260,16 @@ function MovieDetail() {
 
     fetchMovieData();
     window.scrollTo(0, 0);
+
+    return () => {
+      cancelled = true;
+    };
   }, [id, navigate]);
 
   // Fetch user's log for this movie
   useEffect(() => {
+    let cancelled = false;
+
     const fetchUserLog = async () => {
       if (!isAuthenticated || !user?.id || !movie?.id) return;
 
@@ -266,7 +279,9 @@ function MovieDetail() {
         // FIX 2: Use .maybeSingle() instead of .single()
         const { data, error } = await supabase
           .from("movie_logs")
-          .select("id, rating, review, moods, genres, tmdb_id, user_id, source_upc")
+          .select(
+            "id, rating, review, moods, genres, tmdb_id, user_id, source_upc, watch_status, title, poster_path, year",
+          )
           .eq("tmdb_id", movie.id)
           .eq("user_id", user.id)
           .maybeSingle();
@@ -279,6 +294,8 @@ function MovieDetail() {
           .not("source_upc", "is", null)
           .limit(1)
           .maybeSingle();
+
+        if (cancelled) return;
 
         if (error) {
           console.error("Error fetching user log:", error);
@@ -294,6 +311,10 @@ function MovieDetail() {
     };
 
     fetchUserLog();
+
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthenticated, user?.id, movie?.id]);
 
   const handleMovieClick = (movieId) => {
@@ -332,37 +353,51 @@ function MovieDetail() {
     }
     try {
       const supabase = getSupabase();
-      const { data: existing } = await supabase
+      const { data: existing, error: lookupError } = await supabase
         .from("movie_logs")
-        .select("id, watch_status, rating")
+        .select("id, watch_status, rating, review, moods, source_upc")
         .eq("tmdb_id", movie.id)
         .eq("user_id", user.id)
         .maybeSingle();
 
+      if (lookupError) throw lookupError;
+
       if (existing) {
         if (existing.watch_status === "to-watch") {
-          if (!existing.rating) {
-            await supabase.from("movie_logs").delete().eq("id", existing.id);
-            toast.success("Removed from Watchlist");
-            setUserLog(null);
-          } else {
-            await supabase
+          const hasUserContent =
+            existing.rating != null ||
+            !!existing.review ||
+            (Array.isArray(existing.moods) && existing.moods.length > 0) ||
+            !!existing.source_upc;
+
+          if (hasUserContent) {
+            const { error: updateError } = await supabase
               .from("movie_logs")
-              .update({ watch_status: null })
+              .update({ watch_status: "watched" })
               .eq("id", existing.id);
+            if (updateError) throw updateError;
             toast.success("Removed from Watchlist");
             setUserLog((prev) =>
-              prev ? { ...prev, watch_status: null } : null,
+              prev ? { ...prev, watch_status: "watched" } : prev,
             );
+          } else {
+            const { error: deleteError } = await supabase
+              .from("movie_logs")
+              .delete()
+              .eq("id", existing.id);
+            if (deleteError) throw deleteError;
+            toast.success("Removed from Watchlist");
+            setUserLog(null);
           }
         } else {
-          await supabase
+          const { error: updateError } = await supabase
             .from("movie_logs")
             .update({ watch_status: "to-watch" })
             .eq("id", existing.id);
+          if (updateError) throw updateError;
           toast.success("Added to Watchlist");
           setUserLog((prev) =>
-            prev ? { ...prev, watch_status: "to-watch" } : null,
+            prev ? { ...prev, watch_status: "to-watch" } : prev,
           );
         }
       } else {

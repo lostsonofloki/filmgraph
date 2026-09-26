@@ -1,5 +1,3 @@
-/* global process, console */
-
 /**
  * Scheduled AI model availability check.
  *

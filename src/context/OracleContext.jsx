@@ -8,7 +8,7 @@ import {
   classifyOracleError,
   trackOracleProviderEventSafe,
 } from "../utils/oracleAnalytics";
-import { fetchTMDBMovie, fetchWatchProviders } from "../api/tmdb";
+import { fetchTMDBMovieStrict, fetchWatchProviders, isTmdbRequestError } from "../api/tmdb";
 
 const OracleContext = createContext(null);
 
@@ -18,23 +18,29 @@ const mapMatchedProviderLogos = (providers, selectedProviderIds) => {
   if (!Array.isArray(selectedProviderIds) || selectedProviderIds.length === 0) return [];
   if (!providers) return [];
 
+  // The offer type travels with the logo: a rental is not included in a subscription the user
+  // already pays for, and the card must not present the two the same way.
   const sourcePool =
     Array.isArray(providers.flatrate) && providers.flatrate.length > 0
-      ? providers.flatrate
-      : [...(providers.rent || []), ...(providers.buy || [])];
+      ? providers.flatrate.map((provider) => ({ provider, offerType: "flatrate" }))
+      : [
+          ...(providers.rent || []).map((provider) => ({ provider, offerType: "rent" })),
+          ...(providers.buy || []).map((provider) => ({ provider, offerType: "buy" })),
+        ];
 
   const seen = new Set();
   return sourcePool
-    .filter((provider) => selectedProviderIds.includes(provider.provider_id))
-    .filter((provider) => {
+    .filter(({ provider }) => selectedProviderIds.includes(provider.provider_id))
+    .filter(({ provider }) => {
       if (seen.has(provider.provider_id)) return false;
       seen.add(provider.provider_id);
       return true;
     })
-    .map((provider) => ({
+    .map(({ provider, offerType }) => ({
       provider_id: provider.provider_id,
       provider_name: provider.provider_name,
       logo_path: provider.logo_path,
+      offer_type: offerType,
     }));
 };
 
@@ -61,6 +67,37 @@ function getDiscoveryErrorMessage(err) {
   return err?.message || "The Oracle could not find a match. Try a different mood.";
 }
 
+/**
+ * Single writer for `profiles.user_providers`. The Oracle overlay and the Profile page both edit
+ * this column and each one holds a copy of the array from its own mount, so writing a remembered
+ * copy back discarded whatever the other surface had saved since. The array is re-read here
+ * immediately before the write, and the caller passes the state it wants for one provider rather
+ * than a blind toggle, so the user's intent survives a stale copy too.
+ * @returns {Promise<Array<number>>} the array that is now stored
+ */
+export async function setUserProviderPreference(userId, providerId, enabled) {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("user_providers")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw error;
+
+  const current = Array.isArray(data?.user_providers) ? data.user_providers : [];
+  const next = enabled
+    ? [...new Set([...current, providerId])]
+    : current.filter((id) => id !== providerId);
+
+  const { error: writeError } = await supabase
+    .from("profiles")
+    .update({ user_providers: next, updated_at: new Date().toISOString() })
+    .eq("id", userId);
+  if (writeError) throw writeError;
+
+  return next;
+}
+
 export function OracleProvider({ children }) {
   const { user } = useUser();
   const [selectedMood, setSelectedMood] = useState(null);
@@ -69,6 +106,7 @@ export function OracleProvider({ children }) {
   const [recommendations, setRecommendations] = useState([]);
   const [tmdbResults, setTmdbResults] = useState([]);
   const [providerResults, setProviderResults] = useState([]);
+  const [enrichmentFailures, setEnrichmentFailures] = useState([]);
   const [error, setError] = useState("");
   const [rejectedIds, setRejectedIds] = useState([]);
   const [rejectedTitles, setRejectedTitles] = useState([]);
@@ -94,23 +132,24 @@ export function OracleProvider({ children }) {
     fetchProviderPreferences();
   }, [user?.id]);
 
-  const toggleProvider = async (providerId) => {
-    const next = selectedProviderIds.includes(providerId)
-      ? selectedProviderIds.filter((id) => id !== providerId)
-      : [...selectedProviderIds, providerId];
-    setSelectedProviderIds(next);
+  const toggleProvider = useCallback(
+    async (providerId) => {
+      const enabled = !selectedProviderIds.includes(providerId);
+      const previous = selectedProviderIds;
+      setSelectedProviderIds(
+        enabled ? [...previous, providerId] : previous.filter((id) => id !== providerId)
+      );
 
-    if (!user?.id) return;
-    try {
-      const supabase = getSupabase();
-      await supabase
-        .from("profiles")
-        .update({ user_providers: next, updated_at: new Date().toISOString() })
-        .eq("id", user.id);
-    } catch (providerErr) {
-      console.error("Failed to save provider preferences:", providerErr);
-    }
-  };
+      if (!user?.id) return;
+      try {
+        setSelectedProviderIds(await setUserProviderPreference(user.id, providerId, enabled));
+      } catch (providerErr) {
+        console.error("Failed to save provider preferences:", providerErr);
+        setSelectedProviderIds(previous);
+      }
+    },
+    [selectedProviderIds, user?.id]
+  );
 
   const fetchUserMovieHistory = useCallback(async () => {
     if (!user?.id) return { allKnownTitles: [], userTasteContext: "" };
@@ -159,9 +198,24 @@ export function OracleProvider({ children }) {
 
   const enrichRecommendationsWithTmdb = useCallback(
     async (recs) => {
-      const tmdbResponses = await Promise.all(
-        recs.map((rec) => fetchTMDBMovie(rec.title, rec.year?.toString() || ""))
+      // Artwork is optional enrichment. Each lookup is caught on its own so a rate-limited or
+      // unreachable TMDB degrades a single card instead of rejecting the batch and discarding an
+      // Oracle answer that already cost a request.
+      const lookups = await Promise.all(
+        recs.map(async (rec) => {
+          try {
+            return {
+              movie: await fetchTMDBMovieStrict(rec.title, rec.year?.toString() || ""),
+              failed: false,
+            };
+          } catch (tmdbErr) {
+            console.error(`TMDB enrichment failed for "${rec.title}":`, tmdbErr.message);
+            return { movie: null, failed: isTmdbRequestError(tmdbErr) };
+          }
+        })
       );
+
+      const tmdbResponses = lookups.map((lookup) => lookup.movie);
       const providerResponses = await Promise.all(
         tmdbResponses.map((movie) => (movie?.id ? fetchWatchProviders(movie.id) : Promise.resolve(null)))
       );
@@ -174,7 +228,7 @@ export function OracleProvider({ children }) {
         };
       });
 
-      return { mappedTmdb, providerResponses };
+      return { mappedTmdb, providerResponses, failures: lookups.map((lookup) => lookup.failed) };
     },
     [selectedProviderIds]
   );
@@ -188,6 +242,7 @@ export function OracleProvider({ children }) {
       setRecommendations([]);
       setTmdbResults([]);
       setProviderResults([]);
+      setEnrichmentFailures([]);
 
       let budgetSource = "unknown";
       let orchestrationMeta = null;
@@ -214,10 +269,13 @@ export function OracleProvider({ children }) {
           throw new Error("The Oracle is silent. Please try again.");
         }
 
-        const { mappedTmdb, providerResponses } = await enrichRecommendationsWithTmdb(aiResponse.recommendations);
+        const { mappedTmdb, providerResponses, failures } = await enrichRecommendationsWithTmdb(
+          aiResponse.recommendations
+        );
         setRecommendations(aiResponse.recommendations);
         setTmdbResults(mappedTmdb);
         setProviderResults(providerResponses);
+        setEnrichmentFailures(failures);
 
         await recordOracleUse(user?.id);
         if (user?.id) {
@@ -315,7 +373,14 @@ export function OracleProvider({ children }) {
           throw new Error("No replacement recommendation available. Try reroll all.");
         }
 
-        const nextMovie = await fetchTMDBMovie(nextRec.title, nextRec.year?.toString() || "");
+        let nextMovie = null;
+        let nextEnrichmentFailed = false;
+        try {
+          nextMovie = await fetchTMDBMovieStrict(nextRec.title, nextRec.year?.toString() || "");
+        } catch (tmdbErr) {
+          console.error(`TMDB enrichment failed for "${nextRec.title}":`, tmdbErr.message);
+          nextEnrichmentFailed = isTmdbRequestError(tmdbErr);
+        }
         const nextProviders = nextMovie?.id ? await fetchWatchProviders(nextMovie.id) : null;
         const enrichedNextMovie = nextMovie
           ? {
@@ -328,6 +393,9 @@ export function OracleProvider({ children }) {
         setTmdbResults((prev) => prev.map((movie, idx) => (idx === byKeyIndex ? enrichedNextMovie : movie)));
         setProviderResults((prev) =>
           prev.map((providers, idx) => (idx === byKeyIndex ? nextProviders : providers))
+        );
+        setEnrichmentFailures((prev) =>
+          prev.map((failed, idx) => (idx === byKeyIndex ? nextEnrichmentFailed : failed))
         );
         setRejectedTitles((prev) => [...prev, rejectedTitle].filter(Boolean));
         if (rejectedId) {
@@ -360,6 +428,8 @@ export function OracleProvider({ children }) {
       recommendations,
       tmdbResults,
       providerResults,
+      enrichmentFailures,
+      enrichmentFailureCount: enrichmentFailures.filter(Boolean).length,
       error,
       rejectedTitles,
       selectedProviderIds,
@@ -369,6 +439,7 @@ export function OracleProvider({ children }) {
       handleRerollByTmdbId,
     }),
     [
+      enrichmentFailures,
       error,
       handleDiscover,
       handleRerollAll,
@@ -381,6 +452,7 @@ export function OracleProvider({ children }) {
       selectedProviderIds,
       tempPrompt,
       tmdbResults,
+      toggleProvider,
     ]
   );
 

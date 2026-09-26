@@ -10,7 +10,6 @@ export default [
       'dist/**',
       'node_modules/**',
       'coverage/**',
-      'scripts/**',
       'playwright-artifacts/**',
       'backup-*/**',
       '*.config.js',
@@ -48,6 +47,7 @@ export default [
           allowExportNames: [
             'MOODS',
             'MOOD_CATEGORIES',
+            'setUserProviderPreference',
             'useLists',
             'useToast',
             'useUser',
@@ -71,6 +71,34 @@ export default [
       react: {
         version: 'detect',
       },
+    },
+  },
+  {
+    // `self`, `caches`, and `clients` only exist in a worker scope, so without this every line
+    // of the service worker was a no-undef error and the file was effectively unlinted.
+    files: ['public/sw.js'],
+    languageOptions: {
+      globals: globals.serviceworker,
+    },
+  },
+  {
+    // Operational scripts were excluded from linting entirely, which left the ~440-line
+    // keep-alive library that production depends on unchecked.
+    files: ['scripts/**/*.{mjs,cjs,js}'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+    rules: {
+      'no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
     },
   },
 ];

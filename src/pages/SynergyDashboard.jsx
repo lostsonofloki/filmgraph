@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { useLists } from '../context/ListContext';
@@ -143,7 +143,12 @@ function SynergyDashboard() {
   const { user } = useUser();
   const { createList } = useLists();
   const toast = useToast();
-  
+  // Read through a ref inside the fetch callback so a toast can never change the
+  // callback's identity and refire the effect that produced it.
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
+
+
   const [friend, setFriend] = useState(null);
   const [synergyData, setSynergyData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -160,23 +165,49 @@ function SynergyDashboard() {
         .from('profiles')
         .select('username, display_name, avatar_url')
         .eq('id', friendId)
-        .single();
+        .maybeSingle();
 
       if (friendError) throw friendError;
+      if (!friendData) {
+        setFriend(null);
+        setSynergyData(null);
+        return;
+      }
       setFriend(friendData);
 
-      // Fetch both users' movie logs
+      const isSelf = friendId === user.id;
+
+      // Comparing libraries needs an accepted friendship, whatever the URL says.
+      if (!isSelf) {
+        const { data: friendship, error: friendshipError } = await supabase
+          .from('friendships')
+          .select('id')
+          .eq('status', 'accepted')
+          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${user.id})`)
+          .limit(1)
+          .maybeSingle();
+
+        if (friendshipError) throw friendshipError;
+        if (!friendship) {
+          setSynergyData(null);
+          toastRef.current.error('You can only compare libraries with accepted friends.');
+          return;
+        }
+      }
+
       const { data: myLogs, error: myLogsError } = await supabase
         .from('movie_logs')
         .select('tmdb_id, title, poster_path, rating, genres, watch_status')
         .eq('user_id', user.id);
 
-      const { data: friendLogs, error: friendLogsError } = await supabase
-        .from('movie_logs')
-        .select('tmdb_id, title, poster_path, rating, genres, watch_status')
-        .eq('user_id', friendId);
-
       if (myLogsError) throw myLogsError;
+
+      // `movie_logs` is owner-only; the RPC re-checks the friendship server-side and returns
+      // the comparison fields without the private `review`.
+      const { data: friendLogs, error: friendLogsError } = isSelf
+        ? { data: myLogs, error: null }
+        : await supabase.rpc('get_friend_movie_logs', { p_friend_id: friendId });
+
       if (friendLogsError) throw friendLogsError;
 
       // Calculate synergy metrics
@@ -184,11 +215,11 @@ function SynergyDashboard() {
       setSynergyData(synergy);
     } catch (err) {
       console.error('Error fetching synergy data:', err);
-      toast.error('Failed to load compatibility data');
+      toastRef.current.error('Failed to load compatibility data');
     } finally {
       setIsLoading(false);
     }
-  }, [friendId, user?.id, toast]);
+  }, [friendId, user?.id]);
 
   useEffect(() => {
     if (friendId && user?.id) {

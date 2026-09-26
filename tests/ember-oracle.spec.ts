@@ -5,8 +5,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 test('Oracle - Auth and Vibe Discovery', async ({ page }) => {
-  // 1. Go to the Login Page
-  await page.goto('https://filmgraph-azure.vercel.app/login');
+  // 1. Go to the Login Page (relative, so PLAYWRIGHT_BASE_URL decides the environment)
+  await page.goto('/login');
 
   // 2. Perform Login using Environment Variables
   // These must match the names you used in your .env file

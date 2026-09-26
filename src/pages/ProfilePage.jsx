@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useUser } from "../context/UserContext";
 import { getSupabase } from "../supabaseClient";
 import { useNavigate, Link } from "react-router-dom";
@@ -22,6 +22,8 @@ import {
 } from "recharts";
 import "./ProfilePage.css";
 import { TOP_STREAMING_PROVIDERS_US } from "../constants/streamingProviders";
+import { setUserProviderPreference } from "../context/OracleContext";
+import { toLocalDayKey } from "../utils/localDay";
 
 const GENRE_COLORS = [
   "#f97316", // Orange
@@ -96,6 +98,15 @@ function ProfilePage() {
   const [moodData, setMoodData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userProviders, setUserProviders] = useState([]);
+  const [providerError, setProviderError] = useState("");
+  // Cancel has to restore what was loaded, not the hardcoded defaults the form started with:
+  // the profile view renders from the same `bio` state, so blanking it looked like data loss
+  // and the next save would have written that blank back.
+  const loadedProfileRef = useRef({
+    username: user?.username || "",
+    displayName: user?.username || "",
+    bio: "",
+  });
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -107,9 +118,15 @@ function ProfilePage() {
           .select("display_name, username, bio, avatar_url, user_providers")
           .eq("id", user.id)
           .maybeSingle();
-        if (data?.username) setUsername(data.username);
-        if (data?.display_name) setDisplayName(data.display_name);
-        if (data?.bio) setBio(data.bio);
+        const loaded = {
+          username: data?.username || user?.username || "",
+          displayName: data?.display_name || data?.username || user?.username || "",
+          bio: data?.bio || "",
+        };
+        loadedProfileRef.current = loaded;
+        setUsername(loaded.username);
+        setDisplayName(loaded.displayName);
+        setBio(loaded.bio);
         if (data?.avatar_url) setAvatarUrl(data.avatar_url);
         if (Array.isArray(data?.user_providers)) {
           setUserProviders(data.user_providers);
@@ -119,7 +136,7 @@ function ProfilePage() {
       }
     };
     fetchProfile();
-  }, [user?.id]);
+  }, [user?.id, user?.username]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -133,16 +150,19 @@ function ProfilePage() {
           .eq("user_id", user.id);
 
         if (movieLogs) {
-          const watched = movieLogs.filter(
-            (m) => m.watch_status === "watched" || !m.watch_status,
-          ).length;
+          // `watch_status === 'watched'` everywhere: it is what the Library shelf, the calendar
+          // and the stats dashboard already query, so counting legacy null-status rows here was
+          // the one surface that disagreed with all of them.
+          const watchedLogs = movieLogs.filter(
+            (m) => m.watch_status === "watched",
+          );
+          const watched = watchedLogs.length;
           const reviews = movieLogs.filter(
             (m) => m.review && m.review.trim(),
           ).length;
+          // Same helper and the same column the watch-history calendar groups by.
           const uniqueDays = new Set(
-            movieLogs.map(
-              (m) => new Date(m.created_at).toISOString().split("T")[0],
-            ),
+            watchedLogs.map((m) => toLocalDayKey(m.created_at)),
           ).size;
 
           const watchedMovies = movieLogs.filter(
@@ -159,7 +179,7 @@ function ProfilePage() {
           const hoursWatched = Math.round(watched * 1.5);
           const physicalOwned = movieLogs.filter((m) => !!m.source_upc).length;
           const currentYear = new Date().getFullYear();
-          const watchedThisYear = movieLogs.filter((m) => {
+          const watchedThisYear = watchedLogs.filter((m) => {
             const dateSource = m.watched_at || m.created_at;
             if (!dateSource) return false;
             return new Date(dateSource).getFullYear() === currentYear;
@@ -346,11 +366,16 @@ function ProfilePage() {
         .from("avatars")
         .getPublicUrl(filePath);
       const publicUrl = urlData.publicUrl;
-      const { error: profileError } = await supabase.from("profiles").upsert({
-        id: user.id,
-        avatar_url: publicUrl,
-        updated_at: new Date().toISOString(),
-      });
+      // An upsert here carried no `username`, and `NOT NULL` is checked before conflict
+      // resolution, so it was rejected outright. The row always exists by the time this page
+      // can be opened — a signup trigger creates it — so an update is both correct and enough.
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          avatar_url: publicUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id);
       if (profileError) throw profileError;
       setAvatarUrl(publicUrl);
       setSuccess("Avatar updated successfully!");
@@ -394,10 +419,14 @@ function ProfilePage() {
         username: normalizedUsername,
         display_name: displayName.trim(),
         bio: bio || null,
-        user_providers: userProviders,
         updated_at: new Date().toISOString(),
       });
       if (profileError) throw profileError;
+      loadedProfileRef.current = {
+        username: normalizedUsername,
+        displayName: displayName.trim(),
+        bio,
+      };
       setSuccess("Profile updated successfully!");
       setIsEditing(false);
     } catch (err) {
@@ -409,20 +438,35 @@ function ProfilePage() {
   };
 
   const handleCancel = () => {
-    setUsername(user?.username || "");
-    setDisplayName(user?.username || "");
-    setBio("");
+    const loaded = loadedProfileRef.current;
+    setUsername(loaded.username);
+    setDisplayName(loaded.displayName);
+    setBio(loaded.bio);
     setIsEditing(false);
     setError("");
     setSuccess("");
   };
 
-  const toggleProviderPreference = (providerId) => {
-    setUserProviders((prev) =>
-      prev.includes(providerId)
-        ? prev.filter((id) => id !== providerId)
-        : [...prev, providerId],
+  // This panel sits outside the Edit Profile form and has no save button, so the toggle has to
+  // persist on its own; it shares the Oracle's writer so neither surface overwrites the other.
+  const toggleProviderPreference = async (providerId) => {
+    const enabled = !userProviders.includes(providerId);
+    const previous = userProviders;
+    setUserProviders(
+      enabled ? [...previous, providerId] : previous.filter((id) => id !== providerId),
     );
+    setProviderError("");
+
+    if (!user?.id) return;
+    try {
+      setUserProviders(
+        await setUserProviderPreference(user.id, providerId, enabled),
+      );
+    } catch (providerErr) {
+      console.error("Failed to save provider preferences:", providerErr);
+      setUserProviders(previous);
+      setProviderError("Could not save your streaming preferences. Try again.");
+    }
   };
 
   if (!user) return null;
@@ -580,6 +624,7 @@ function ProfilePage() {
               );
             })}
           </div>
+          {providerError && <p className="upload-error">{providerError}</p>}
         </div>
 
         {/* Social Hub Section */}
@@ -673,9 +718,6 @@ function ProfilePage() {
                     )}
                     <span className="friend-name">
                       {friend.display_name || friend.username}
-                    </span>
-                    <span className="friend-match-score">
-                      {Math.floor(Math.random() * 30 + 70)}% Match
                     </span>
                   </Link>
                 ))}

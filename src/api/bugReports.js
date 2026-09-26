@@ -35,17 +35,20 @@ export async function updateBugStatus(bugId, newStatus) {
 
 /**
  * Fetch all bug reports (admin function)
- * @param {string} userEmail - The admin user's email for authorization
+ *
+ * Authorization is the RLS policy on `bug_reports`, which already limits SELECT to the
+ * admin. Filtering on `user_email` here asked for reports *filed by* the admin, so every
+ * report a user submitted was invisible on the triage page.
+ *
  * @returns {Promise<{success: boolean, data?: Array, error?: string}>}
  */
-export async function fetchBugReports(userEmail = 'sonofloke@gmail.com') {
+export async function fetchBugReports() {
   try {
     const supabase = getSupabase();
 
     const { data, error } = await supabase
       .from('bug_reports')
       .select('*')
-      .eq('user_email', userEmail)
       .order('created_at', { ascending: false });
 
     if (error) {

@@ -6,8 +6,13 @@ import './OracleAnalyticsPage.css';
 
 const DAY_OPTIONS = [7, 14, 30];
 
+// Number(null) is 0, which used to push every missing latency into the samples as a zero and drag
+// the average far below the p95 of the same column. A recorded "fallback" has no latency at all.
 const toNumber = (value) => {
-  const number = Number(value);
+  if (value === null || value === undefined) return null;
+  const candidate = typeof value === 'string' ? value.trim() : value;
+  if (candidate === '') return null;
+  const number = Number(candidate);
   return Number.isFinite(number) ? number : null;
 };
 

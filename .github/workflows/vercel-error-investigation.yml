@@ -24,6 +24,7 @@ jobs:
           node-version: "20"
 
       - name: Investigate Vercel deployment errors
+        id: investigate
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
@@ -50,11 +51,14 @@ jobs:
           path: artifacts/vercel-error-report.md
           if-no-files-found: warn
 
+      # Previously `if: always()`, which filed an issue on every run: ~150 issues whose contents
+      # were "no failed deployments found" or "credentials not configured". The report is always
+      # available in the step summary and the artifact above; an issue now means a real failure.
       - name: Create investigation issue
-        if: always()
+        if: steps.investigate.outputs.has_findings == 'true'
         uses: peter-evans/create-issue-from-file@v5
         with:
-          title: Vercel Error Investigation - ${{ github.run_id }}
+          title: Vercel deployment failures (${{ steps.investigate.outputs.failure_count }} in last 24h) - run ${{ github.run_id }}
           content-filepath: artifacts/vercel-error-report.md
           labels: |
             incident

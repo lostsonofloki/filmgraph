@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import SearchResults from '../components/SearchResults';
-import { searchMulti, discoverMovies } from '../api/tmdb';
+import { searchMultiStrict, discoverMoviesStrict, isTmdbRequestError } from '../api/tmdb';
 import SeoHead from '../components/seo/SeoHead';
 import './SearchPage.css';
 
@@ -33,8 +33,57 @@ const SORT_OPTIONS = [
   { id: 'primary_release_date.desc', label: 'Newest' },
 ];
 
+const DEFAULT_SORT = 'popularity.desc';
+
 const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_RANGE = Array.from({ length: 100 }, (_, i) => CURRENT_YEAR - i);
+
+const SORT_COMPARATORS = {
+  'popularity.desc': (a, b) => (b.popularity || 0) - (a.popularity || 0),
+  'vote_average.desc': (a, b) => (b.vote_average || 0) - (a.vote_average || 0),
+  'primary_release_date.desc': (a, b) =>
+    String(b.release_date || '').localeCompare(String(a.release_date || '')),
+};
+
+const posterUrl = (path) => (path ? `https://image.tmdb.org/t/p/w500${path}` : null);
+
+const mapDiscoverResult = (movie) => ({
+  Title: movie.title,
+  Year: movie.release_date?.split('-')[0] || 'N/A',
+  imdbID: movie.id,
+  Poster: posterUrl(movie.poster_path),
+  tmdb_id: movie.id,
+});
+
+const mapMultiResult = (item) => ({
+  Title: item.media_type === 'person' ? item.name : item.title,
+  Year: item.media_type === 'person' ? null : (item.release_date?.split('-')[0] || 'N/A'),
+  imdbID: item.id,
+  Poster: posterUrl(item.media_type === 'person' ? item.profile_path : item.poster_path),
+  tmdb_id: item.id,
+  media_type: item.media_type,
+  known_for_department: item.known_for_department || null,
+  character: item.character || null,
+});
+
+/**
+ * TMDB text search accepts neither a genre nor a year, so a query combined with filters is
+ * narrowed here. Replacing the query with a discover call would answer a search for "Alien" with
+ * unrelated popular sci-fi.
+ */
+const refineSearchResults = (results, { genre, year, sortBy }) => {
+  const narrowing = Boolean(genre) || Boolean(year);
+  const filtered = results.filter((item) => {
+    if (!narrowing) return true;
+    // People carry neither a genre nor a release date, so they cannot survive a narrowing filter.
+    if (item.media_type === 'person') return false;
+    if (genre && !(item.genre_ids || []).includes(Number(genre))) return false;
+    if (year && !String(item.release_date || '').startsWith(year)) return false;
+    return true;
+  });
+
+  return [...filtered].sort(SORT_COMPARATORS[sortBy] || SORT_COMPARATORS[DEFAULT_SORT]);
+};
 
 /**
  * SearchPage - Main page for searching and logging movies with Power Filter
@@ -45,113 +94,78 @@ function SearchPage() {
   const [movies, setMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-  const [searchMode, setSearchMode] = useState('search');
-  const [lastQuery, setLastQuery] = useState('');
+  const [resultMode, setResultMode] = useState('search');
+  const [requestFailed, setRequestFailed] = useState(false);
+  const [retryToken, setRetryToken] = useState(0);
+
+  const query = searchParams.get('q') || '';
+  const genreParam = searchParams.get('genres') || '';
 
   // Filter states
-  const [selectedGenre, setSelectedGenre] = useState('');
-  const [sortBy, setSortBy] = useState('popularity.desc');
+  const [selectedGenre, setSelectedGenre] = useState(() => genreParam.split(',')[0] || '');
+  const [sortBy, setSortBy] = useState(DEFAULT_SORT);
   const [selectedYear, setSelectedYear] = useState('');
 
-  const initialQuery = searchParams.get('q') || '';
-  const initialGenres = searchParams.get('genres') || '';
+  const filtersActive =
+    Boolean(selectedGenre) || Boolean(selectedYear) || sortBy !== DEFAULT_SORT;
 
-  // Handle search when URL query changes
+  // The genre link shape only ever carries a genre, never a sort or a year.
   useEffect(() => {
-    // If genres param exists, use discover mode with those genres
-    if (initialGenres) {
-      const genreIds = initialGenres.split(',');
-      setSelectedGenre(genreIds[0]); // Use first genre for discover
-      setLastQuery(initialQuery);
-      // Trigger discover search with the genre
-      setTimeout(() => {
-        setIsLoading(true);
-        setHasSearched(true);
-        setSearchMode('discover');
-        discoverMovies(genreIds[0], sortBy, selectedYear || CURRENT_YEAR.toString())
-          .then(results => {
-            const mappedMovies = results.map(movie => ({
-              Title: movie.title,
-              Year: movie.release_date?.split('-')[0] || 'N/A',
-              imdbID: movie.id,
-              Poster: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
-              tmdb_id: movie.id,
-            }));
-            setMovies(mappedMovies);
-          })
-          .catch(() => setMovies([]))
-          .finally(() => setIsLoading(false));
-      }, 0);
-      return;
-    }
-    
-    if (initialQuery && initialQuery !== lastQuery) {
-      setLastQuery(initialQuery);
-      handleSearch(initialQuery);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Sync from URL only; filter state is intentionally excluded to avoid re-fetch loops
-  }, [initialQuery, initialGenres]);
+    const urlGenre = genreParam.split(',')[0];
+    if (urlGenre) setSelectedGenre(urlGenre);
+  }, [genreParam]);
 
-  // Handle discover mode when filters change
+  // One effect owns every fetch: the URL query and the filter bar feed the same request, so a
+  // filter change can no longer race a second effect for the same results.
   useEffect(() => {
-    if (searchMode === 'discover') {
-      handleDiscover();
+    if (!query && !filtersActive) {
+      setMovies([]);
+      setHasSearched(false);
+      setRequestFailed(false);
+      setResultMode('search');
+      // Clearing the filters can abandon an in-flight request, whose own finally block is skipped.
+      setIsLoading(false);
+      return undefined;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Filter-driven discover; searchMode/handleDiscover omitted to avoid double-fetch with URL effect
-  }, [selectedGenre, sortBy, selectedYear]);
 
-  const handleSearch = async (query) => {
+    let cancelled = false;
     setIsLoading(true);
     setHasSearched(true);
-    setSearchMode('search');
+    setRequestFailed(false);
 
-    try {
-      const results = await searchMulti(query);
-      // Map TMDB multi-search results to a unified format
-      const mappedMovies = results.map(item => ({
-        Title: item.media_type === 'person' ? item.name : item.title,
-        Year: item.media_type === 'person' ? null : (item.release_date?.split('-')[0] || 'N/A'),
-        imdbID: item.id,
-        Poster: item.media_type === 'person'
-          ? (item.profile_path ? `https://image.tmdb.org/t/p/w500${item.profile_path}` : null)
-          : (item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : null),
-        tmdb_id: item.id,
-        media_type: item.media_type,
-        known_for_department: item.known_for_department || null,
-        character: item.character || null,
-      }));
-      setMovies(mappedMovies);
-    } catch (error) {
-      console.error('Error searching movies:', error);
-      setMovies([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const run = async () => {
+      try {
+        if (!query) {
+          const results = await discoverMoviesStrict(selectedGenre, sortBy, selectedYear);
+          if (cancelled) return;
+          setMovies(results.map(mapDiscoverResult));
+          setResultMode('discover');
+          return;
+        }
 
-  const handleDiscover = async () => {
-    setIsLoading(true);
-    setHasSearched(true);
-    setSearchMode('discover');
+        const results = await searchMultiStrict(query);
+        if (cancelled) return;
+        const refined = filtersActive
+          ? refineSearchResults(results, { genre: selectedGenre, year: selectedYear, sortBy })
+          : results;
+        setMovies(refined.map(mapMultiResult));
+        setResultMode(filtersActive ? 'refined' : 'search');
+      } catch (error) {
+        if (cancelled) return;
+        console.error('TMDB request failed:', error.message);
+        setMovies([]);
+        // A transport failure is not an empty shelf, and must not be reported as one.
+        setRequestFailed(isTmdbRequestError(error));
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
 
-    try {
-      const results = await discoverMovies(selectedGenre, sortBy, selectedYear);
-      // Map TMDB results to MovieCard format
-      const mappedMovies = results.map(movie => ({
-        Title: movie.title,
-        Year: movie.release_date?.split('-')[0] || 'N/A',
-        imdbID: movie.id,
-        Poster: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
-        tmdb_id: movie.id,
-      }));
-      setMovies(mappedMovies);
-    } catch (error) {
-      console.error('Error discovering movies:', error);
-      setMovies([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [query, selectedGenre, sortBy, selectedYear, filtersActive, retryToken]);
 
   const handleFilterChange = (setter, value) => {
     setter(value);
@@ -159,9 +173,18 @@ function SearchPage() {
 
   const clearFilters = () => {
     setSelectedGenre('');
-    setSortBy('popularity.desc');
+    setSortBy(DEFAULT_SORT);
     setSelectedYear('');
   };
+
+  const genreName = TMDB_GENRES.find((genre) => String(genre.id) === String(selectedGenre))?.name;
+  const filterSummary = [
+    genreName,
+    selectedYear,
+    SORT_OPTIONS.find((option) => option.id === sortBy)?.label,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <div className="search-page">
@@ -236,7 +259,25 @@ function SearchPage() {
         </div>
       )}
 
-      {!isLoading && hasSearched && movies.length === 0 && (
+      {!isLoading && requestFailed && (
+        <div className="no-results">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <path d="M12 9v4M12 17h.01" />
+          </svg>
+          <h3>Couldn't reach TMDB</h3>
+          <p>Nothing matched because the request failed, not because the catalogue is empty.</p>
+          <button
+            className="clear-filters-btn"
+            style={{ alignSelf: 'center' }}
+            onClick={() => setRetryToken((token) => token + 1)}
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {!isLoading && !requestFailed && hasSearched && movies.length === 0 && (
         <div className="no-results">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             <circle cx="11" cy="11" r="8" />
@@ -248,8 +289,17 @@ function SearchPage() {
         </div>
       )}
 
-      {!isLoading && movies.length > 0 && (
-        <SearchResults movies={movies} />
+      {!isLoading && !requestFailed && movies.length > 0 && (
+        <>
+          {resultMode !== 'search' && (
+            <p className="page-subtitle" style={{ padding: '0 24px 12px' }}>
+              {resultMode === 'discover'
+                ? `Browsing ${filterSummary}`
+                : `Results for "${query}", narrowed to ${filterSummary}`}
+            </p>
+          )}
+          <SearchResults movies={movies} />
+        </>
       )}
     </div>
   );

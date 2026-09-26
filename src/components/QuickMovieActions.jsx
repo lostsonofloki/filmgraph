@@ -50,7 +50,7 @@ function QuickMovieActions({ movie, className = "" }) {
         <LogMovieModal
           movie={normalizedMovie}
           onClose={() => setShowModal(false)}
-          onLogged={() => setShowModal(false)}
+          onSaved={() => setShowModal(false)}
         />
       )}
     </>

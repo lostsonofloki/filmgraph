@@ -1,4 +1,6 @@
-const { chromium } = require('playwright');
+// `playwright` is not a dependency of this project; it only resolved by accident through npm's
+// hoisting of @playwright/test's own dependency, which a different install layout would break.
+const { chromium } = require('@playwright/test');
 const fs = require('fs');
 require('dotenv').config({ path: '.env' });
 

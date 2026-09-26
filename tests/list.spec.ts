@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-const EMAIL = process.env.TEST_EMAIL!;
-const PASSWORD = process.env.TEST_PASSWORD!;
+const EMAIL = process.env.TEST_USER_EMAIL!;
+const PASSWORD = process.env.TEST_USER_PASSWORD!;
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/login');

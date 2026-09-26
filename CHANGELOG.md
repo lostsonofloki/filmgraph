@@ -31,6 +31,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.13.5] - September 26, 2026
+
+### 🐛 Fixed
+
+- **The admin bug list is no longer locked to one email**
+  - `fetchBugReports` filtered `bug_reports` on the admin address, so triage only showed reports that address had filed. Row visibility is already the RLS policy; the query selects every report.
+- **Profile saves that failed, or that wiped the bio**
+  - The avatar URL write failed when the row had no username yet.
+  - Cancel discarded the edit by blanking the bio. It now restores the last loaded profile.
+  - The friend match chip was a random percent and is removed.
+  - Streaming provider preferences persist through one writer that does not clobber the rest of the profile row.
+- **Profile and watch history disagreed on watched counts and on which day a log belongs to**
+  - Both pages count `watch_status === "watched"`.
+  - "Days logged" and the calendar share `toLocalDayKey` in `src/utils/localDay.js` and both key off `created_at`, the column the calendar already groups by. Profile stats no longer call that helper before it is in scope, which had thrown and left the counts loading forever.
+- **Changing watch status deleted real logs**
+  - A rating of 0 took the delete path and dropped the review, moods, and UPC ownership. De-listing a log that holds user content now sets `watch_status` to `watched`, and a row with `source_upc` is never deleted. A watchlist item that becomes watched is updated in place instead of deleted and re-inserted.
+- **Search and Trending treated a failed TMDB request as an empty shelf**
+  - A failed TMDB request is distinct from an empty result, including on the trending shelf. The search filter bar issues a real discover query, and changing the filter releases the spinner instead of abandoning the request in place.
+- **OMDb lookup moved server-side**
+  - The API key is read from the environment and the lookup goes through a server proxy, so the key is not shipped to the browser. The response is checked before it is treated as a hit.
+
+### 🔒 Security
+
+- **Profiles no longer hand every user's email to the browser**
+  - Invite lookups go through `lookup_profile_identity`, which never returns an address. The profile row is created by an `auth.users` trigger, another user's library requires an accepted friendship, and `upc_cache` writes are limited to the service role. The env template no longer publishes the Trakt client secret.
+
+---
+
+## [1.13.4] - September 26, 2026
+
+### 🐛 Fixed
+
+- **A barcode lookup was frozen on the device forever**
+  - The service worker's non-navigate branch was pure cache-first with no TTL, no size bound, and eviction only when the cache name changed. `/api/upc-lookup?upc=...` is a same-origin GET, so the first answer a device ever got for a barcode was the answer it kept: the 14-day server-side cache TTL in `api/upc-lookup.js` was unreachable, and a lookup that was wrong (or empty, for a disc that had not been catalogued yet) could never correct itself. `/api/` is now left entirely to the network.
+  - The rest of the same-origin shell moved from cache-first to stale-while-revalidate, so a cached asset is still answered instantly but is refreshed in the background rather than served until the next cache-version bump. Offline loading is deliberately untouched: navigation stays network-first with the same cached-request-then-`/index.html` fallback, and a cache hit on any other same-origin GET is still returned without waiting on the network.
+  - All three `cache.put` calls ran without `await`, without `event.waitUntil`, and without a `.catch`. Once Cache Storage is over the origin quota every put rejects unhandled, and a write could be cut short when the worker was terminated mid-response. Writes now go through one helper that swallows the rejection, and each is handed to `event.waitUntil()` synchronously from the handler so the write outlives the response.
+  - The third-party cache branch matched on `url.hostname.includes('themoviedb.org')`, so `themoviedb.org.attacker.example` also matched and could write into the cache the app reads its metadata back from. Replaced with an exact-host set (`api.themoviedb.org`, `www.themoviedb.org`, `www.omdbapi.com`, `omdbapi.com`).
+  - Also fixed a latent bug found on the way: the offline fallback was a single module-level `Response`, and a response body can only be consumed once, so the second offline request of a session would have failed on an already-used body. It is built per call now.
+- **Two UPC lookups could collide on one cache key**
+  - Vercel parses a repeated `?upc=1&upc=2` into an array, and `String(['1','2'])` is `'1,2'`, which normalises to `'12'` — so two unrelated requests aliased onto a single `upc_cache` row and one poisoned the other's payload. A non-string parameter is now refused rather than coerced.
+  - The `upc` parameter had a lower bound of 8 and no upper bound, so tens of thousands of digits were URL-encoded straight into the upstream request. GTIN-14 is the longest real barcode, so anything longer is refused. Added a method guard so only GET reaches the handler.
+- **A hung email provider could hold a serverless function open until the platform killed it**
+  - The Resend call in `api/notify-bug-report.js` had no timeout, unlike `api/upc-lookup.js` and `scripts/lib/supabase-keepalive.mjs`, which both abort. It is now bound to 8s with the same `AbortController` pattern and reports a 504.
+  - `description` and `page_url` were embedded at whatever size the browser sent, so a multi-megabyte paste became a multi-megabyte email; both are capped. `app_version` went into the subject line with no escaping while every other field passed through `escapeHtml`, so a CR/LF in it could append mail headers of the caller's choosing; it is now flattened and truncated.
+  - The failure paths returned Resend's raw error body and raw exception messages to the browser. Those now go to the function log and the caller gets a generic message; `src/api/adminNotifications.js` only ever read the `error` field, so nothing downstream changed.
+- **A daily workflow had opened ~150 GitHub issues about nothing**
+  - The issue-creation step in `.github/workflows/vercel-error-investigation.yml` ran under `if: always()`, so it filed an issue on every scheduled run whatever the report said — most recently `Vercel Error Investigation - <run_id>`, with bodies reading either "no failed deployments found" or "credentials not configured". That volume buries a real incident instead of surfacing one. The step is now gated on a `has_findings` output, so an issue means at least one failed or cancelled deployment in the window, and the title carries the count. The full report is still in the step summary and the uploaded artifact every run.
+  - `scripts/investigate-vercel-errors.mjs` wrote a "setup required" report and exited 0 when `VERCEL_TOKEN` was absent, so the job reported a green check while monitoring nothing. That path now emits a `::warning::` annotation. The exit code is unchanged, so a missing secret still does not redden the schedule daily.
+- **Playwright could not have passed even with a browser and a network**
+  - `PLAYWRIGHT_BASE_URL` in the workflow was `https://ignes-azure.vercel.app`, a hostname from before the project was renamed, and the `playwright.config.ts` default was a third value (`filmgraph-azure.vercel.app`). Both now point at `https://filmgraph.app`.
+  - The workflow exported `TEST_EMAIL`/`TEST_PASSWORD` while `tests/ember-oracle.spec.ts` reads `TEST_USER_EMAIL`/`TEST_USER_PASSWORD` and throws without them, so that spec could only fail in CI, and `tests/portfolio-screenshots.spec.ts` fell back to the literal `YOUR_EMAIL@example.com`, which presents missing configuration as a broken login form. Everything is on the `TEST_USER_*` spelling now (the one already in `.env.example` and `scripts/actor-badge-check.cjs`), and the workflow accepts either secret name so nothing has to be renamed in repository settings first.
+  - `tests/ember-oracle.spec.ts` hardcoded an absolute login URL, bypassing `baseURL` and pinning the spec to the old deployment.
+- **`scripts/actor-badge-check.cjs` required an undeclared package**
+  - It required `playwright`, which is not in `package.json` and only resolved because npm hoisted it out of `@playwright/test`. A different install layout fails with `MODULE_NOT_FOUND`. It imports `chromium` from `@playwright/test` now, which needs no new dependency.
+
+### 🔒 Security
+
+- **Baseline response headers**
+  - `vercel.json` configured no security headers at all. Added `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` (full URLs carry list and movie ids and were being sent to every third-party image and API host), and a `Permissions-Policy` that denies the powerful features the app never uses. `camera=(self)` is explicit and deliberate: the UPC scanner calls `getUserMedia` and would break without it.
+  - Deliberately **no** `Content-Security-Policy`, not even report-only: `index.html` runs gtag inline, three enrichment families are behind flags and only reach their origins when enabled, and the AI ladders call three vendors from the browser, so a source-list assembled today would probably be incomplete and its reports misleading.
+
+### 🧹 Code Quality
+
+- **Operational scripts were exempt from linting**
+  - `'scripts/**'` sat in the ESLint global ignores, so `npm run lint` had never inspected any ops script — including the ~440-line keep-alive library that stands between the Free-plan database and an auto-pause. Removed the ignore and scoped a config block with Node globals to `scripts/**/*.{mjs,cjs,js}`. The only real finding was the now-redundant `/* global */` directive comments, which collide with the supplied globals under `no-redeclare`.
+  - Added `globals.serviceworker` for `public/sw.js`, which had 24 `no-undef` errors (`self`, `caches`, `clients`, `fetch`, `Response`, `URL`) and was therefore unlinted in practice. `npm run lint` is now at 0 errors.
+
+---
+
 ## [1.13.3] - September 26, 2026
 
 ### ✨ Added

@@ -45,6 +45,14 @@ const MOODS = [
   { id: 'cerebral', label: 'Cerebral', emoji: '🎓', category: 'intellectual' },
 ];
 
+// Callers pass either TMDB shapes (numeric `id`) or movie_logs rows (uuid `id`
+// plus `tmdb_id`), so only accept a value that is actually a TMDB id.
+const normalizeTmdbId = (value) => {
+  if (typeof value === 'number' && Number.isInteger(value)) return value;
+  if (typeof value === 'string' && /^\d+$/.test(value.trim())) return Number(value.trim());
+  return null;
+};
+
 /**
  * LogMovieModal Component - Nuclear Option
  */
@@ -96,7 +104,11 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
   // Safety defaults
   const movieTitle = effectiveMovie?.title || lookupResult?.sourceTitle || 'Loading...';
   const moviePoster = effectiveMovie?.poster_path || '';
-  const movieYear = effectiveMovie?.release_date?.split('-')[0] || null;
+  const movieTmdbId = normalizeTmdbId(effectiveMovie?.tmdb_id ?? effectiveMovie?.id);
+  const movieYear =
+    effectiveMovie?.release_date?.split('-')[0] || effectiveMovie?.year || null;
+  const parsedYear = Number.parseInt(movieYear, 10);
+  const movieYearValue = Number.isFinite(parsedYear) ? parsedYear : null;
 
   const stopScanner = () => {
     if (scanTimerRef.current) {
@@ -292,7 +304,6 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
       const movieData = {
         user_id: user.id,
         title: movieTitle,
-        year: movieYear ? parseInt(movieYear, 10) : null,
         rating: rating > 0 ? parseFloat(rating.toFixed(1)) : null,
         moods: selectedMoods.length > 0 ? selectedMoods : null,
         genres: finalGenres,
@@ -301,49 +312,49 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
         source_upc: sourceUpc.trim() || null,
       };
 
+      // Only patch identity columns we actually resolved, so editing a row whose
+      // incoming shape lacks one does not overwrite a good value with null.
+      if (movieTmdbId !== null) movieData.tmdb_id = movieTmdbId;
+      if (movieYearValue !== null) movieData.year = movieYearValue;
+      if (moviePoster) movieData.poster_path = moviePoster;
+
       let result;
       if (isEditing) {
-        // If changing from 'to-watch' to 'watched', delete the to-watch entry first
-        if (existingLog.watch_status === 'to-watch' && watchStatus === 'watched') {
-          await supabase
-            .from('movie_logs')
-            .delete()
-            .eq('id', existingLog.id);
-          
-          // Then insert as watched
-          const { data, error: insertError } = await supabase
-            .from('movie_logs')
-            .insert(movieData)
-            .select();
-          if (insertError) throw insertError;
-          result = data?.[0];
-        } else {
-          // Normal update for other changes
-          const { data, error: updateError } = await supabase
-            .from('movie_logs')
-            .update(movieData)
-            .eq('id', existingLog.id)
-            .select();
-          if (updateError) throw updateError;
-          result = data?.[0];
-        }
+        const { data, error: updateError } = await supabase
+          .from('movie_logs')
+          .update(movieData)
+          .eq('id', existingLog.id)
+          .select();
+        if (updateError) throw updateError;
+        result = data?.[0];
       } else {
         const duplicateCheck = await checkDuplicateInCollection({
           userId: user.id,
-          tmdbId: effectiveMovie?.id,
+          tmdbId: movieTmdbId,
           sourceUpc,
         });
         if (duplicateCheck.isDuplicate) {
           throw new Error(`Anti-Double-Buy: ${duplicateCheck.reasons.join(' + ')}`);
         }
+        if (!duplicateCheck.isComplete) {
+          // A failed probe must not block the save; the unique index below is
+          // the backstop for the barcode case.
+          console.warn(
+            'Duplicate check incomplete, saving anyway:',
+            duplicateCheck.failedChecks.join(', ')
+          );
+        }
 
-        movieData.tmdb_id = effectiveMovie?.id || null;
-        movieData.source_upc = sourceUpc.trim() || null;
         const { data, error: insertError } = await supabase
           .from('movie_logs')
           .insert(movieData)
           .select();
-        if (insertError) throw insertError;
+        if (insertError) {
+          if (insertError.code === '23505') {
+            throw new Error('Anti-Double-Buy: this movie is already in your collection.');
+          }
+          throw insertError;
+        }
         result = data?.[0];
       }
 
@@ -359,9 +370,10 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
         try {
           const queuedPayload = {
             user_id: user.id,
-            tmdb_id: effectiveMovie?.id || null,
+            tmdb_id: movieTmdbId,
             title: movieTitle,
-            year: movieYear ? parseInt(movieYear, 10) : null,
+            poster_path: moviePoster || null,
+            year: movieYearValue,
             rating: rating > 0 ? parseFloat(rating.toFixed(1)) : null,
             moods: selectedMoods.length > 0 ? selectedMoods : null,
             genres: Array.isArray(effectiveMovie?.genres)

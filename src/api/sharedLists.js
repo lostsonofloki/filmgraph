@@ -24,16 +24,20 @@ export async function createList(userId, name, description = '') {
     return { data: null, error: new Error('List name is required.') };
   }
 
-  const { data: existingList, error: existingListError } = await supabase
+  // Compared here rather than with `ilike`, where `%`, `_` and PostgREST's `*` in a list
+  // name would have been treated as wildcards.
+  const { data: ownedLists, error: existingListError } = await supabase
     .from('lists')
     .select('id, name')
-    .eq('user_id', userId)
-    .ilike('name', trimmedName)
-    .maybeSingle();
+    .eq('user_id', userId);
 
   if (existingListError) {
     return { data: null, error: existingListError };
   }
+
+  const existingList = (ownedLists || []).find(
+    (list) => (list.name || '').trim().toLowerCase() === trimmedName.toLowerCase()
+  );
 
   if (existingList) {
     return {
@@ -113,6 +117,14 @@ export function canEditRole(role) {
 
 /**
  * Resolve a collaborator by UUID, email, or username.
+ *
+ * Email and username go through `lookup_profile_identity`, a SECURITY DEFINER RPC that
+ * matches case-insensitively on the column side and returns no email address. Signup
+ * stores the address exactly as typed, so lowercasing the *input* meant anyone registered
+ * as `John.Doe@Gmail.com` could never be found; usernames are lowercase by constraint, so
+ * not folding the input meant `JohnDoe` never matched `johndoe`. Both read as
+ * "User not found."
+ *
  * @param {string} identifier
  * @returns {Promise<{ data: object | null, error: Error | null }>}
  */
@@ -123,17 +135,14 @@ export async function resolveProfileByIdentifier(identifier) {
     return { data: null, error: new Error('Enter an email, username, or user ID.') };
   }
 
-  const isUuid = UUID_RE.test(raw);
-  let query = supabase.from('profiles').select('id, email, username, display_name, avatar_url');
-  if (isUuid) {
-    query = query.eq('id', raw);
-  } else if (raw.includes('@')) {
-    query = query.eq('email', raw.toLowerCase());
-  } else {
-    query = query.eq('username', raw);
-  }
+  const { data, error } = UUID_RE.test(raw)
+    ? await supabase
+        .from('profiles')
+        .select('id, username, display_name, avatar_url')
+        .eq('id', raw)
+        .maybeSingle()
+    : await supabase.rpc('lookup_profile_identity', { p_identifier: raw }).maybeSingle();
 
-  const { data, error } = await query.maybeSingle();
   if (error) return { data: null, error };
   if (!data) return { data: null, error: new Error('User not found.') };
   return { data, error: null };
@@ -258,7 +267,7 @@ export async function getUserLists(userId) {
   if (profileIds.length > 0) {
     const { data: profilesData, error: profilesError } = await supabase
       .from('profiles')
-      .select('id, email, username, display_name, avatar_url')
+      .select('id, username, display_name, avatar_url')
       .in('id', profileIds);
     if (profilesError) {
       console.error('sharedLists.getUserLists profiles:', profilesError);
@@ -325,7 +334,7 @@ export async function getListMembers(listId) {
 
   const { data: profilesData, error: profilesError } = await supabase
     .from('profiles')
-    .select('id, email, username, display_name, avatar_url')
+    .select('id, username, display_name, avatar_url')
     .in('id', memberIds);
   if (profilesError) return { data: null, error: profilesError };
 
@@ -364,7 +373,15 @@ export async function inviteListMember(listId, identifier, role = 'editor') {
     },
     { onConflict: 'list_id,user_id' }
   );
-  if (upsertError) return { data: null, error: upsertError };
+  if (upsertError) {
+    if (upsertError.code === '42501') {
+      return {
+        data: null,
+        error: new Error('Only the list owner can add or change collaborators.'),
+      };
+    }
+    return { data: null, error: upsertError };
+  }
 
   return {
     data: {
@@ -409,7 +426,17 @@ export async function updateListMemberRole(listId, memberUserId, role) {
     data = fallback.data ? { ...fallback.data, joined_at: null } : null;
     error = fallback.error;
   }
-  if (error) return { data: null, error };
+  if (error) {
+    // PGRST116 is "no row matched", which here means the membership is gone or the caller
+    // is not the owner — not the generic failure it used to be reported as.
+    if (error.code === 'PGRST116') {
+      return {
+        data: null,
+        error: new Error('That collaborator is no longer on this list, or you are not its owner.'),
+      };
+    }
+    return { data: null, error };
+  }
   return { data, error: null };
 }
 
@@ -421,6 +448,24 @@ export async function updateListMemberRole(listId, memberUserId, role) {
  */
 export async function removeListMember(listId, memberUserId) {
   const supabase = getSupabase();
+
+  // SELECT on a list is membership-driven, so an owner who removes themselves loses sight
+  // of their own list with no way back.
+  const { data: owners, error: ownersError } = await supabase
+    .from('list_members')
+    .select('user_id')
+    .eq('list_id', listId)
+    .eq('role', 'owner');
+  if (ownersError) return { data: false, error: ownersError };
+
+  const ownerIds = (owners || []).map((owner) => owner.user_id);
+  if (ownerIds.includes(memberUserId) && ownerIds.length <= 1) {
+    return {
+      data: false,
+      error: new Error('A list needs at least one owner. Delete the list instead.'),
+    };
+  }
+
   const { error } = await supabase
     .from('list_members')
     .delete()

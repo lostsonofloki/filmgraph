@@ -1,10 +1,39 @@
-/* global fetch, process */
+/* global fetch, process, console, AbortController, setTimeout, clearTimeout */
 
 const RESEND_API_URL = 'https://api.resend.com/emails';
+// Matches the AbortController pattern in api/upc-lookup.js: without it a hung Resend request
+// holds the function open until the platform kills the invocation.
+const RESEND_TIMEOUT_MS = 8000;
+
+// A bug report is free text from the browser, so the body is whatever the caller sends. Caps
+// keep a multi-megabyte paste out of the notification email.
+const MAX_DESCRIPTION_LENGTH = 8000;
+const MAX_PAGE_URL_LENGTH = 500;
+const MAX_APP_VERSION_LENGTH = 32;
+
+const truncate = (value, maxLength) => {
+  const text = String(value);
+  return text.length > maxLength ? `${text.slice(0, maxLength)}… [truncated]` : text;
+};
 
 const safe = (value, fallback = 'N/A') => {
   if (value === null || value === undefined || value === '') return fallback;
   return String(value);
+};
+
+// Unlike every other field this one lands in a mail header, where a bare CR/LF would let the
+// caller append headers of its own.
+const safeHeaderValue = (value, fallback) =>
+  truncate(safe(value, fallback).replace(/[\r\n]+/g, ' ').trim() || fallback, MAX_APP_VERSION_LENGTH);
+
+const fetchWithTimeout = async (url, options = {}) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), RESEND_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 };
 
 const escapeHtml = (input = '') =>
@@ -18,10 +47,10 @@ const escapeHtml = (input = '') =>
 function buildHtml(payload) {
   const bugId = escapeHtml(safe(payload.id));
   const submittedBy = escapeHtml(safe(payload.user_email));
-  const pageUrl = escapeHtml(safe(payload.page_url));
-  const appVersion = escapeHtml(safe(payload.app_version));
+  const pageUrl = escapeHtml(truncate(safe(payload.page_url), MAX_PAGE_URL_LENGTH));
+  const appVersion = escapeHtml(truncate(safe(payload.app_version), MAX_APP_VERSION_LENGTH));
   const status = escapeHtml(safe(payload.status, 'open'));
-  const description = escapeHtml(safe(payload.description));
+  const description = escapeHtml(truncate(safe(payload.description), MAX_DESCRIPTION_LENGTH));
   const createdAt = escapeHtml(safe(payload.created_at, new Date().toISOString()));
 
   return `
@@ -47,12 +76,12 @@ function buildText(payload) {
     `Bug ID: ${safe(payload.id)}`,
     `Status: ${safe(payload.status, 'open')}`,
     `User: ${safe(payload.user_email)}`,
-    `Page: ${safe(payload.page_url)}`,
-    `App Version: ${safe(payload.app_version)}`,
+    `Page: ${truncate(safe(payload.page_url), MAX_PAGE_URL_LENGTH)}`,
+    `App Version: ${truncate(safe(payload.app_version), MAX_APP_VERSION_LENGTH)}`,
     `Created At: ${safe(payload.created_at, new Date().toISOString())}`,
     '',
     'Description:',
-    safe(payload.description),
+    truncate(safe(payload.description), MAX_DESCRIPTION_LENGTH),
   ].join('\n');
 }
 
@@ -78,10 +107,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing required bug payload fields.' });
   }
 
-  const subject = `Filmgraph Bug Report (${safe(payload.app_version, 'unknown version')})`;
+  const subject = `Filmgraph Bug Report (${safeHeaderValue(payload.app_version, 'unknown version')})`;
 
   try {
-    const resendResponse = await fetch(RESEND_API_URL, {
+    const resendResponse = await fetchWithTimeout(RESEND_API_URL, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${resendApiKey}`,
@@ -97,18 +126,19 @@ export default async function handler(req, res) {
     });
 
     if (!resendResponse.ok) {
+      // The provider's body can carry account and key detail, so it stays in the function log.
       const errorBody = await resendResponse.text();
-      return res.status(502).json({
-        error: `Resend API rejected request (${resendResponse.status}).`,
-        details: errorBody,
-      });
+      console.error(`Resend rejected bug report notification (${resendResponse.status}): ${errorBody}`);
+      return res.status(502).json({ error: 'Failed to send bug report notification.' });
     }
 
     return res.status(200).json({ success: true });
   } catch (error) {
-    return res.status(500).json({
-      error: 'Failed to send bug report notification.',
-      details: error?.message || 'Unknown error',
-    });
+    if (error?.name === 'AbortError') {
+      console.error(`Resend request timed out after ${RESEND_TIMEOUT_MS}ms.`);
+      return res.status(504).json({ error: 'Bug report notification timed out.' });
+    }
+    console.error('Bug report notification failed:', error);
+    return res.status(500).json({ error: 'Failed to send bug report notification.' });
   }
 }
