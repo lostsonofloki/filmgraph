@@ -346,11 +346,16 @@ function ProfilePage() {
         .from("avatars")
         .getPublicUrl(filePath);
       const publicUrl = urlData.publicUrl;
-      const { error: profileError } = await supabase.from("profiles").upsert({
-        id: user.id,
-        avatar_url: publicUrl,
-        updated_at: new Date().toISOString(),
-      });
+      // An upsert here carried no `username`, and `NOT NULL` is checked before conflict
+      // resolution, so it was rejected outright. The row always exists by the time this page
+      // can be opened — a signup trigger creates it — so an update is both correct and enough.
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          avatar_url: publicUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id);
       if (profileError) throw profileError;
       setAvatarUrl(publicUrl);
       setSuccess("Avatar updated successfully!");
