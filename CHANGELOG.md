@@ -31,6 +31,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.13.5] - September 26, 2026
+
+### 🐛 Fixed
+
+- **The admin bug list is no longer locked to one email**
+  - `fetchBugReports` filtered `bug_reports` on the admin address, so triage only showed reports that address had filed. Row visibility is already the RLS policy; the query selects every report.
+- **Profile saves that failed, or that wiped the bio**
+  - The avatar URL write failed when the row had no username yet.
+  - Cancel discarded the edit by blanking the bio. It now restores the last loaded profile.
+  - The friend match chip was a random percent and is removed.
+  - Streaming provider preferences persist through one writer that does not clobber the rest of the profile row.
+- **Profile and watch history disagreed on watched counts and on which day a log belongs to**
+  - Both pages count `watch_status === "watched"`.
+  - "Days logged" and the calendar share `toLocalDayKey` in `src/utils/localDay.js` and both key off `created_at`, the column the calendar already groups by. Profile stats no longer call that helper before it is in scope, which had thrown and left the counts loading forever.
+- **Changing watch status deleted real logs**
+  - A rating of 0 took the delete path and dropped the review, moods, and UPC ownership. De-listing a log that holds user content now sets `watch_status` to `watched`, and a row with `source_upc` is never deleted. A watchlist item that becomes watched is updated in place instead of deleted and re-inserted.
+- **Search and Trending treated a failed TMDB request as an empty shelf**
+  - A failed TMDB request is distinct from an empty result, including on the trending shelf. The search filter bar issues a real discover query, and changing the filter releases the spinner instead of abandoning the request in place.
+- **OMDb lookup moved server-side**
+  - The API key is read from the environment and the lookup goes through a server proxy, so the key is not shipped to the browser. The response is checked before it is treated as a hit.
+
+### 🔒 Security
+
+- **Profiles no longer hand every user's email to the browser**
+  - Invite lookups go through `lookup_profile_identity`, which never returns an address. The profile row is created by an `auth.users` trigger, another user's library requires an accepted friendship, and `upc_cache` writes are limited to the service role. The env template no longer publishes the Trakt client secret.
+
+---
+
 ## [1.13.4] - September 26, 2026
 
 ### 🐛 Fixed
