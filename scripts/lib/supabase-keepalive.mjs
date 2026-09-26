@@ -15,9 +15,9 @@ const PING_TIMEOUT_MS = 10000;
 // matters most: for ~30s after an unpause, PostgREST is up but cannot reach Postgres yet.
 const RETRY_BACKOFF_MS = [500, 2000, 5000, 10000];
 
-// Retrying three tables through three attempts each can run well past a minute, which
-// outlives the execution limit on a serverless invocation. Callers with a hard ceiling
-// pass a smaller budget; the ping then gives up early and reports why.
+// Sweeping every candidate table through the full retry schedule can run for minutes, which
+// outlives the execution limit on a serverless invocation. Callers with a hard ceiling pass
+// a smaller budget; the ping then gives up early and reports why.
 const DEFAULT_BUDGET_MS = 90000;
 
 // Secondary pause signal: the edge can answer 540/544 while a project is transitioning.
