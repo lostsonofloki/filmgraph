@@ -373,7 +373,15 @@ export async function inviteListMember(listId, identifier, role = 'editor') {
     },
     { onConflict: 'list_id,user_id' }
   );
-  if (upsertError) return { data: null, error: upsertError };
+  if (upsertError) {
+    if (upsertError.code === '42501') {
+      return {
+        data: null,
+        error: new Error('Only the list owner can add or change collaborators.'),
+      };
+    }
+    return { data: null, error: upsertError };
+  }
 
   return {
     data: {
@@ -418,7 +426,17 @@ export async function updateListMemberRole(listId, memberUserId, role) {
     data = fallback.data ? { ...fallback.data, joined_at: null } : null;
     error = fallback.error;
   }
-  if (error) return { data: null, error };
+  if (error) {
+    // PGRST116 is "no row matched", which here means the membership is gone or the caller
+    // is not the owner — not the generic failure it used to be reported as.
+    if (error.code === 'PGRST116') {
+      return {
+        data: null,
+        error: new Error('That collaborator is no longer on this list, or you are not its owner.'),
+      };
+    }
+    return { data: null, error };
+  }
   return { data, error: null };
 }
 
@@ -430,6 +448,24 @@ export async function updateListMemberRole(listId, memberUserId, role) {
  */
 export async function removeListMember(listId, memberUserId) {
   const supabase = getSupabase();
+
+  // SELECT on a list is membership-driven, so an owner who removes themselves loses sight
+  // of their own list with no way back.
+  const { data: owners, error: ownersError } = await supabase
+    .from('list_members')
+    .select('user_id')
+    .eq('list_id', listId)
+    .eq('role', 'owner');
+  if (ownersError) return { data: false, error: ownersError };
+
+  const ownerIds = (owners || []).map((owner) => owner.user_id);
+  if (ownerIds.includes(memberUserId) && ownerIds.length <= 1) {
+    return {
+      data: false,
+      error: new Error('A list needs at least one owner. Delete the list instead.'),
+    };
+  }
+
   const { error } = await supabase
     .from('list_members')
     .delete()
