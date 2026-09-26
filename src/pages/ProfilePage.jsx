@@ -22,6 +22,7 @@ import {
 } from "recharts";
 import "./ProfilePage.css";
 import { TOP_STREAMING_PROVIDERS_US } from "../constants/streamingProviders";
+import { setUserProviderPreference } from "../context/OracleContext";
 
 const GENRE_COLORS = [
   "#f97316", // Orange
@@ -96,6 +97,7 @@ function ProfilePage() {
   const [moodData, setMoodData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userProviders, setUserProviders] = useState([]);
+  const [providerError, setProviderError] = useState("");
   // Cancel has to restore what was loaded, not the hardcoded defaults the form started with:
   // the profile view renders from the same `bio` state, so blanking it looked like data loss
   // and the next save would have written that blank back.
@@ -133,7 +135,7 @@ function ProfilePage() {
       }
     };
     fetchProfile();
-  }, [user?.id]);
+  }, [user?.id, user?.username]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -413,7 +415,6 @@ function ProfilePage() {
         username: normalizedUsername,
         display_name: displayName.trim(),
         bio: bio || null,
-        user_providers: userProviders,
         updated_at: new Date().toISOString(),
       });
       if (profileError) throw profileError;
@@ -442,12 +443,26 @@ function ProfilePage() {
     setSuccess("");
   };
 
-  const toggleProviderPreference = (providerId) => {
-    setUserProviders((prev) =>
-      prev.includes(providerId)
-        ? prev.filter((id) => id !== providerId)
-        : [...prev, providerId],
+  // This panel sits outside the Edit Profile form and has no save button, so the toggle has to
+  // persist on its own; it shares the Oracle's writer so neither surface overwrites the other.
+  const toggleProviderPreference = async (providerId) => {
+    const enabled = !userProviders.includes(providerId);
+    const previous = userProviders;
+    setUserProviders(
+      enabled ? [...previous, providerId] : previous.filter((id) => id !== providerId),
     );
+    setProviderError("");
+
+    if (!user?.id) return;
+    try {
+      setUserProviders(
+        await setUserProviderPreference(user.id, providerId, enabled),
+      );
+    } catch (providerErr) {
+      console.error("Failed to save provider preferences:", providerErr);
+      setUserProviders(previous);
+      setProviderError("Could not save your streaming preferences. Try again.");
+    }
   };
 
   if (!user) return null;
@@ -605,6 +620,7 @@ function ProfilePage() {
               );
             })}
           </div>
+          {providerError && <p className="upload-error">{providerError}</p>}
         </div>
 
         {/* Social Hub Section */}

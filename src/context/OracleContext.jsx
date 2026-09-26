@@ -67,6 +67,37 @@ function getDiscoveryErrorMessage(err) {
   return err?.message || "The Oracle could not find a match. Try a different mood.";
 }
 
+/**
+ * Single writer for `profiles.user_providers`. The Oracle overlay and the Profile page both edit
+ * this column and each one holds a copy of the array from its own mount, so writing a remembered
+ * copy back discarded whatever the other surface had saved since. The array is re-read here
+ * immediately before the write, and the caller passes the state it wants for one provider rather
+ * than a blind toggle, so the user's intent survives a stale copy too.
+ * @returns {Promise<Array<number>>} the array that is now stored
+ */
+export async function setUserProviderPreference(userId, providerId, enabled) {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("user_providers")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw error;
+
+  const current = Array.isArray(data?.user_providers) ? data.user_providers : [];
+  const next = enabled
+    ? [...new Set([...current, providerId])]
+    : current.filter((id) => id !== providerId);
+
+  const { error: writeError } = await supabase
+    .from("profiles")
+    .update({ user_providers: next, updated_at: new Date().toISOString() })
+    .eq("id", userId);
+  if (writeError) throw writeError;
+
+  return next;
+}
+
 export function OracleProvider({ children }) {
   const { user } = useUser();
   const [selectedMood, setSelectedMood] = useState(null);
@@ -103,20 +134,18 @@ export function OracleProvider({ children }) {
 
   const toggleProvider = useCallback(
     async (providerId) => {
-      const next = selectedProviderIds.includes(providerId)
-        ? selectedProviderIds.filter((id) => id !== providerId)
-        : [...selectedProviderIds, providerId];
-      setSelectedProviderIds(next);
+      const enabled = !selectedProviderIds.includes(providerId);
+      const previous = selectedProviderIds;
+      setSelectedProviderIds(
+        enabled ? [...previous, providerId] : previous.filter((id) => id !== providerId)
+      );
 
       if (!user?.id) return;
       try {
-        const supabase = getSupabase();
-        await supabase
-          .from("profiles")
-          .update({ user_providers: next, updated_at: new Date().toISOString() })
-          .eq("id", user.id);
+        setSelectedProviderIds(await setUserProviderPreference(user.id, providerId, enabled));
       } catch (providerErr) {
         console.error("Failed to save provider preferences:", providerErr);
+        setSelectedProviderIds(previous);
       }
     },
     [selectedProviderIds, user?.id]

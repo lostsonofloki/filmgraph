@@ -47,6 +47,7 @@ export default [
           allowExportNames: [
             'MOODS',
             'MOOD_CATEGORIES',
+            'setUserProviderPreference',
             'useLists',
             'useToast',
             'useUser',
