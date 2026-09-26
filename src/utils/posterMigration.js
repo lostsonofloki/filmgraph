@@ -5,22 +5,48 @@ import { getSupabase } from '../supabaseClient';
  * Updates poster_path column - Supabase generated column syncs to poster automatically
  */
 
+// The base can appear more than once when a broken value was written back through the UI, hence
+// the global flag and the `http` lookahead alternative.
+const TMDB_IMAGE_BASE = /https?:\/\/image\.tmdb\.org\/t\/p\/[a-z0-9]*(?=\/|https?:)/gi;
+
 /**
- * Fix a single movie's poster URL
+ * A row that stores a whole `https://image.tmdb.org/t/p/w500/abc.jpg` URL renders as
+ * `…/w500https://…` because the UI prepends the base again. The relative path is already inside
+ * the stored value, so no TMDB request is needed to recover it.
+ * @param {string} value - Stored poster_path value
+ * @returns {string|null} - Relative TMDB path, or null when the value is not such a URL
+ */
+export const posterPathFromLegacyUrl = (value) => {
+  const source = String(value || '').trim();
+  const stripped = source.replace(TMDB_IMAGE_BASE, '').trim();
+  if (stripped === source) return null;
+  return stripped.startsWith('/') && stripped.length > 1 ? stripped : null;
+};
+
+/**
+ * Rows worth touching: the poster is missing, or it holds a full URL instead of the relative
+ * path the UI expects. A correct relative path is left alone.
+ * @param {string} posterPath - Stored poster_path value
+ */
+export const needsPosterRepair = (posterPath) =>
+  !posterPath || posterPath === 'N/A' || /^https?:\/\//i.test(posterPath);
+
+/**
+ * Fix a single movie's poster_path
  * @param {string} movieId - movie_logs.id
  * @param {string} tmdbId - TMDB movie ID
- * @param {string} currentPosterPath - Current poster_path value (relative path or null)
+ * @param {string} currentPosterPath - Current poster_path value (full URL, 'N/A', or null)
  * @param {Object} supabase - Supabase client
  */
 export const fixMoviePoster = async (movieId, tmdbId, currentPosterPath, supabase) => {
-  // Skip if already a full URL (shouldn't happen with poster_path)
-  if (currentPosterPath?.startsWith('https://')) {
-    return { success: false, reason: 'Already has full URL' };
+  if (!needsPosterRepair(currentPosterPath)) {
+    return { success: false, reason: 'Already a relative path' };
   }
 
-  // Skip if null/empty
-  if (!currentPosterPath || currentPosterPath === 'N/A') {
-    // Try to fetch from TMDB
+  let nextPosterPath = posterPathFromLegacyUrl(currentPosterPath);
+  let action = 'Stripped the TMDB image base';
+
+  if (!nextPosterPath) {
     if (!tmdbId) {
       return { success: false, reason: 'No TMDB ID' };
     }
@@ -30,23 +56,17 @@ export const fixMoviePoster = async (movieId, tmdbId, currentPosterPath, supabas
       return { success: false, reason: 'No poster on TMDB' };
     }
 
-    const { error } = await supabase
-      .from('movie_logs')
-      .update({ poster_path: tmdbData.poster_path })
-      .eq('id', movieId);
-
-    if (error) {
-      console.error(`❌ PATCH failed for ${movieId}:`, error.message);
-      return { success: false, reason: error.message };
-    }
-
-    return { success: true, action: 'Fetched from TMDB' };
+    nextPosterPath = tmdbData.poster_path;
+    action = 'Fetched from TMDB';
   }
 
-  // Already has relative path - update with full poster_path
+  if (nextPosterPath === currentPosterPath) {
+    return { success: false, reason: 'Already correct' };
+  }
+
   const { error } = await supabase
     .from('movie_logs')
-    .update({ poster_path: currentPosterPath })
+    .update({ poster_path: nextPosterPath })
     .eq('id', movieId);
 
   if (error) {
@@ -54,7 +74,7 @@ export const fixMoviePoster = async (movieId, tmdbId, currentPosterPath, supabas
     return { success: false, reason: error.message };
   }
 
-  return { success: true, action: 'Updated poster_path' };
+  return { success: true, action };
 };
 
 /**
@@ -88,7 +108,7 @@ export const fetchTMDBMovieByTmdbId = async (tmdbId) => {
 /**
  * Run the full migration for all movies
  * @param {string} userId - User ID to migrate
- * @returns {Promise<{fixed: number, skipped: number, errors: number}>}
+ * @returns {Promise<{checked: number, fixed: number, skipped: number, errors: number}>}
  */
 export const runPosterMigration = async (userId) => {
   const supabase = getSupabase();
@@ -103,18 +123,13 @@ export const runPosterMigration = async (userId) => {
 
   if (error) {
     console.error('❌ Failed to fetch movies:', error);
-    return { fixed: 0, skipped: 0, errors: 1 };
+    return { checked: 0, fixed: 0, skipped: 0, errors: 1 };
   }
 
-  // Filter: Only process movies where poster_path is null OR doesn't start with http
-  const moviesNeedingRefresh = movies.filter(m => 
-    !m.poster_path || 
-    m.poster_path === 'N/A' || 
-    !m.poster_path.startsWith('http')
-  );
+  const moviesNeedingRefresh = movies.filter((m) => needsPosterRepair(m.poster_path));
 
   console.log(`📦 Total movies found: ${movies.length}`);
-  console.log(`🔍 Movies needing poster_path refresh: ${moviesNeedingRefresh.length}`);
+  console.log(`🔍 Movies needing poster_path repair: ${moviesNeedingRefresh.length}`);
   console.log('📋 Movies to process:', moviesNeedingRefresh.map(m => ({ id: m.id, tmdb_id: m.tmdb_id, current_poster_path: m.poster_path })));
 
   let fixed = 0;
@@ -122,37 +137,47 @@ export const runPosterMigration = async (userId) => {
   let errors = 0;
 
   for (const movie of moviesNeedingRefresh) {
+    let usedTmdb = false;
+
     try {
       console.log(`\n--- Processing movie ID: ${movie.id}, TMDB ID: ${movie.tmdb_id} ---`);
       console.log(`📌 Current poster_path: ${movie.poster_path}`);
 
-      // Skip if no TMDB ID
-      if (!movie.tmdb_id) {
-        console.log(`⏭️ Skipped: ${movie.id} - No TMDB ID`);
+      // A stored full URL already contains the path, so repair it locally.
+      let newPosterPath = posterPathFromLegacyUrl(movie.poster_path);
+
+      if (newPosterPath) {
+        console.log(`✂️ Recovered poster_path from the stored URL: ${newPosterPath}`);
+      } else {
+        if (!movie.tmdb_id) {
+          console.log(`⏭️ Skipped: ${movie.id} - No TMDB ID`);
+          skipped++;
+          continue;
+        }
+
+        usedTmdb = true;
+        const tmdbData = await fetchTMDBMovieByTmdbId(movie.tmdb_id);
+
+        if (!tmdbData?.poster_path) {
+          console.log(`⏭️ Skipped: ${movie.id} - No poster_path from TMDB`);
+          skipped++;
+          continue;
+        }
+
+        newPosterPath = tmdbData.poster_path;
+        console.log(`🎬 TMDB returned poster_path: ${newPosterPath}`);
+      }
+
+      if (newPosterPath === movie.poster_path) {
+        console.log(`⏭️ Skipped: ${movie.id} - poster_path already correct`);
         skipped++;
         continue;
       }
-
-      // Fetch from TMDB
-      const tmdbData = await fetchTMDBMovieByTmdbId(movie.tmdb_id);
-      
-      if (!tmdbData?.poster_path) {
-        console.log(`⏭️ Skipped: ${movie.id} - No poster_path from TMDB`);
-        skipped++;
-        continue;
-      }
-
-      const newPosterPath = tmdbData.poster_path;
-      console.log(`🎬 TMDB returned poster_path: ${newPosterPath}`);
-
-      // Build the update payload
-      const updatePayload = { poster_path: newPosterPath };
-      console.log(`📦 Update payload being sent:`, JSON.stringify(updatePayload, null, 2));
 
       // Execute the update - targeting poster_path column explicitly
       const { data, error, status } = await supabase
         .from('movie_logs')
-        .update(updatePayload)
+        .update({ poster_path: newPosterPath })
         .eq('id', movie.id)
         .select();
 
@@ -187,11 +212,13 @@ export const runPosterMigration = async (userId) => {
       errors++;
     }
 
-    // Rate limiting - wait between requests
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Rate limiting only matters for rows that actually hit TMDB.
+    if (usedTmdb) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
   }
 
-  console.log(`\n🎉 Migration complete: ${fixed} fixed, ${skipped} skipped, ${errors} errors`);
+  console.log(`\n🎉 Migration complete: ${fixed} repaired, ${skipped} unchanged, ${errors} errors`);
 
-  return { fixed, skipped, errors };
+  return { checked: moviesNeedingRefresh.length, fixed, skipped, errors };
 };
