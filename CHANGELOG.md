@@ -31,6 +31,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.13.1] - September 26, 2026
+
+### 🐛 Fixed
+
+- **Archive Importer failed on every list: "The model `llama-3.3-70b-versatile` does not exist"**
+  - Groq retired `llama-3.3-70b-versatile` (the successor to the already-retired `llama-3.3-70b-specdec`). Confirmed against the live API: the id now returns HTTP 404 `model_not_found` and is absent from the account's model list, so watchlist imports could not complete at all.
+  - The same dead model id was hardcoded in `src/utils/groq.js`, so Oracle's fast genre-extraction step had also been failing and silently degrading every search to Gemini-only mode.
+  - Replaced the hardcoded id with an ordered candidate list in `GROQ_MODEL_CANDIDATES` that advances on `model_not_found`, so the next retirement degrades instead of breaking. Optionally pinned via `VITE_GROQ_MODEL`.
+  - Raised the strict-JSON token floor to 256. Reasoning-style models spend hidden tokens before emitting JSON, and the previous `max_tokens: 50` made Groq reject the truncated output with a 400 rather than return partial content.
+  - De-duplicated the Groq request logic into a shared `callGroqJSON()` helper instead of two near-identical `fetch` blocks.
+
+### 🚀 Added
+
+- **Local fallback parser for the Archive Importer**
+  - Added `parseArchiveLocally()`, a deterministic parser covering the formats the AI prompt advertises (Letterboxd star exports, `Title, Year`, `Watched: Title (Year) - note`, numbered and bulleted lists, bare titles). Importing a watchlist no longer depends on an AI provider being healthy, in line with the project rule that enrichment must never block core logging.
+  - Deliberately conservative where stripping would lose data: a bare trailing number is never read as a year (`Blade Runner 2049` keeps its title) and only a closed set of labels is stripped (`Mission: Impossible` survives).
+
+---
+
 ## [1.13.0] - September 26, 2026
 
 ### 🚀 Added

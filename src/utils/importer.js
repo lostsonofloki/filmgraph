@@ -1,19 +1,87 @@
 import { fetchTMDBMovie } from '../api/tmdb';
+import { callGroqJSON } from './groq';
 
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
+// Leading "1." / "-" / "*" list markers.
+const LIST_MARKER = /^\s*(?:\d+[.)]\s*|[-*•·]\s*)/;
+
+// Only a closed set of labels is stripped. A generic `word:` rule would mangle real titles
+// such as "Mission: Impossible".
+const KNOWN_LABEL = /^(?:watched|watch|seen|rewatched|re-watched|movie|film|title)\s*:\s*/i;
+
+const PAREN_YEAR = /\((1[89]\d{2}|20\d{2})\)/;
+const COMMA_YEAR = /,\s*(1[89]\d{2}|20\d{2})\s*$/;
+const RATING_CHARS = /[★☆⭐]+/g;
+
+// Requires whitespace around the dash so hyphenated titles like "Spider-Man" survive.
+const TRAILING_NOTE = /\s+[-–—]\s+.*$/;
+
+const HEADER_LINE = /^(?:my\s+)?(?:watchlist|watch list|list|movies|films|to watch|seen)\s*:?\s*$/i;
 
 /**
- * Parse messy movie list text using Groq LPU
+ * Deterministic fallback parser.
+ *
+ * Handles the formats the AI prompt advertises without needing the network, so an outage or
+ * another model retirement cannot block an import. Deliberately conservative: a slightly
+ * messy title still matches in TMDB search, and the review step lets the user drop misses,
+ * whereas an over-eager strip silently loses films.
+ *
+ * @param {string} text - Raw text input from user
+ * @returns {Array<{title: string, year: string}>}
+ */
+export const parseArchiveLocally = (text) => {
+  const movies = [];
+
+  for (const rawLine of String(text || '').split(/\r?\n/)) {
+    let line = rawLine.trim();
+    if (!line) continue;
+
+    line = line.replace(LIST_MARKER, '').replace(KNOWN_LABEL, '').replace(RATING_CHARS, '').trim();
+    if (!line || HEADER_LINE.test(line)) continue;
+
+    let year = 'N/A';
+    const parenYear = line.match(PAREN_YEAR);
+    const commaYear = line.match(COMMA_YEAR);
+
+    if (parenYear) {
+      year = parenYear[1];
+      line = line.replace(parenYear[0], ' ').trim();
+    } else if (commaYear) {
+      year = commaYear[1];
+      line = line.slice(0, commaYear.index).trim();
+    }
+    // A bare trailing number is never read as a year, so "Blade Runner 2049" keeps its title.
+
+    line = line.replace(TRAILING_NOTE, '').replace(/[\s,;:–—-]+$/, '').trim();
+    if (!line || /^\d+$/.test(line)) continue;
+
+    movies.push({ title: line, year });
+  }
+
+  return movies;
+};
+
+/**
+ * Normalise the several shapes the model may return into a flat movie array.
+ */
+const normalizeParsedMovies = (parsed) => {
+  if (Array.isArray(parsed)) return parsed;
+  if (Array.isArray(parsed?.movies)) return parsed.movies;
+  if (parsed?.title) return [parsed];
+
+  // Some models wrap the array under an unadvertised key ("films", "results", ...).
+  const wrapped = parsed && typeof parsed === 'object' ? Object.values(parsed).find(Array.isArray) : null;
+  if (wrapped) return wrapped;
+
+  return [];
+};
+
+/**
+ * Parse messy movie list text using Groq LPU, falling back to a local parser.
  * Extracts title and year from various formats (Letterboxd, notes, etc.)
  * @param {string} text - Raw text input from user
  * @returns {Promise<Array<{title: string, year: string}>>} - Parsed movie list
  */
 export const parseArchiveWithGroq = async (text) => {
-  if (!GROQ_API_KEY) {
-    throw new Error('VITE_GROQ_API_KEY is not configured');
-  }
-
   const systemPrompt = `You are a movie list parser. Extract movie titles and years from messy text input.
 
 INPUT FORMATS YOU MAY ENCOUNTER:
@@ -57,59 +125,30 @@ EXAMPLE OUTPUT 3:
 [{"title": "The Matrix", "year": "N/A"}, {"title": "Goodfellas", "year": "1990"}, {"title": "Pulp Fiction", "year": "N/A"}]`;
 
   try {
-    const response = await fetch(GROQ_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Parse this movie list:\n\n${text}` },
-        ],
-        temperature: 0.1,
-        max_tokens: 2000,
-        response_format: { type: 'json_object' },
-      }),
+    const parsed = await callGroqJSON({
+      systemPrompt,
+      userMessage: `Parse this movie list:\n\n${text}`,
+      maxTokens: 2000,
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error?.message || `Groq API error: ${response.status}`);
+    const movies = normalizeParsedMovies(parsed).filter((movie) => movie?.title);
+    if (movies.length > 0) {
+      return movies;
     }
 
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-
-    if (!content) {
-      throw new Error('Empty response from Groq');
-    }
-
-    const parsed = JSON.parse(content);
-
-    // Handle multiple formats:
-    // 1. Array: [{"title": "Jaws", "year": "N/A"}]
-    // 2. Object with movies key: {"movies": [...]}
-    // 3. Single movie object: {"title": "Jaws", "year": "N/A"}
-    let movies;
-    if (Array.isArray(parsed)) {
-      movies = parsed;
-    } else if (parsed.movies && Array.isArray(parsed.movies)) {
-      movies = parsed.movies;
-    } else if (parsed.title) {
-      // Single movie object - wrap in array
-      movies = [parsed];
-    } else {
-      movies = [];
-    }
-
-    return movies;
-
+    throw new Error('Groq returned no recognisable titles');
   } catch (error) {
+    // Importing a watchlist must not depend on an AI provider being healthy.
+    console.warn(`⚠️ Groq parsing unavailable (${error.message}); using local parser.`);
+
+    const localMovies = parseArchiveLocally(text);
+    if (localMovies.length > 0) {
+      console.log(`📄 Local parser recovered ${localMovies.length} titles.`);
+      return localMovies;
+    }
+
     console.error('Archive parsing failed:', error.message);
-    throw error;
+    throw new Error("Couldn't find any movie titles in that list. Try one title per line.");
   }
 };
 
