@@ -48,7 +48,7 @@ function buildHtml(payload) {
   const bugId = escapeHtml(safe(payload.id));
   const submittedBy = escapeHtml(safe(payload.user_email));
   const pageUrl = escapeHtml(truncate(safe(payload.page_url), MAX_PAGE_URL_LENGTH));
-  const appVersion = escapeHtml(safe(payload.app_version));
+  const appVersion = escapeHtml(truncate(safe(payload.app_version), MAX_APP_VERSION_LENGTH));
   const status = escapeHtml(safe(payload.status, 'open'));
   const description = escapeHtml(truncate(safe(payload.description), MAX_DESCRIPTION_LENGTH));
   const createdAt = escapeHtml(safe(payload.created_at, new Date().toISOString()));
@@ -77,7 +77,7 @@ function buildText(payload) {
     `Status: ${safe(payload.status, 'open')}`,
     `User: ${safe(payload.user_email)}`,
     `Page: ${truncate(safe(payload.page_url), MAX_PAGE_URL_LENGTH)}`,
-    `App Version: ${safe(payload.app_version)}`,
+    `App Version: ${truncate(safe(payload.app_version), MAX_APP_VERSION_LENGTH)}`,
     `Created At: ${safe(payload.created_at, new Date().toISOString())}`,
     '',
     'Description:',
