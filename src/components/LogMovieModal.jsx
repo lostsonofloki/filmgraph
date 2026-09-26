@@ -320,30 +320,13 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
 
       let result;
       if (isEditing) {
-        // If changing from 'to-watch' to 'watched', delete the to-watch entry first
-        if (existingLog.watch_status === 'to-watch' && watchStatus === 'watched') {
-          await supabase
-            .from('movie_logs')
-            .delete()
-            .eq('id', existingLog.id);
-          
-          // Then insert as watched
-          const { data, error: insertError } = await supabase
-            .from('movie_logs')
-            .insert(movieData)
-            .select();
-          if (insertError) throw insertError;
-          result = data?.[0];
-        } else {
-          // Normal update for other changes
-          const { data, error: updateError } = await supabase
-            .from('movie_logs')
-            .update(movieData)
-            .eq('id', existingLog.id)
-            .select();
-          if (updateError) throw updateError;
-          result = data?.[0];
-        }
+        const { data, error: updateError } = await supabase
+          .from('movie_logs')
+          .update(movieData)
+          .eq('id', existingLog.id)
+          .select();
+        if (updateError) throw updateError;
+        result = data?.[0];
       } else {
         const duplicateCheck = await checkDuplicateInCollection({
           userId: user.id,
