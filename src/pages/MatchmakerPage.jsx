@@ -147,8 +147,8 @@ function MatchmakerPage() {
       setIsSending(true);
       const supabase = getSupabase();
 
-      // Resolved through the RPC: `profiles.email` is not readable from the browser, and the
-      // address is stored exactly as the user typed it at signup.
+      // Tries lookup_profile_identity first. If that function is not installed yet, the
+      // helper falls back to the direct profiles query.
       const { data: userData, error: userError } = await resolveProfileByIdentifier(inviteEmail);
 
       if (userError || !userData) {

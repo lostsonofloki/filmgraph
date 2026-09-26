@@ -460,7 +460,7 @@ export const getMovieRecommendations = async ({
     try {
       // Without the cache_key comparison the row was returned whatever inputs produced it,
       // so a new mood re-served the previous mood's films until the TTL expired.
-      const { data: cached } = await supabase
+      const { data: cached, error: cacheReadError } = await supabase
         .from("ai_cache")
         .select("recommendations, created_at")
         .eq("user_id", userId)
@@ -468,9 +468,13 @@ export const getMovieRecommendations = async ({
         .eq("cache_key", cacheKey)
         .maybeSingle();
 
-      if (cached) {
+      // A missing column (id, cache_key, created_at) is an error result, not a throw.
+      // Either way the Oracle continues and asks for fresh recommendations.
+      if (cacheReadError) {
+        console.warn("Recommendation cache unavailable:", cacheReadError.message);
+      } else if (cached?.created_at && Array.isArray(cached.recommendations)) {
         const cacheAge = Date.now() - new Date(cached.created_at).getTime();
-        if (cacheAge < CACHE_TTL) {
+        if (Number.isFinite(cacheAge) && cacheAge < CACHE_TTL) {
           console.log("✅ Using cached recommendations");
           return {
             recommendations: cached.recommendations,
@@ -479,8 +483,11 @@ export const getMovieRecommendations = async ({
         }
         console.log("⏰ Cache expired, fetching fresh recommendations");
       }
-    } catch (_err) {
-      console.log("No cache found, fetching fresh recommendations");
+    } catch (cacheReadErr) {
+      console.warn(
+        "Recommendation cache unavailable:",
+        cacheReadErr?.message || cacheReadErr,
+      );
     }
   }
 
@@ -528,24 +535,32 @@ Format:
       },
     );
 
-    // Cache the results
+    // Cache the results. A missing column must not discard recommendations that
+    // already came back — the write is allowed to fail soft.
     if (supabase && userId) {
-      const { error: cacheError } = await supabase.from("ai_cache").upsert(
-        {
-          user_id: userId,
-          cache_type: "discovery",
-          cache_key: cacheKey,
-          recommendations: recommendations,
-          created_at: new Date().toISOString(),
-        },
-        {
-          onConflict: "user_id,cache_type",
-        },
-      );
-      if (cacheError) {
-        console.warn("Recommendations not cached:", cacheError.message);
-      } else {
-        console.log("💾 Recommendations cached");
+      try {
+        const { error: cacheError } = await supabase.from("ai_cache").upsert(
+          {
+            user_id: userId,
+            cache_type: "discovery",
+            cache_key: cacheKey,
+            recommendations: recommendations,
+            created_at: new Date().toISOString(),
+          },
+          {
+            onConflict: "user_id,cache_type",
+          },
+        );
+        if (cacheError) {
+          console.warn("Recommendations not cached:", cacheError.message);
+        } else {
+          console.log("💾 Recommendations cached");
+        }
+      } catch (cacheWriteErr) {
+        console.warn(
+          "Recommendations not cached:",
+          cacheWriteErr?.message || cacheWriteErr,
+        );
       }
     }
 

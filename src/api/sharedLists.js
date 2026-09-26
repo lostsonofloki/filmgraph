@@ -107,6 +107,24 @@ function isAddedByColumnError(error) {
 }
 
 /**
+ * True when PostgREST has no such function (the privacy migrations are not installed yet).
+ * A normal miss — no matching row — is not this: that comes back as data null, not 404.
+ * @param {object | null | undefined} error
+ * @param {number | null | undefined} [status]
+ * @returns {boolean}
+ */
+export function isMissingFunctionError(error, status) {
+  const code = String(error?.code || '').toUpperCase();
+  const httpStatus = Number(status ?? error?.status ?? 0);
+  const text = `${error?.message || ''} ${error?.details || ''}`.toLowerCase();
+  if (code === 'PGRST202') return true;
+  if (text.includes('pgrst202')) return true;
+  if (text.includes('could not find the function')) return true;
+  if (text.includes('function not found')) return true;
+  return httpStatus === 404 && Boolean(error);
+}
+
+/**
  * True if role can mutate list items.
  * @param {string | null | undefined} role
  * @returns {boolean}
@@ -116,14 +134,48 @@ export function canEditRole(role) {
 }
 
 /**
+ * Direct `profiles` lookup used before `lookup_profile_identity` existed.
+ * Email is still readable until that migration is applied, so the same filters work.
+ * The address is not returned to callers.
+ * @param {import('@supabase/supabase-js').SupabaseClient} supabase
+ * @param {string} raw
+ * @returns {Promise<{ data: object | null, error: Error | null }>}
+ */
+async function lookupProfileDirect(supabase, raw) {
+  let query = supabase.from('profiles').select('id, email, username, display_name, avatar_url');
+  if (raw.includes('@')) {
+    query = query.eq('email', raw.toLowerCase());
+  } else {
+    query = query.eq('username', raw);
+  }
+
+  const { data, error } = await query.maybeSingle();
+  if (error) return { data: null, error };
+  if (!data) return { data: null, error: new Error('User not found.') };
+  return {
+    data: {
+      id: data.id,
+      username: data.username,
+      display_name: data.display_name,
+      avatar_url: data.avatar_url,
+    },
+    error: null,
+  };
+}
+
+/**
  * Resolve a collaborator by UUID, email, or username.
  *
- * Email and username go through `lookup_profile_identity`, a SECURITY DEFINER RPC that
+ * Email and username try `lookup_profile_identity` first, a SECURITY DEFINER RPC that
  * matches case-insensitively on the column side and returns no email address. Signup
  * stores the address exactly as typed, so lowercasing the *input* meant anyone registered
  * as `John.Doe@Gmail.com` could never be found; usernames are lowercase by constraint, so
  * not folding the input meant `JohnDoe` never matched `johndoe`. Both read as
  * "User not found."
+ *
+ * When that function is not installed yet (404 / PGRST202), fall back to the direct
+ * `profiles` filters this screen used before the RPC. Other errors stay errors, so a
+ * later migration that hides `email` is not silently bypassed.
  *
  * @param {string} identifier
  * @returns {Promise<{ data: object | null, error: Error | null }>}
@@ -135,17 +187,28 @@ export async function resolveProfileByIdentifier(identifier) {
     return { data: null, error: new Error('Enter an email, username, or user ID.') };
   }
 
-  const { data, error } = UUID_RE.test(raw)
-    ? await supabase
-        .from('profiles')
-        .select('id, username, display_name, avatar_url')
-        .eq('id', raw)
-        .maybeSingle()
-    : await supabase.rpc('lookup_profile_identity', { p_identifier: raw }).maybeSingle();
+  if (UUID_RE.test(raw)) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, username, display_name, avatar_url')
+      .eq('id', raw)
+      .maybeSingle();
+    if (error) return { data: null, error };
+    if (!data) return { data: null, error: new Error('User not found.') };
+    return { data, error: null };
+  }
 
-  if (error) return { data: null, error };
-  if (!data) return { data: null, error: new Error('User not found.') };
-  return { data, error: null };
+  const rpcResult = await supabase
+    .rpc('lookup_profile_identity', { p_identifier: raw })
+    .maybeSingle();
+
+  if (isMissingFunctionError(rpcResult.error, rpcResult.status)) {
+    return lookupProfileDirect(supabase, raw);
+  }
+
+  if (rpcResult.error) return { data: null, error: rpcResult.error };
+  if (!rpcResult.data) return { data: null, error: new Error('User not found.') };
+  return { data: rpcResult.data, error: null };
 }
 
 /**

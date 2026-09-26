@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { useLists } from '../context/ListContext';
 import { useToast } from '../context/ToastContext';
-import { inviteListMember } from '../api/sharedLists';
+import { inviteListMember, isMissingFunctionError } from '../api/sharedLists';
 import { getSupabase } from '../supabaseClient';
 import { getPosterUrl } from '../api/tmdb';
 import './SynergyDashboard.css';
@@ -202,12 +202,22 @@ function SynergyDashboard() {
 
       if (myLogsError) throw myLogsError;
 
-      // `movie_logs` is owner-only; the RPC re-checks the friendship server-side and returns
-      // the comparison fields without the private `review`.
-      const { data: friendLogs, error: friendLogsError } = isSelf
+      // Prefer the friendship-checked RPC, which returns comparison fields and leaves
+      // the private `review` behind. When that function is not installed yet
+      // (404 / PGRST202), use the direct `movie_logs` read this screen used before
+      // the RPC. The friendship check above still runs either way.
+      let friendLogsResult = isSelf
         ? { data: myLogs, error: null }
         : await supabase.rpc('get_friend_movie_logs', { p_friend_id: friendId });
 
+      if (!isSelf && isMissingFunctionError(friendLogsResult.error, friendLogsResult.status)) {
+        friendLogsResult = await supabase
+          .from('movie_logs')
+          .select('tmdb_id, title, poster_path, rating, genres, watch_status')
+          .eq('user_id', friendId);
+      }
+
+      const { data: friendLogs, error: friendLogsError } = friendLogsResult;
       if (friendLogsError) throw friendLogsError;
 
       // Calculate synergy metrics

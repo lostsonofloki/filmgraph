@@ -31,6 +31,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.13.6] - September 26, 2026
+
+### 🐛 Fixed
+
+- **Friend invite and friend-library compare keep working when the new database functions are not installed yet**
+  - `lookup_profile_identity` and `get_friend_movie_logs` are still tried first. A 404 / PGRST202 / function-not-found response falls back to the direct profile and `movie_logs` queries those screens used before the RPC switch. Once the functions exist, the fallback is unused.
+- **Oracle cache errors stay fail-soft**
+  - A missing `ai_cache` column on read or write is logged and ignored, so a cache failure cannot discard recommendations that already came back.
+
+---
+
 ## [1.13.5] - September 26, 2026
 
 ### 🐛 Fixed
