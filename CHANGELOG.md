@@ -31,6 +31,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.13.3] - September 26, 2026
+
+### ✨ Added
+
+- **A daily check that catches retired models before users do**
+  - Every AI outage so far has been a vendor silently retiring a model id we had hardcoded, found by someone hitting a dead feature. Fallback ladders absorb the first retirement in a list, which is precisely the problem: the app keeps working while the ladder is eaten from the top, and nothing surfaces the damage until the last rung goes.
+  - `scripts/ai-model-health.mjs` asks Groq, Google, and OpenRouter which models they still serve and fails when a configured id is missing, with a louder error when a whole ladder is gone. It reads model catalogues rather than sending completions, so the daily run costs no tokens and cannot trip a rate limit. Runs at 04:30 UTC via `.github/workflows/ai-model-health.yml`, or `npm run ai:model-health` locally.
+  - Verified by reinstating the exact ids each vendor retired (`llama-3.3-70b-versatile`, the three dead Gemini ids, `google/gemini-2.0-flash-001`): the check flags all five and exits non-zero. A missing API key downgrades that provider to a skip instead of painting the schedule red.
+- **Gemini fallback for the Oracle's genre extraction**
+  - Genre extraction ran on Groq alone and simply gave up on failure. Groq's free tier caps the whole account at 1000 output tokens per minute, so this arm is reached in ordinary use, not just during an outage, and a vibe search that quietly loses its genre guidance returns blander picks. Gemini now covers it in ~470ms.
+
+### 🐛 Fixed
+
+- **OpenRouter, the Oracle's safety net, was itself part-broken**
+  - Its first model, `google/gemini-2.0-flash-001`, had been retired by OpenRouter — verified 404 "No endpoints found" — so every fallback wasted a round trip on a dead id.
+  - The remaining order led with `meta-llama/llama-3.3-70b-instruct`, which takes 12–19s on a full Oracle prompt: slow enough to feel broken. Reordered by measured latency, which took the fallback from 21.6s to 2.7s end to end.
+  - The OpenRouter request read `window.location.origin` unguarded, making the one code path meant to catch a Gemini outage the only one that could not run outside a browser — and untestable from a script.
+- **Gemini model order now reflects measured behaviour rather than nominal quality**
+  - `gemini-2.5-flash` answered only 2 of 6 back-to-back Oracle prompts on this project's key (the rest HTTP 429) at ~2.9s, while `gemini-2.5-flash-lite` answered 6/6 at ~1.7s and still returned deep cuts. Since rerolling an Oracle result issues several calls a minute, flash-lite now leads and full flash stays on the ladder for when its quota allows.
+  - A 429 now advances to the next model instead of retrying the same one three times with backoff. Sibling models have their own allowances, so waiting out a per-minute quota in place was strictly slower.
+- **Model ids no longer live in three files**
+  - All three ladders moved to `src/config/aiModels.js`, dependency-free so the health check can import the exact ids the app ships instead of a copy that can drift.
+
+---
+
 ## [1.13.2] - September 26, 2026
 
 ### 🐛 Fixed
