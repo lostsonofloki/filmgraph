@@ -334,37 +334,51 @@ function MovieDetail() {
     }
     try {
       const supabase = getSupabase();
-      const { data: existing } = await supabase
+      const { data: existing, error: lookupError } = await supabase
         .from("movie_logs")
-        .select("id, watch_status, rating")
+        .select("id, watch_status, rating, review, moods, source_upc")
         .eq("tmdb_id", movie.id)
         .eq("user_id", user.id)
         .maybeSingle();
 
+      if (lookupError) throw lookupError;
+
       if (existing) {
         if (existing.watch_status === "to-watch") {
-          if (!existing.rating) {
-            await supabase.from("movie_logs").delete().eq("id", existing.id);
-            toast.success("Removed from Watchlist");
-            setUserLog(null);
-          } else {
-            await supabase
+          const hasUserContent =
+            existing.rating != null ||
+            !!existing.review ||
+            (Array.isArray(existing.moods) && existing.moods.length > 0) ||
+            !!existing.source_upc;
+
+          if (hasUserContent) {
+            const { error: updateError } = await supabase
               .from("movie_logs")
-              .update({ watch_status: null })
+              .update({ watch_status: "watched" })
               .eq("id", existing.id);
+            if (updateError) throw updateError;
             toast.success("Removed from Watchlist");
             setUserLog((prev) =>
-              prev ? { ...prev, watch_status: null } : null,
+              prev ? { ...prev, watch_status: "watched" } : prev,
             );
+          } else {
+            const { error: deleteError } = await supabase
+              .from("movie_logs")
+              .delete()
+              .eq("id", existing.id);
+            if (deleteError) throw deleteError;
+            toast.success("Removed from Watchlist");
+            setUserLog(null);
           }
         } else {
-          await supabase
+          const { error: updateError } = await supabase
             .from("movie_logs")
             .update({ watch_status: "to-watch" })
             .eq("id", existing.id);
+          if (updateError) throw updateError;
           toast.success("Added to Watchlist");
           setUserLog((prev) =>
-            prev ? { ...prev, watch_status: "to-watch" } : null,
+            prev ? { ...prev, watch_status: "to-watch" } : prev,
           );
         }
       } else {
