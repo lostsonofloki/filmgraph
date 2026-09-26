@@ -699,9 +699,6 @@ function ProfilePage() {
                     <span className="friend-name">
                       {friend.display_name || friend.username}
                     </span>
-                    <span className="friend-match-score">
-                      {Math.floor(Math.random() * 30 + 70)}% Match
-                    </span>
                   </Link>
                 ))}
                 <Link to="/matchmaker" className="friend-chip add-friend-chip">
