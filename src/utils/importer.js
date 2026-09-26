@@ -292,7 +292,7 @@ export const batchSaveMovies = async (confirmedMovies, userId, supabase) => {
     const { data, error } = await supabase
       .from('movie_logs')
       .upsert(moviesToInsert, { 
-        onConflict: 'user_id, tmdb_id', 
+        onConflict: 'user_id,tmdb_id', 
         ignoreDuplicates: true 
       })
       .select();
