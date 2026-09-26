@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { useLists } from '../context/ListContext';
@@ -57,6 +57,7 @@ function LibraryPage() {
   const [isInvitingCollaborator, setIsInvitingCollaborator] = useState(false);
   const [collabActionLoading, setCollabActionLoading] = useState('');
   const [parsedQuery, setParsedQuery] = useState(parseLibraryQuery(''));
+  const appliedQueryRef = useRef(parseLibraryQuery(''));
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
@@ -70,27 +71,38 @@ function LibraryPage() {
     };
   }, []);
 
+  // Only the query itself may drive these controls. Reacting to `activeTab` as well let the
+  // effect re-apply a stale parse and snap the user straight back off any tab they clicked.
+  // Fields the query stops asking for are released rather than left stuck on the last value.
   useEffect(() => {
     const parsed = parseLibraryQuery(naturalQuery);
+    const previous = appliedQueryRef.current;
+    appliedQueryRef.current = parsed;
     setParsedQuery(parsed);
 
     if (parsed.sortBy) {
       setSortBy(parsed.sortBy);
+    } else if (previous.sortBy) {
+      setSortBy('date_newest');
     }
 
-    if (parsed.status && parsed.status !== activeTab) {
+    if (parsed.status) {
       setActiveTab(parsed.status);
       setSelectedList(null);
     }
 
     if (parsed.mood) {
       setSelectedMood(parsed.mood);
+    } else if (previous.mood) {
+      setSelectedMood('');
     }
 
     if (parsed.searchText) {
       setSearchQuery(parsed.searchText);
+    } else if (previous.searchText) {
+      setSearchQuery('');
     }
-  }, [naturalQuery, activeTab]);
+  }, [naturalQuery]);
 
   const fetchMovies = useCallback(async () => {
     if (!user?.id) return;
@@ -267,7 +279,7 @@ function LibraryPage() {
   };
 
   const handleRefreshPosters = async () => {
-    if (!confirm('This will fetch poster images for all movies imported without posters. Continue?')) {
+    if (!confirm('This will repair posters that are missing or stored as a full URL. Continue?')) {
       return;
     }
 
@@ -276,7 +288,11 @@ function LibraryPage() {
 
     try {
       const stats = await runPosterMigration(user.id);
-      alert(`Poster refresh complete!\n\nFixed: ${stats.fixed}\nSkipped: ${stats.skipped}\nErrors: ${stats.errors}`);
+      const summary =
+        stats.fixed > 0
+          ? `Repaired: ${stats.fixed}\nLeft as-is: ${stats.skipped}\nErrors: ${stats.errors}`
+          : `Checked ${stats.checked} poster${stats.checked === 1 ? '' : 's'} — nothing needed repairing.\nErrors: ${stats.errors}`;
+      alert(`Poster refresh complete!\n\n${summary}`);
       fetchMovies();
     } catch (err) {
       console.error('Error refreshing posters:', err);
@@ -343,7 +359,9 @@ function LibraryPage() {
     }
   });
 
-  const allMoods = [...new Set(movies.flatMap((m) => m.moods || []))];
+  // The active mood is always listed, even when no row on this shelf carries it, so a filter that
+  // hides everything is still visible in the picker.
+  const allMoods = [...new Set([...movies.flatMap((m) => m.moods || []), selectedMood].filter(Boolean))];
 
   const shelfCountLabel =
     activeTab === 'lists'
