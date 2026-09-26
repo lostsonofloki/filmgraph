@@ -8,19 +8,19 @@
  * See: https://console.groq.com/docs/deprecations
  */
 
+import { GROQ_MODELS } from '../config/aiModels';
+
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
 /**
- * Ordered by measured suitability for this app's small strict-JSON tasks.
- * qwen3.8-27b answers genre extraction in ~90ms and honours a tight token budget; the
- * gpt-oss pair are reliable but spend tokens reasoning before emitting JSON.
- * `VITE_GROQ_MODEL` pins a single model without needing a code change.
+ * The ladder lives in `src/config/aiModels.js` so the daily health check can sweep the exact
+ * ids shipped here. `VITE_GROQ_MODEL` pins a single model without needing a code change.
  */
 export const GROQ_MODEL_CANDIDATES = (
   import.meta.env.VITE_GROQ_MODEL
     ? [import.meta.env.VITE_GROQ_MODEL]
-    : ['qwen/qwen3.8-27b', 'openai/gpt-oss-20b', 'openai/gpt-oss-120b']
+    : GROQ_MODELS
 );
 
 /**
@@ -108,16 +108,11 @@ const GENRE_LIST = Object.entries(TMDB_GENRES)
   .join(', ');
 
 /**
- * Extract TMDB genre IDs from natural language vibe query
- * @param {string} vibe - User's natural language mood/vibe description
- * @returns {Promise<number[]>} - Array of TMDB genre IDs
+ * Exported so another provider can run the same extraction when Groq is unavailable. Groq's
+ * free tier allows only 1000 output tokens per minute across the whole account, so this step
+ * gets rate-limited in ordinary use, not just during an outage.
  */
-export const fetchGroqGenres = async (vibe) => {
-  if (!GROQ_API_KEY) {
-    throw new Error('VITE_GROQ_API_KEY is not configured');
-  }
-
-  const systemPrompt = `You are a genre classification engine for a movie platform.
+export const GENRE_SYSTEM_PROMPT = `You are a genre classification engine for a movie platform.
 Your ONLY task is to map a user's mood/vibe description to relevant TMDB genre IDs.
 
 Available TMDB Genres:
@@ -127,33 +122,50 @@ Return ONLY a valid JSON object with this exact shape:
 {"genre_ids":[18,878]}
 NO text, NO explanation.`;
 
-  const userMessage = `Map this vibe to genre IDs: "${vibe}"`;
+export const buildGenreUserMessage = (vibe) => `Map this vibe to genre IDs: "${vibe}"`;
+
+/**
+ * Normalise a genre reply into real TMDB ids, tolerating a bare array or an object wrapper and
+ * ids returned as strings. Unknown ids are dropped rather than passed downstream.
+ */
+export const toGenreIds = (parsed) => {
+  let rawIds = [];
+  if (Array.isArray(parsed)) {
+    rawIds = parsed;
+  } else if (parsed && typeof parsed === 'object' && Array.isArray(parsed.genre_ids)) {
+    rawIds = parsed.genre_ids;
+  }
+
+  return rawIds
+    .map(id => {
+      if (typeof id === 'number') return id;
+      if (typeof id === 'string') {
+        const num = parseInt(id, 10);
+        return isNaN(num) ? null : num;
+      }
+      return null;
+    })
+    .filter(id => id !== null && TMDB_GENRES[id]);
+};
+
+/**
+ * Extract TMDB genre IDs from natural language vibe query
+ * @param {string} vibe - User's natural language mood/vibe description
+ * @returns {Promise<number[]>} - Array of TMDB genre IDs
+ */
+export const fetchGroqGenres = async (vibe) => {
+  if (!GROQ_API_KEY) {
+    throw new Error('VITE_GROQ_API_KEY is not configured');
+  }
 
   try {
     const parsed = await callGroqJSON({
-      systemPrompt,
-      userMessage,
+      systemPrompt: GENRE_SYSTEM_PROMPT,
+      userMessage: buildGenreUserMessage(vibe),
       maxTokens: MIN_JSON_MAX_TOKENS,
     });
 
-    // Handle both formats: bare array OR object with genre_ids key
-    let rawIds = [];
-    if (Array.isArray(parsed)) {
-      rawIds = parsed;
-    } else if (parsed && typeof parsed === 'object' && Array.isArray(parsed.genre_ids)) {
-      rawIds = parsed.genre_ids;
-    }
-    
-    const genreIds = rawIds
-      .map(id => {
-        if (typeof id === 'number') return id;
-        if (typeof id === 'string') {
-          const num = parseInt(id, 10);
-          return isNaN(num) ? null : num;
-        }
-        return null;
-      })
-      .filter(id => id !== null && TMDB_GENRES[id]);
+    const genreIds = toGenreIds(parsed);
 
     console.log(`⚡ Groq extracted genres: ${genreIds.map(id => TMDB_GENRES[id]).join(', ')}`);
     return genreIds;

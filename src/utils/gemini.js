@@ -1,5 +1,12 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { fetchGroqGenres, TMDB_GENRES } from "./groq";
+import {
+  fetchGroqGenres,
+  TMDB_GENRES,
+  GENRE_SYSTEM_PROMPT,
+  buildGenreUserMessage,
+  toGenreIds,
+} from "./groq";
+import { GEMINI_MODELS, OPENROUTER_MODELS } from "../config/aiModels";
 
 // Initialize Gemini AI client
 
@@ -47,15 +54,14 @@ if (!apiKey) {
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 /**
- * Keep a model ladder because Google model availability can change per key/project.
- * Every 1.5 and 2.0 id was retired ("no longer available", 404) while still listed here,
- * which silently pushed every Oracle call onto OpenRouter. The ids below are verified
- * present on this project's key; `VITE_GEMINI_MODEL` pins one without a code change.
- * The `-latest` aliases trail the pinned ids because they answer 503 under load.
+ * Google model availability changes per key/project, and every 1.5 and 2.0 id this once listed
+ * was retired out from under it. The ladder now lives in `src/config/aiModels.js` so the daily
+ * health check sweeps the exact ids shipped here; `VITE_GEMINI_MODEL` pins one without a code
+ * change.
  */
 const GEMINI_MODEL_CANDIDATES = import.meta.env.VITE_GEMINI_MODEL
   ? [import.meta.env.VITE_GEMINI_MODEL]
-  : ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
+  : GEMINI_MODELS;
 
 /**
  * Gemini 2.5+ ids spend hidden "thinking" tokens out of maxOutputTokens before emitting any
@@ -72,11 +78,16 @@ const withThinkingDisabled = (generationConfig) => ({
 // Cache TTL: 24 hours in milliseconds
 const CACHE_TTL = 24 * 60 * 60 * 1000;
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
-const OPENROUTER_MODELS = [
-  "google/gemini-2.0-flash-001",
-  "meta-llama/llama-3.3-70b-instruct",
-  "openai/gpt-4o-mini",
-];
+
+/**
+ * OpenRouter wants an attribution header. Reading `window` unguarded made the Oracle's own
+ * safety net the one code path that could not run outside a browser, which also left it
+ * untestable from a script.
+ */
+const getOrigin = () =>
+  typeof window !== "undefined" && window.location?.origin
+    ? window.location.origin
+    : "https://filmgraph.app";
 
 const toErrorString = (error) =>
   String(error?.message || error || "").toLowerCase();
@@ -98,16 +109,19 @@ const withTaggedError = (message, provider, status = null) => {
 };
 
 /**
- * Worth trying the next model rather than giving up: 404 means the id was retired, 400 means
- * this id rejects part of the request (some aliases refuse `thinkingConfig`) and a sibling
- * may still accept it.
+ * Worth trying the next model rather than giving up on this one: 404 means the id was retired,
+ * 400 means this id rejects part of the request (some aliases refuse `thinkingConfig`) and a
+ * sibling may still accept it, and 429 is a per-model quota that a sibling has its own
+ * allowance for — waiting out a per-minute limit is slower than just asking the next model.
  */
-const isCandidateRejection = (status) => status === 404 || status === 400;
+const isCandidateRejection = (status) =>
+  status === 404 || status === 400 || status === 429;
 
 const isRetryableGeminiError = (error) => {
   const status = extractStatusCode(error);
   if (status === 404) return false;
-  if (status === 429 || status === 500 || status === 503) return true;
+  // 429 deliberately absent: it is handled by advancing the ladder, not by retrying in place.
+  if (status === 500 || status === 503) return true;
   const raw = toErrorString(error);
   return (
     raw.includes("high demand") ||
@@ -170,7 +184,7 @@ const runOpenRouterWithFallback = async (
             headers: {
               Authorization: `Bearer ${openRouterApiKey}`,
               "Content-Type": "application/json",
-              "HTTP-Referer": window.location.origin,
+              "HTTP-Referer": getOrigin(),
               "X-Title": "Filmgraph Oracle",
             },
             body: JSON.stringify({
@@ -318,6 +332,30 @@ export const callGeminiJSON = async ({
 
   console.log(`✨ Gemini (${modelUsed}) returned JSON.`);
   return parsed;
+};
+
+/**
+ * Same genre extraction as `fetchGroqGenres`, run through Gemini.
+ *
+ * Genre ids only sharpen the Oracle's prompt, so losing them is survivable — but Groq's free
+ * tier caps the whole account at 1000 output tokens per minute, which this step trips during
+ * ordinary use, and a vibe search that quietly drops its genre guidance returns blander picks.
+ *
+ * @param {string} vibe - User's natural language mood/vibe description
+ * @returns {Promise<number[]>} - Array of TMDB genre IDs
+ */
+export const fetchGeminiGenres = async (vibe) => {
+  const parsed = await callGeminiJSON({
+    systemPrompt: GENRE_SYSTEM_PROMPT,
+    userMessage: buildGenreUserMessage(vibe),
+    maxTokens: MIN_JSON_OUTPUT_TOKENS,
+  });
+
+  const genreIds = toGenreIds(parsed);
+  console.log(
+    `✨ Gemini extracted genres: ${genreIds.map((id) => TMDB_GENRES[id]).join(", ")}`,
+  );
+  return genreIds;
 };
 
 const getLocalVibeCheck = (vibe) => {
@@ -700,14 +738,23 @@ export const getHybridRecommendation = async (vibe, options = {}) => {
     console.log(`⚡ Groq latency: ${latency}ms`);
     groqSuccess = true;
   } catch (groqError) {
-    console.warn(
-      "⚠️ Groq failed, falling back to Gemini-only mode:",
-      groqError.message,
-    );
+    console.warn("⚠️ Groq genre extraction failed:", groqError.message);
+
+    // Groq's free tier caps the account at 1000 output tokens per minute, so this arm is
+    // reached in normal use. Gemini is about a second slower but keeps the genre guidance,
+    // and losing it only costs prompt quality, so a failure here stays silent.
+    try {
+      genreIds = await fetchGeminiGenres(vibe);
+    } catch (geminiError) {
+      console.warn(
+        "⚠️ Gemini genre extraction failed too; continuing without genre guidance:",
+        geminiError.message,
+      );
+    }
   }
 
   const genreContext =
-    groqSuccess && genreIds.length > 0
+    genreIds.length > 0
       ? `\n\nEXTRACTED GENRE IDS: [${genreIds.join(", ")}]
     These genres were extracted from the user's vibe: ${genreIds.map((id) => TMDB_GENRES[id]).join(", ")}
     Use this as guidance, but prioritize narrative complexity and emotional resonance over strict genre matching.`
