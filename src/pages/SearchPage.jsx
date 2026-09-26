@@ -123,6 +123,8 @@ function SearchPage() {
       setHasSearched(false);
       setRequestFailed(false);
       setResultMode('search');
+      // Clearing the filters can abandon an in-flight request, whose own finally block is skipped.
+      setIsLoading(false);
       return undefined;
     }
 
