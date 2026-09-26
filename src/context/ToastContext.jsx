@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import './Toast.css';
 
@@ -22,11 +22,17 @@ export function ToastProvider({ children }) {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
-  const toast = {
-    success: (message, duration) => addToast(message, 'success', duration),
-    error: (message, duration) => addToast(message, 'error', duration),
-    info: (message, duration) => addToast(message, 'info', duration),
-  };
+  // A fresh object here gave every consumer a new `toast` identity on each toast change,
+  // so a fetch callback listing it as a dependency re-fired its effect, failed, toasted,
+  // and looped.
+  const toast = useMemo(
+    () => ({
+      success: (message, duration) => addToast(message, 'success', duration),
+      error: (message, duration) => addToast(message, 'error', duration),
+      info: (message, duration) => addToast(message, 'info', duration),
+    }),
+    [addToast]
+  );
 
   return (
     <ToastContext.Provider value={toast}>
