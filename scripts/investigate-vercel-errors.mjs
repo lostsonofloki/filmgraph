@@ -8,6 +8,21 @@ const REPORT_PATH = process.env.REPORT_PATH || "artifacts/vercel-error-report.md
 const TOP_N = Number(process.env.TOP_N || "10");
 const LOOKBACK_HOURS = Number(process.env.LOOKBACK_HOURS || "24");
 
+/**
+ * Publishes a value for later workflow steps to branch on. The issue-filing step used to run
+ * under `if: always()`, so it opened an issue every single day — roughly 150 of them — whether
+ * the report contained a failure, no failures at all, or only a "credentials missing" notice.
+ */
+async function setStepOutput(name, value) {
+  const outputPath = process.env.GITHUB_OUTPUT;
+  if (!outputPath) return;
+  try {
+    await fs.appendFile(outputPath, `${name}=${value}\n`, "utf8");
+  } catch {
+    // Only used to gate a later step; never worth failing the run over.
+  }
+}
+
 function nowMs() {
   return Date.now();
 }
@@ -183,7 +198,16 @@ async function main() {
   if (!VERCEL_TOKEN) {
     const setup = buildSetupReport();
     await fs.writeFile(REPORT_PATH, setup, "utf8");
+    // Without the annotation this path produced a green check while monitoring nothing, which
+    // is worse than a red one: the schedule looked healthy for as long as the secret was absent.
+    console.log(
+      "::warning title=Vercel error investigation not configured::" +
+        "VERCEL_TOKEN is not set, so no deployment errors were checked. " +
+        "Add it as a repository secret to enable this job.",
+    );
     console.log(`Wrote ${REPORT_PATH} (setup required).`);
+    await setStepOutput("has_findings", "false");
+    await setStepOutput("failure_count", "0");
     return;
   }
 
@@ -208,9 +232,15 @@ async function main() {
   const report = buildMarkdownReport(clusters, failures, windowStart, windowEnd);
   await fs.writeFile(REPORT_PATH, report, "utf8");
   console.log(`Wrote ${REPORT_PATH} with ${clusters.length} clusters.`);
+
+  // "Nothing failed in the last 24h" is the expected outcome and does not deserve an issue.
+  await setStepOutput("has_findings", failures.length > 0 ? "true" : "false");
+  await setStepOutput("failure_count", String(failures.length));
 }
 
-main().catch((error) => {
+main().catch(async (error) => {
   console.error("Vercel investigation failed:", error.message);
+  console.log(`::error title=Vercel error investigation failed::${error.message}`);
+  await setStepOutput("has_findings", "false");
   process.exitCode = 1;
 });
