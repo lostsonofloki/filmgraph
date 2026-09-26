@@ -5,19 +5,28 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SCREENSHOTS_DIR = path.resolve(__dirname, '../portfolio-screenshots');
 
-// Credentials from .env
-const EMAIL = process.env.TEST_USER_EMAIL || 'YOUR_EMAIL@example.com';
-const PASSWORD = process.env.TEST_USER_PASSWORD || 'YOUR_PASSWORD';
+// Credentials from .env. Falling back to a placeholder address only moved the failure to the
+// login form, where it reads as a broken app rather than missing configuration.
+const requireCredential = (name: string): string => {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing ${name}. Set it in .env or as a CI secret.`);
+  }
+  return value;
+};
 
 test.describe('Portfolio Screenshots', () => {
   test.beforeEach(async ({ page }) => {
+    const email = requireCredential('TEST_USER_EMAIL');
+    const password = requireCredential('TEST_USER_PASSWORD');
+
     // Navigate to login and authenticate
     await page.goto('/login');
     await expect(page).toHaveURL(/.*login/);
 
     // Input credentials
-    await page.fill('input[type="email"]', EMAIL);
-    await page.fill('input[type="password"]', PASSWORD);
+    await page.fill('input[type="email"]', email);
+    await page.fill('input[type="password"]', password);
 
     // Submit login form
     await page.click('button[type="submit"]');

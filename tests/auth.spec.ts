@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-const EMAIL = process.env.TEST_EMAIL!;
-const PASSWORD = process.env.TEST_PASSWORD!;
+const EMAIL = process.env.TEST_USER_EMAIL!;
+const PASSWORD = process.env.TEST_USER_PASSWORD!;
 
 test('login redirects to profile and shows username', async ({ page }) => {
   await page.goto('/login');
