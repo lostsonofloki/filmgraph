@@ -24,16 +24,20 @@ export async function createList(userId, name, description = '') {
     return { data: null, error: new Error('List name is required.') };
   }
 
-  const { data: existingList, error: existingListError } = await supabase
+  // Compared here rather than with `ilike`, where `%`, `_` and PostgREST's `*` in a list
+  // name would have been treated as wildcards.
+  const { data: ownedLists, error: existingListError } = await supabase
     .from('lists')
     .select('id, name')
-    .eq('user_id', userId)
-    .ilike('name', trimmedName)
-    .maybeSingle();
+    .eq('user_id', userId);
 
   if (existingListError) {
     return { data: null, error: existingListError };
   }
+
+  const existingList = (ownedLists || []).find(
+    (list) => (list.name || '').trim().toLowerCase() === trimmedName.toLowerCase()
+  );
 
   if (existingList) {
     return {
@@ -113,6 +117,14 @@ export function canEditRole(role) {
 
 /**
  * Resolve a collaborator by UUID, email, or username.
+ *
+ * Email and username go through `lookup_profile_identity`, a SECURITY DEFINER RPC that
+ * matches case-insensitively on the column side and returns no email address. Signup
+ * stores the address exactly as typed, so lowercasing the *input* meant anyone registered
+ * as `John.Doe@Gmail.com` could never be found; usernames are lowercase by constraint, so
+ * not folding the input meant `JohnDoe` never matched `johndoe`. Both read as
+ * "User not found."
+ *
  * @param {string} identifier
  * @returns {Promise<{ data: object | null, error: Error | null }>}
  */
@@ -123,17 +135,14 @@ export async function resolveProfileByIdentifier(identifier) {
     return { data: null, error: new Error('Enter an email, username, or user ID.') };
   }
 
-  const isUuid = UUID_RE.test(raw);
-  let query = supabase.from('profiles').select('id, email, username, display_name, avatar_url');
-  if (isUuid) {
-    query = query.eq('id', raw);
-  } else if (raw.includes('@')) {
-    query = query.eq('email', raw.toLowerCase());
-  } else {
-    query = query.eq('username', raw);
-  }
+  const { data, error } = UUID_RE.test(raw)
+    ? await supabase
+        .from('profiles')
+        .select('id, username, display_name, avatar_url')
+        .eq('id', raw)
+        .maybeSingle()
+    : await supabase.rpc('lookup_profile_identity', { p_identifier: raw }).maybeSingle();
 
-  const { data, error } = await query.maybeSingle();
   if (error) return { data: null, error };
   if (!data) return { data: null, error: new Error('User not found.') };
   return { data, error: null };
@@ -258,7 +267,7 @@ export async function getUserLists(userId) {
   if (profileIds.length > 0) {
     const { data: profilesData, error: profilesError } = await supabase
       .from('profiles')
-      .select('id, email, username, display_name, avatar_url')
+      .select('id, username, display_name, avatar_url')
       .in('id', profileIds);
     if (profilesError) {
       console.error('sharedLists.getUserLists profiles:', profilesError);
@@ -325,7 +334,7 @@ export async function getListMembers(listId) {
 
   const { data: profilesData, error: profilesError } = await supabase
     .from('profiles')
-    .select('id, email, username, display_name, avatar_url')
+    .select('id, username, display_name, avatar_url')
     .in('id', memberIds);
   if (profilesError) return { data: null, error: profilesError };
 
