@@ -248,15 +248,31 @@ function DiscoveryContent() {
                     if (!movie || !user?.id) return;
                     try {
                       const supabase = getSupabase();
-                      const { data: existing } = await supabase
+                      const { data: existingRows, error: lookupError } = await supabase
                         .from("movie_logs")
-                        .select("id")
+                        .select("id, watch_status")
                         .eq("user_id", user.id)
                         .eq("tmdb_id", movie.id)
-                        .eq("watch_status", "to-watch")
-                        .maybeSingle();
-                      if (existing) {
+                        .limit(1);
+                      if (lookupError) throw lookupError;
+                      const existing = existingRows?.[0];
+                      if (existing?.watch_status === "to-watch") {
                         toast.info("Already in Watchlist");
+                        return;
+                      }
+                      if (existing?.watch_status === "watched") {
+                        toast.info("Already in your watched log");
+                        return;
+                      }
+                      if (existing) {
+                        // Legacy rows with no status: adopt them instead of
+                        // adding a second row for the same movie.
+                        const { error: updateError } = await supabase
+                          .from("movie_logs")
+                          .update({ watch_status: "to-watch" })
+                          .eq("id", existing.id);
+                        if (updateError) throw updateError;
+                        toast.success("Added to Watchlist");
                         return;
                       }
                       const { error: insertError } = await supabase.from("movie_logs").insert({
