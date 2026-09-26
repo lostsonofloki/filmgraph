@@ -1,40 +1,30 @@
-const API_KEY = import.meta.env.VITE_OMDB_API_KEY || '';
-const BASE_URL = 'https://www.omdbapi.com';
-
-let hasWarnedAboutKey = false;
-
-// OMDb only feeds the optional Rotten Tomatoes badge, so an absent key must degrade quietly
-// rather than break a movie page.
-const isConfigured = () => {
-  if (API_KEY) return true;
-  if (!hasWarnedAboutKey) {
-    hasWarnedAboutKey = true;
-    console.warn('VITE_OMDB_API_KEY is not configured; Rotten Tomatoes scores are unavailable.');
-  }
-  return false;
-};
+// The OMDb key must never reach the browser: Vite inlines every VITE_ variable into the bundle,
+// so it lives in api/omdb-lookup.js and this module only talks to that proxy. The proxy only
+// exists on Vercel, so under plain `vite dev` the request 404s and the Rotten Tomatoes badge is
+// omitted, exactly as it is when the key is unset.
+const PROXY_URL = '/api/omdb-lookup';
 
 /**
- * Request OMDb and return the parsed body, or null for any failure.
+ * Request the OMDb proxy and return the parsed body, or null for any failure.
  * OMDb answers an outage with an HTML error page, which turns an unchecked response.json() into
  * a SyntaxError that surfaced to the user as "Error searching movies".
- * @param {string} query - Query string, without the api key
+ * @param {Object} params - Query parameters for the proxy
  */
-const requestOmdb = async (query) => {
-  if (!isConfigured()) return null;
-
+const requestOmdb = async (params) => {
   try {
-    const response = await fetch(`${BASE_URL}/?apikey=${API_KEY}&${query}`);
+    const response = await fetch(`${PROXY_URL}?${new URLSearchParams(params)}`, {
+      headers: { Accept: 'application/json' },
+    });
 
     if (!response.ok) {
-      console.error(`OMDb request failed: ${response.status} ${response.statusText}`);
+      console.warn(`OMDb request failed: ${response.status} ${response.statusText}`);
       return null;
     }
 
     const data = await response.json();
     return data?.Response === 'True' ? data : null;
   } catch (error) {
-    console.error('OMDb request error:', error.message);
+    console.warn('OMDb request error:', error.message);
     return null;
   }
 };
@@ -45,7 +35,7 @@ const requestOmdb = async (query) => {
  * @returns {Promise<Array>} - Array of movie search results
  */
 export const searchMovies = async (query) => {
-  const data = await requestOmdb(`s=${encodeURIComponent(query)}`);
+  const data = await requestOmdb({ s: query });
   return data?.Search || [];
 };
 
@@ -54,8 +44,7 @@ export const searchMovies = async (query) => {
  * @param {string} imdbID - IMDB ID of the movie
  * @returns {Promise<Object>} - Movie details object
  */
-export const getMovieDetails = async (imdbID) =>
-  requestOmdb(`i=${encodeURIComponent(imdbID)}&plot=full`);
+export const getMovieDetails = async (imdbID) => requestOmdb({ i: imdbID, plot: 'full' });
 
 /**
  * Extract Rotten Tomatoes score from movie ratings array
