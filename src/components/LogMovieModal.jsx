@@ -336,12 +336,25 @@ function LogMovieModal({ movie, existingLog, onClose, onSaved }) {
         if (duplicateCheck.isDuplicate) {
           throw new Error(`Anti-Double-Buy: ${duplicateCheck.reasons.join(' + ')}`);
         }
+        if (!duplicateCheck.isComplete) {
+          // A failed probe must not block the save; the unique index below is
+          // the backstop for the barcode case.
+          console.warn(
+            'Duplicate check incomplete, saving anyway:',
+            duplicateCheck.failedChecks.join(', ')
+          );
+        }
 
         const { data, error: insertError } = await supabase
           .from('movie_logs')
           .insert(movieData)
           .select();
-        if (insertError) throw insertError;
+        if (insertError) {
+          if (insertError.code === '23505') {
+            throw new Error('Anti-Double-Buy: this movie is already in your collection.');
+          }
+          throw insertError;
+        }
         result = data?.[0];
       }
 
