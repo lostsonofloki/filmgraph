@@ -45,8 +45,8 @@
   justify-content: center;
   position: relative;
   padding: 12px;
-  background: rgba(24, 24, 24, 0.9);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgba(24, 24, 24, 0.94);
+  border: 1px solid #f59e0b;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -95,16 +95,16 @@
 }
 
 .add-to-list-dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  width: 300px;
-  max-height: 400px;
+  position: fixed;
+  width: min(300px, calc(100vw - 16px));
+  max-height: min(400px, calc(100vh - 16px));
+  display: flex;
+  flex-direction: column;
   background-color: #1a1a1a;
-  border: 1px solid #2a2a2a;
+  border: 1px solid #3f3f46;
   border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-  z-index: 1000;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  z-index: 1200;
   overflow: hidden;
   animation: dropdownFadeIn 0.2s ease-out;
 }
@@ -198,7 +198,8 @@
 }
 
 .add-to-list-items {
-  max-height: 280px;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   padding: 8px;
 }
@@ -331,12 +332,4 @@
 .add-to-list-create svg {
   width: 16px;
   height: 16px;
-}
-
-/* Responsive adjustments */
-@media (max-width: 640px) {
-  .add-to-list-dropdown {
-    right: -16px;
-    width: 280px;
-  }
 }

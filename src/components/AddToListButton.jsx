@@ -1,8 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useLists } from '../context/ListContext';
 import { useUser } from '../context/UserContext';
 import { useToast } from '../context/ToastContext';
 import { checkDuplicateInCollection } from '../utils/collectionIntegrity';
+import { placeAddToListDropdown } from '../utils/placeAddToListDropdown';
 import CreateListModal from './CreateListModal';
 import './AddToListButton.css';
 
@@ -26,21 +28,73 @@ function AddToListButton({ movie, className = '', variant = 'default' }) {
   const [isOpen, setIsOpen] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isAdding, setIsAdding] = useState(null); // tmdb_id of movie being added
-  const dropdownRef = useRef(null);
+  const [panelStyle, setPanelStyle] = useState(null);
+  const anchorRef = useRef(null);
+  const panelRef = useRef(null);
 
   const existingLists = getListsContainingMovie(movie?.tmdb_id);
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside (the panel is portaled, so check both nodes)
   useEffect(() => {
+    if (!isOpen) return undefined;
+
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
+      const target = event.target;
+      if (anchorRef.current?.contains(target)) return;
+      if (panelRef.current?.contains(target)) return;
+      setIsOpen(false);
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setIsOpen(false);
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      setPanelStyle(null);
+      return undefined;
+    }
+
+    const place = () => {
+      const anchor = anchorRef.current;
+      const panel = panelRef.current;
+      if (!anchor || !panel) return;
+      const rect = anchor.getBoundingClientRect();
+      const next = placeAddToListDropdown(
+        rect,
+        panel.offsetHeight,
+        { width: window.innerWidth, height: window.innerHeight },
+      );
+      setPanelStyle((prev) => {
+        if (
+          prev
+          && prev.top === next.top
+          && prev.left === next.left
+          && prev.width === next.width
+          && prev.maxHeight === next.maxHeight
+        ) {
+          return prev;
+        }
+        return next;
+      });
+    };
+
+    place();
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+    return () => {
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+    };
+  }, [isOpen, isLoading, lists.length]);
 
   const handleToggleDropdown = () => {
     if (!isAuthenticated) return;
@@ -94,7 +148,7 @@ function AddToListButton({ movie, className = '', variant = 'default' }) {
 
   return (
     <>
-      <div className={`add-to-list-container ${className}`} ref={dropdownRef}>
+      <div className={`add-to-list-container ${className}`} ref={anchorRef}>
         {variant === 'icon' ? (
           <button
             className="add-to-list-button-icon"
@@ -130,8 +184,21 @@ function AddToListButton({ movie, className = '', variant = 'default' }) {
           </button>
         )}
 
-        {isOpen && (
-          <div className="add-to-list-dropdown">
+        {isOpen && createPortal(
+          <div
+            ref={panelRef}
+            className="add-to-list-dropdown"
+            style={panelStyle ? {
+              top: panelStyle.top,
+              left: panelStyle.left,
+              width: panelStyle.width,
+              maxHeight: panelStyle.maxHeight,
+            } : {
+              top: 0,
+              left: 0,
+              visibility: 'hidden',
+            }}
+          >
             {isLoading ? (
               <div className="add-to-list-loading">
                 <div className="loading-spinner"></div>
@@ -195,7 +262,8 @@ function AddToListButton({ movie, className = '', variant = 'default' }) {
                 </div>
               </>
             )}
-          </div>
+          </div>,
+          document.body,
         )}
       </div>
 

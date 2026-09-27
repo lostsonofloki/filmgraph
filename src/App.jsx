@@ -74,8 +74,8 @@ function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 h-16 w-full border-b border-white/5 bg-zinc-950/80 backdrop-blur-md">
-      <div className="flex h-full max-w-7xl items-center justify-between px-6 mx-auto">
+    <header className="sticky top-0 z-50 w-full border-b border-zinc-700 bg-zinc-950">
+      <div className="flex h-16 max-w-7xl items-center justify-between px-6 mx-auto">
         {/* LEFT: Logo OR Search Input */}
         <div className="flex items-center gap-2 flex-1">
           {/* Mobile: Toggle between Logo and Search */}
@@ -247,59 +247,61 @@ function Header() {
         </div>
       </div>
 
-      {/* Mobile Menu Dropdown */}
+      {/* Mobile account drawer. Kept in normal flow under the bar so it
+          does not spill out of a fixed 64px header and cover card borders. */}
       {isMobileMenuOpen && (
-        <div className="md:hidden border-t border-white/5 bg-zinc-950 px-6 py-4">
-          <nav className="flex flex-col space-y-4">
+        <div className="mobile-account-menu md:hidden">
+          <nav className="mobile-account-menu-nav">
             {isAuthenticated ? (
-              <div className="border-t border-white/5 pt-4 mt-1 space-y-2">
+              <>
                 <Link
                   to="/profile"
-                  className="text-sm font-bold text-orange-500 hover:text-orange-400 transition-colors py-2 block"
+                  className="mobile-account-link mobile-account-link-user"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   👤 {user?.username}
                 </Link>
                 <Link
                   to="/about"
-                  className="text-sm font-medium text-zinc-400 hover:text-white transition-colors py-2 block"
+                  className="mobile-account-link"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   About
                 </Link>
                 <Link
                   to="/changelog"
-                  className="text-sm font-medium text-zinc-400 hover:text-white transition-colors py-2 block"
+                  className="mobile-account-link"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Changelog
                 </Link>
                 <button
+                  type="button"
                   onClick={handleLogout}
-                  className="text-left text-sm font-medium text-zinc-400 hover:text-white transition-colors py-2 w-full"
+                  className="mobile-account-link"
                 >
                   Logout
                 </button>
-              </div>
+              </>
             ) : (
               <>
                 <Link
                   to="/about"
-                  className="text-sm font-medium text-zinc-400 hover:text-white transition-colors py-2 block"
+                  className="mobile-account-link"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   About
                 </Link>
                 <Link
                   to="/changelog"
-                  className="text-sm font-medium text-zinc-400 hover:text-white transition-colors py-2 block"
+                  className="mobile-account-link"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Changelog
                 </Link>
                 <Link
                   to="/login"
-                  className="text-sm font-semibold text-white bg-zinc-800 px-4 py-2 rounded-full hover:bg-zinc-700 transition-colors text-center"
+                  className="mobile-account-login"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Login

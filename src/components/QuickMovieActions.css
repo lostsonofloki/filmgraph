@@ -14,8 +14,8 @@
   min-width: 44px;
   min-height: 44px;
   border-radius: 12px;
-  border: 1px solid rgba(249, 115, 22, 0.35);
-  background: rgba(12, 16, 24, 0.9);
+  border: 1px solid #f97316;
+  background: rgba(12, 16, 24, 0.94);
   color: #fb923c;
   cursor: pointer;
   transition: all 0.2s ease;
