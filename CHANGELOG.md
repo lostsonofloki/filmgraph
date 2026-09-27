@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed
+
+- **List menus and the account drawer were losing their borders on mobile**
+  - The add-to-list menu was positioned inside poster cards that clip overflow, and it anchored to the right of the left-hand + button. On a phone the panel was sliced by the card radius, so only the "movies" count showed through the poster. The menu now renders on the document and stays inside the screen, border included.
+  - The account drawer lived in a header locked to 64px, so it painted over the first card with no visible edge. The bar keeps that height; the drawer sits under it with a solid background and a real border.
+
 ### 🧪 Next
 
 - **UX overhaul sprint (Phase 7.6)**

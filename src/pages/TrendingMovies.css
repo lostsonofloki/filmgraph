@@ -92,14 +92,18 @@
 }
 
 .backdrop-card {
+  position: relative;
   cursor: pointer;
-  border-radius: 8px;
+  border: 1px solid var(--fg-border);
+  border-radius: 12px;
   overflow: hidden;
-  transition: transform 0.2s ease;
+  background: var(--fg-bg-elev-1);
+  transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
 .backdrop-card:hover {
   transform: scale(1.03);
+  border-color: color-mix(in srgb, var(--fg-accent) 32%, var(--fg-border));
 }
 
 .backdrop-image-wrapper {
@@ -107,6 +111,7 @@
   padding-top: 56.25%;
   background: #1a1a1a;
   overflow: hidden;
+  border-radius: 11px;
 }
 
 .backdrop-image-wrapper img {
@@ -152,8 +157,9 @@
 
 .backdrop-quick-actions {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  top: 16px;
+  left: 16px;
+  z-index: 2;
 }
 
 .backdrop-content {
