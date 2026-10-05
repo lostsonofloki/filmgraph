@@ -5,12 +5,18 @@
  *   node scripts/supabase-keepalive.mjs
  *   npm run supabase:keepalive
  *
- * Exits non-zero when the database could not be reached so the scheduled CI job turns red
- * (and emails) while there is still time to act, rather than after the project is paused.
+ * Exits non-zero when the database could not be reached, including when credentials are
+ * missing. A green run with empty secrets does not count as activity and must not look
+ * successful.
  */
 
 import fs from "node:fs";
-import { runKeepalive, formatKeepaliveResult } from "./lib/supabase-keepalive.mjs";
+import {
+  formatKeepaliveResult,
+  pingKeepaliveEndpoint,
+  resolveKeepaliveConfig,
+  runKeepalive,
+} from "./lib/supabase-keepalive.mjs";
 
 const loadLocalEnvFile = () => {
   if (process.env.CI) return;
@@ -37,28 +43,40 @@ const main = async () => {
   loadLocalEnvFile();
 
   const source = process.env.KEEPALIVE_SOURCE || (process.env.CI ? "github-actions" : "cli");
-  const result = await runKeepalive({ source });
-  const report = formatKeepaliveResult(result);
+  const config = resolveKeepaliveConfig();
 
-  // Absent credentials are a setup state, not a liveness signal, so they follow the same
-  // convention as the Vercel investigation workflow and exit gracefully rather than
-  // painting the schedule red every day until someone fills the secrets in. A warning
-  // annotation keeps it visible on the run so it cannot rot unnoticed.
+  // Direct PostgREST is preferred: it does not depend on the website being up. The
+  // protected route is the fallback for a scheduler that only has CRON_SECRET.
+  let result;
+  if (config.isConfigured) {
+    result = await runKeepalive({ source });
+  } else if (process.env.KEEPALIVE_URL && process.env.CRON_SECRET) {
+    result = await pingKeepaliveEndpoint({
+      url: process.env.KEEPALIVE_URL,
+      secret: process.env.CRON_SECRET,
+    });
+    result.source = source;
+  } else {
+    result = {
+      ok: false,
+      status: "not-configured",
+      source,
+      durationMs: 0,
+      error:
+        "Missing required configuration: set SUPABASE_URL and SUPABASE_ANON_KEY (or VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY) for a direct read, or KEEPALIVE_URL and CRON_SECRET to call the protected route.",
+    };
+  }
+
+  const report = result.detail || formatKeepaliveResult(result);
   const isSetupNeeded = result.status === "not-configured";
 
+  // Missing credentials used to exit 0. That painted ten straight days of green runs
+  // while the job never queried Postgres, which is how the pause warning got through.
   if (result.ok) {
     console.log(report);
   } else if (isSetupNeeded) {
-    console.log(`::warning title=Supabase keep-alive not configured::${result.error}`);
-    console.log(
-      [
-        report,
-        "",
-        "Set the SUPABASE_URL and SUPABASE_ANON_KEY repository secrets to enable this job.",
-        "The Vercel cron in api/supabase-keepalive.js pings the same database independently,",
-        "so the project is not necessarily unprotected while this one is idle.",
-      ].join("\n"),
-    );
+    console.error(`::error title=Supabase keep-alive not configured::${result.error}`);
+    console.error(report);
   } else {
     console.error(report);
   }
@@ -78,12 +96,12 @@ const main = async () => {
         ? "\n> The project is already paused. Restore it from the Supabase dashboard, then re-run this job."
         : "",
       isSetupNeeded
-        ? "\n> Add the `SUPABASE_URL` and `SUPABASE_ANON_KEY` repository secrets to enable this job."
+        ? "\n> Set `SUPABASE_URL` and `SUPABASE_ANON_KEY`, or `CRON_SECRET` plus `KEEPALIVE_URL`, or this job cannot reach the database."
         : "",
     ].join("\n"),
   );
 
-  process.exit(result.ok || isSetupNeeded ? 0 : 1);
+  process.exit(result.ok ? 0 : 1);
 };
 
 main().catch((error) => {

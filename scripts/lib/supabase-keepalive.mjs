@@ -1,13 +1,32 @@
 /**
  * Shared keep-alive ping used by the scheduled CI job and the Vercel cron endpoint.
  *
- * Supabase pauses Free plan projects after ~7 days of low database activity, and only
- * queries that reach Postgres count. Every ping here is a PostgREST table read so the
- * request is evaluated inside the database rather than short-circuited at the edge.
+ * Supabase pauses Free plan projects that do not receive enough user database activity
+ * over a 7-day window. A single read per day has already proven too little: the project
+ * was warned while a once-daily cron existed. Only queries that reach Postgres count.
+ * Every ping here is a PostgREST table read so the request is evaluated inside the
+ * database rather than short-circuited at the edge. One invocation issues several of
+ * those reads, and the schedulers call it several times a day.
  */
+
+import { timingSafeEqual } from "node:crypto";
 
 const DEFAULT_PING_TABLES = ["keepalive_heartbeat", "upc_cache", "profiles"];
 const PING_TIMEOUT_MS = 10000;
+
+// "A few user requests to the database each day" is the published bar. Three separate
+// reads per invocation, from several daily schedules, stays above a single daily ping
+// without turning the job into a load test.
+const DEFAULT_READS_PER_RUN = 3;
+const MAX_READS_PER_RUN = 5;
+
+// Narrow columns so the row that comes back is a few bytes. `select=*` on upc_cache
+// would pull the cached lookup payload across the wire for no benefit.
+const CHEAP_SELECT_BY_TABLE = {
+  keepalive_heartbeat: "id",
+  upc_cache: "upc",
+  profiles: "id",
+};
 
 // Patient enough to ride out a restored project's warm-up, which is exactly when this job
 // matters most: for ~30s after an unpause, PostgREST is up but cannot reach Postgres yet.
@@ -72,9 +91,49 @@ export const resolveKeepaliveConfig = (env = process.env) => {
     apiKey,
     serviceRoleKey,
     tables: tables.length ? tables : DEFAULT_PING_TABLES,
+    readsPerRun: resolveReadCount(env),
     isConfigured: Boolean(url && apiKey),
   };
 };
+
+export const resolveReadCount = (env = process.env) => {
+  const raw = Number(env.SUPABASE_KEEPALIVE_READS);
+  if (!Number.isInteger(raw) || raw < 1) return DEFAULT_READS_PER_RUN;
+  return Math.min(raw, MAX_READS_PER_RUN);
+};
+
+/**
+ * Vercel Cron sends `Authorization: Bearer $CRON_SECRET` only when that env var exists.
+ * Missing and wrong secrets both refuse the request. An open route would let anyone
+ * trigger database reads through the deployment.
+ */
+export const authorizeCronRequest = (authorizationHeader, env = process.env) => {
+  const secret = String(env.CRON_SECRET || "").trim();
+  if (!secret) {
+    return {
+      ok: false,
+      status: "not-configured",
+      error: "CRON_SECRET is not set. The keep-alive route is closed until that secret is configured.",
+    };
+  }
+
+  const presented = Array.isArray(authorizationHeader) ? authorizationHeader[0] : authorizationHeader;
+  const header = typeof presented === "string" ? presented : "";
+  const expected = `Bearer ${secret}`;
+  // Compare bytes, not UTF-16 length. A matching character count can still encode to a
+  // different number of bytes, and timingSafeEqual throws on a length mismatch.
+  const headerBuf = Buffer.from(header);
+  const expectedBuf = Buffer.from(expected);
+  const authorized = headerBuf.length === expectedBuf.length && timingSafeEqual(headerBuf, expectedBuf);
+
+  if (!authorized) {
+    return { ok: false, status: "unauthorized", error: "Unauthorized." };
+  }
+
+  return { ok: true, status: "authorized" };
+};
+
+const selectListForTable = (table) => CHEAP_SELECT_BY_TABLE[table] || "*";
 
 const fetchWithTimeout = async (url, options = {}, timeoutMs = PING_TIMEOUT_MS) => {
   const controller = new AbortController();
@@ -111,7 +170,8 @@ const describeHttpFailure = (status, body) => {
  * the caller can decide what is worth retrying and what is worth failing over.
  */
 const attemptTableRead = async ({ url, apiKey, table, timeoutMs = PING_TIMEOUT_MS }) => {
-  const endpoint = `${url}/rest/v1/${encodeURIComponent(table)}?select=*&limit=1`;
+  const select = selectListForTable(table);
+  const endpoint = `${url}/rest/v1/${encodeURIComponent(table)}?select=${encodeURIComponent(select)}&limit=1`;
 
   let response;
   try {
@@ -233,6 +293,63 @@ const readTableWithRetries = async ({ url, apiKey, table, remainingMs }) => {
   return { ...last, outcome: "failed", attempts };
 };
 
+/**
+ * The first successful read found a table Postgres will actually answer. The rest are
+ * plain repeats of that same cheap read so one cron firing counts as several requests.
+ */
+const repeatSuccessfulRead = async ({ url, apiKey, table, requestedReads, remainingMs }) => {
+  let reads = 1;
+  let lastError = null;
+
+  while (reads < requestedReads) {
+    const budgetLeft = remainingMs();
+    if (budgetLeft <= 250) {
+      lastError = `Only ${reads} of ${requestedReads} reads finished before the time budget ran out`;
+      break;
+    }
+
+    const next = await attemptTableRead({
+      url,
+      apiKey,
+      table,
+      timeoutMs: Math.min(PING_TIMEOUT_MS, budgetLeft),
+    });
+
+    if (next.outcome === "alive") {
+      reads += 1;
+      continue;
+    }
+
+    if (next.outcome === "retry" && remainingMs() > 500) {
+      await sleep(200);
+      const retry = await attemptTableRead({
+        url,
+        apiKey,
+        table,
+        timeoutMs: Math.min(PING_TIMEOUT_MS, remainingMs()),
+      });
+      if (retry.outcome === "alive") {
+        reads += 1;
+        continue;
+      }
+      lastError = retry.error || next.error;
+      break;
+    }
+
+    lastError = next.error || `Follow-up read failed (${next.outcome})`;
+    break;
+  }
+
+  return {
+    reads,
+    requestedReads,
+    error:
+      reads >= requestedReads
+        ? undefined
+        : lastError || `Only ${reads} of ${requestedReads} reads reached Postgres`,
+  };
+};
+
 const recordHeartbeat = async ({ url, serviceRoleKey, source, timeoutMs }) => {
   if (!serviceRoleKey) {
     return { recorded: false, skipped: "no service-role key configured" };
@@ -275,8 +392,9 @@ const recordHeartbeat = async ({ url, serviceRoleKey, source, timeoutMs }) => {
  * Ping the database and report what happened.
  *
  * Resolves to `{ ok, status, ... }` rather than throwing: `status` is one of `alive`,
- * `paused`, `host-unresolved`, `no-ping-target`, `unreachable`, `timed-out`, or
- * `not-configured`.
+ * `partial`, `paused`, `host-unresolved`, `no-ping-target`, `unreachable`, `timed-out`,
+ * or `not-configured`. `partial` means at least one read reached Postgres but fewer than
+ * the requested count did.
  */
 export const runKeepalive = async ({
   env = process.env,
@@ -325,21 +443,32 @@ export const runKeepalive = async ({
       });
 
       if (result.outcome === "alive") {
+        const repeated = await repeatSuccessfulRead({
+          url: config.url,
+          apiKey: config.apiKey,
+          table,
+          requestedReads: config.readsPerRun,
+          remainingMs,
+        });
         const heartbeat = await recordHeartbeat({
           url: config.url,
           serviceRoleKey: config.serviceRoleKey,
           source,
           timeoutMs: Math.min(PING_TIMEOUT_MS, remainingMs()),
         });
+        const complete = repeated.reads >= repeated.requestedReads;
 
         return {
-          ok: true,
-          status: "alive",
+          ok: complete,
+          status: complete ? "alive" : "partial",
           source,
           table,
           attempts: result.attempts,
+          reads: repeated.reads,
+          requestedReads: repeated.requestedReads,
           heartbeat,
           tried,
+          error: repeated.error,
           durationMs: Date.now() - startedAt,
         };
       }
@@ -421,9 +550,16 @@ export const runKeepalive = async ({
 export const formatKeepaliveResult = (result) => {
   const lines = [];
 
-  if (result.status === "alive") {
+  if (result.status === "alive" || result.status === "partial") {
+    const reads = result.reads || 1;
+    const requested = result.requestedReads || reads;
     const attemptNote = result.attempts > 1 ? ` after ${result.attempts} attempts` : "";
-    lines.push(`Database is awake. Read public.${result.table}${attemptNote} in ${result.durationMs}ms.`);
+    lines.push(
+      `${reads} of ${requested} reads of public.${result.table} reached Postgres${attemptNote} in ${result.durationMs}ms.`,
+    );
+    if (result.status === "partial" && result.error) {
+      lines.push(result.error);
+    }
     if (result.heartbeat?.recorded) {
       lines.push(`Heartbeat recorded${result.heartbeat.pingedAt ? ` at ${result.heartbeat.pingedAt}` : ""}.`);
     } else if (result.heartbeat?.error) {
@@ -439,4 +575,69 @@ export const formatKeepaliveResult = (result) => {
   }
 
   return lines.join("\n");
+};
+
+/**
+ * Backup path for the GitHub Action when database credentials are not stored as
+ * repository secrets. The production route already has those credentials; this only
+ * forwards the shared cron secret and reports the JSON body.
+ */
+export const pingKeepaliveEndpoint = async ({
+  url,
+  secret,
+  fetchImpl = fetch,
+  timeoutMs = 20000,
+} = {}) => {
+  if (!url || !secret) {
+    return {
+      ok: false,
+      status: "not-configured",
+      source: "endpoint",
+      error: "KEEPALIVE_URL and CRON_SECRET are required to call the keep-alive route.",
+    };
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetchImpl(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${secret}`,
+        Accept: "application/json",
+      },
+      signal: controller.signal,
+    });
+    const text = await response.text();
+    let json = null;
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch {
+      json = null;
+    }
+
+    const ok = response.ok && json?.ok === true;
+    return {
+      ok,
+      status: json?.status || (response.ok ? "unknown" : `http-${response.status}`),
+      source: "endpoint",
+      reads: json?.reads,
+      requestedReads: json?.requestedReads,
+      durationMs: json?.durationMs,
+      detail: typeof json?.detail === "string" ? json.detail : undefined,
+      error: ok ? undefined : json?.error || json?.detail || `HTTP ${response.status}`,
+    };
+  } catch (error) {
+    const aborted = error?.name === "AbortError";
+    return {
+      ok: false,
+      status: aborted ? "timed-out" : "unreachable",
+      source: "endpoint",
+      error: aborted
+        ? `Keep-alive route timed out after ${timeoutMs}ms`
+        : `Network error: ${error?.message || error}`,
+    };
+  } finally {
+    clearTimeout(timeoutId);
+  }
 };

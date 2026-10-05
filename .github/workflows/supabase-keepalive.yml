@@ -1,17 +1,23 @@
 name: Supabase Keep-Alive
 
-# Supabase pauses Free plan projects after ~7 days of low database activity. This job
-# makes a real query every day so that window never elapses.
+# Supabase pauses Free plan projects that receive too little database activity over 7 days.
+# One query a day was not enough. This job runs three times a day, and each run issues
+# several PostgREST reads. The hours sit between the Vercel crons (01:00, 09:00, 17:00 UTC).
 #
 # GitHub disables scheduled workflows in repositories with no activity for 60 days, so
 # this is deliberately not the only trigger: `api/supabase-keepalive.js` runs the same
-# ping from a Vercel cron, which is tied to the deployment rather than to repo activity.
+# ping from Vercel crons, which are tied to the deployment rather than to repo activity.
+#
+# A run with neither database credentials nor CRON_SECRET fails. Exiting green in that
+# state hid a job that never touched Postgres.
 
 on:
   workflow_dispatch:
   schedule:
-    # 03:30 UTC daily. Off the hour because scheduled runs queue on shared runners.
-    - cron: "30 3 * * *"
+    # Off the hour because scheduled runs queue on shared runners.
+    - cron: "15 5 * * *"
+    - cron: "15 13 * * *"
+    - cron: "15 21 * * *"
 
 permissions:
   contents: read
@@ -35,10 +41,14 @@ jobs:
 
       - name: Ping Supabase database
         env:
-          # Anon key is sufficient: the ping only reads public.keepalive_heartbeat.
+          # Preferred: a direct PostgREST read. Anon key is enough for the ping tables.
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           # Optional. When present the run also records the ping timestamp.
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Fallback when the database secrets above are unset. The production route
+          # already holds the Supabase keys; this only authenticates the caller.
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          KEEPALIVE_URL: https://filmgraph.app/api/supabase-keepalive
           KEEPALIVE_SOURCE: github-actions
         run: node scripts/supabase-keepalive.mjs

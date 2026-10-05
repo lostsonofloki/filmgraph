@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🔧 Operations
+
+- **Supabase keep-alive now produces enough database activity to matter**
+  - The daily GitHub Action had been succeeding with empty `SUPABASE_URL` / `SUPABASE_ANON_KEY` secrets, so it never queried Postgres. Missing credentials now fail the job.
+  - Supabase treats a Free project as inactive when it gets too few database requests over 7 days, not only when it gets zero. Each ping performs 3 cheap PostgREST reads, and both schedulers run 3 times a day: Vercel Cron at 01:00, 09:00, and 17:00 UTC, GitHub Actions at 05:15, 13:15, and 21:15 UTC.
+  - `GET /api/supabase-keepalive` requires `CRON_SECRET` and returns 503 until that secret exists, so the route is not an unauthenticated database trigger. Set the same value in Vercel (Production) and, for the GitHub fallback, as the `CRON_SECRET` repository secret, then redeploy.
+
 ### 🧪 Next
 
 - **UX overhaul sprint (Phase 7.6)**

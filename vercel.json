@@ -28,7 +28,15 @@
   "crons": [
     {
       "path": "/api/supabase-keepalive",
-      "schedule": "0 15 * * *"
+      "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/supabase-keepalive",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/supabase-keepalive",
+      "schedule": "0 17 * * *"
     }
   ]
 }

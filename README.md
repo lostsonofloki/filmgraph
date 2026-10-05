@@ -197,41 +197,50 @@ If `VERCEL_TOKEN` is missing, the workflow exits gracefully and publishes a setu
 
 ### Supabase Keep-Alive (Free Plan Anti-Pausing)
 
-Supabase pauses Free plan projects after roughly 7 days of low **database** activity. A
-paused project takes the whole app down until someone restores it by hand. Two independent
-scheduled jobs keep the project awake by issuing a real query every day:
+Supabase pauses Free plan projects that do not get enough **database** activity over about
+7 days. Their own guidance is that a few user requests to the database each day is what
+keeps a project off the pause list. A paused project takes the whole app down until someone
+restores it by hand.
 
-| Trigger | Where | Schedule |
+Two independent schedulers each run three times a day. Every run performs three cheap
+PostgREST reads (one row, one column), so a single healthy scheduler is already several
+queries per day:
+
+| Trigger | Where | Schedule (UTC) |
 | --- | --- | --- |
-| GitHub Actions | `.github/workflows/supabase-keepalive.yml` | daily at `03:30 UTC` |
-| Vercel Cron | `api/supabase-keepalive.js` (via `vercel.json`) | daily at `15:00 UTC` |
+| Vercel Cron | `api/supabase-keepalive.js` | `01:00`, `09:00`, `17:00` (Hobby fires sometime in that hour) |
+| GitHub Actions | `.github/workflows/supabase-keepalive.yml` | `05:15`, `13:15`, `21:15` |
 
-Both run the same logic from `scripts/supabase-keepalive.mjs`, which reads one row from
-`public.keepalive_heartbeat` (created by the `20260925193000_keepalive_heartbeat.sql`
-migration). Two triggers are deliberate: GitHub disables scheduled workflows after 60 days
-of repository inactivity, while Vercel Cron is tied to the deployment instead.
+Hobby accounts can only register cron expressions that run once per day, which is why the
+Vercel side is three separate daily entries instead of one `0 1,9,17 * * *` expression.
+GitHub Actions is the second trigger because GitHub disables scheduled workflows after 60
+days of repository inactivity, while Vercel Cron is tied to the deployment.
 
-Only a query that reaches Postgres resets the inactivity window. `/auth/v1/health` returns
-200 without touching the database, so pinging it reports success right up until the project
-pauses — which is why the ping is a PostgREST table read.
+Only a query that reaches Postgres counts. `/auth/v1/health` returns 200 without touching
+the database, and a PostgREST `PGRST205` (missing table) is answered from the schema cache
+the same way. The ping is a real table read. It tries `keepalive_heartbeat`, then
+`upc_cache`, then `profiles`, and repeats the first table that answers.
 
-**The Vercel cron needs no configuration.** It reuses the `VITE_SUPABASE_URL` /
-`VITE_SUPABASE_ANON_KEY` project environment variables the app already builds with, so it
-starts pinging on the next production deploy.
+**Set `CRON_SECRET` in Vercel before this route is deployed.** Vercel sends it as
+`Authorization: Bearer ...` on cron invocations. The route returns 503 and does not query
+the database when the secret is missing, and 401 for any other caller. Redeploy after
+adding or changing the variable so the function picks it up. The database URL and anon key
+are the existing `SUPABASE_URL` / `VITE_SUPABASE_URL` and `SUPABASE_ANON_KEY` /
+`VITE_SUPABASE_ANON_KEY` values.
 
-To also enable the GitHub Actions job, add repository secrets `SUPABASE_URL` and
-`SUPABASE_ANON_KEY`. The anon key is sufficient — the heartbeat table holds no user data
-and exposes only a `SELECT` policy. Until those secrets exist the job exits **green** with
-a `not-configured` warning annotation rather than failing daily, matching the Vercel error
-investigation workflow's behaviour.
+The GitHub Actions job prefers its own `SUPABASE_URL` and `SUPABASE_ANON_KEY` repository
+secrets and queries PostgREST directly. If those are unset but `CRON_SECRET` is set to the
+same value as Vercel, the job calls `https://filmgraph.app/api/supabase-keepalive` instead.
+If neither pair is set, the job **fails**. A green run that never touched Postgres is how
+the previous daily schedule missed the pause warning.
 
-Optionally set `SUPABASE_SERVICE_ROLE_KEY` to also record each ping's timestamp, and
-`CRON_SECRET` in Vercel to restrict the endpoint to Vercel's own cron invocations.
+Optionally set `SUPABASE_SERVICE_ROLE_KEY` to also record each ping's timestamp once the
+`keepalive_heartbeat` migration is applied. That write is bookkeeping; the reads are what
+count as activity.
 
-Applying the migration is recommended but not strictly required: if
-`keepalive_heartbeat` is absent the ping falls back to `upc_cache` and then `profiles`.
-Prefer the dedicated table so the keep-alive does not depend on another table's RLS
-configuration staying as it is today.
+Applying the migration is recommended but not required: production does not have
+`keepalive_heartbeat` yet, and the ping already falls back to `upc_cache`. Prefer the
+dedicated table so the keep-alive does not depend on another table's RLS staying as it is.
 
 Run it by hand at any time:
 
@@ -239,18 +248,18 @@ Run it by hand at any time:
 npm run supabase:keepalive
 ```
 
-Exit codes are meaningful. Missing credentials exit 0 (setup state). Anything else that
-cannot reach the database exits non-zero, turning the workflow red and emailing you, and the
-reported status says what to do:
+Anything that cannot reach the database exits non-zero, including missing credentials.
+The reported status says what to do:
 
 | Status | Meaning |
 | --- | --- |
-| `alive` | A real query reached Postgres. |
+| `alive` | The requested reads reached Postgres. |
 | `host-unresolved` | The hostname does not resolve. **This is what a paused project looks like** — pausing removes the DNS record. Otherwise a typo in `SUPABASE_URL`. |
 | `paused` | The edge returned 540/544, seen while a project is transitioning. |
 | `no-ping-target` | Connected, but no candidate table exists. `PGRST205` is answered from PostgREST's schema cache without touching Postgres, so this does **not** reset the inactivity window. |
 | `unreachable` / `timed-out` | Network or budget failure. |
-| `not-configured` | Secrets absent; exits 0. |
+| `not-configured` | Secrets absent. The route returns 503 and the script exits non-zero. |
+| `partial` | At least one read reached Postgres, but not the requested count. Exits non-zero. |
 
 Two quirks worth knowing, both observed on a freshly restored project: for roughly the first
 minute PostgREST returns `PGRST002` ("could not query the database for the schema cache")

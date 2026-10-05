@@ -1037,21 +1037,23 @@ User Query → Groq LPU (llama-3.3-70b-versatile) → Genre IDs (300-600ms)
 | --- | --- | --- | --- |
 | 7.9.1 | **Heartbeat Migration** | Add single-row `keepalive_heartbeat` table with a `SELECT`-only anon policy as a dedicated ping target, decoupled from application-table RLS. | ✅ |
 | 7.9.2 | **Ping Core** | Shared `scripts/lib/supabase-keepalive.mjs` issuing a real PostgREST read, with retry/backoff, candidate-table failover, and an overall time budget. | ✅ |
-| 7.9.3 | **Dual Schedulers** | GitHub Actions cron (`03:30 UTC`) plus Vercel cron (`15:00 UTC`), so neither failing alone allows a pause. | ✅ |
+| 7.9.3 | **Dual Schedulers** | GitHub Actions (`05:15`, `13:15`, `21:15 UTC`) plus Vercel cron (`01:00`, `09:00`, `17:00 UTC`), so neither failing alone allows a pause. | ✅ |
 | 7.9.4 | **Accurate Diagnostics** | Detect pauses via DNS `ENOTFOUND`, retry `PGRST002`, re-sweep an all-`PGRST205` schema cache, and report `no-ping-target` rather than a false success. | ✅ |
+| 7.9.5 | **Enough activity, fail closed** | Three reads per run, three times a day on each scheduler. The HTTP route requires `CRON_SECRET`. A GitHub run with no secrets fails instead of exiting green. | ✅ |
 
 ### Success Criteria
 
-- [x] A real query reaches Postgres daily without any manual action.
-- [x] The Vercel trigger requires no new configuration (reuses existing `VITE_SUPABASE_*` variables).
-- [x] Verified live in production: `/api/supabase-keepalive` returns `{"ok":true,"status":"alive"}`.
-- [x] A ping that cannot reach the database fails loudly; only absent credentials exit green.
+- [x] Several real queries reach Postgres each day without any manual action, once `CRON_SECRET` is set on the host that invokes the route.
+- [x] The Vercel trigger reuses existing `VITE_SUPABASE_*` / `SUPABASE_*` variables and additionally requires `CRON_SECRET`.
+- [x] Verified live before this correction: `/api/supabase-keepalive` could read `upc_cache` (the heartbeat table is not migrated). That single open route was not enough activity, and it was unauthenticated.
+- [x] A ping that cannot reach the database fails loudly, including absent credentials.
 - [x] `PGRST205` responses are never counted as success, since they never touch Postgres.
 
 ### Known Limitations
 
-- Pausing is only guaranteed to stop on the Pro plan; paid projects are never auto-paused. This phase removes the practical problem but relies on schedulers that can be throttled, delayed, or disabled.
-- Applying the migration remains a manual step. Until then the ping falls back to `upc_cache`, and heartbeat recording is skipped (fail-soft).
+- Pausing is only guaranteed to stop on the Pro plan; paid projects are never auto-paused. Supabase does not publish the exact request threshold, only that a few database requests each day is typically enough.
+- The route stays closed until `CRON_SECRET` is set in Vercel and the project is redeployed. Until then the new code will not ping.
+- Applying the heartbeat migration remains a manual step. Until then the ping reads `upc_cache`, and heartbeat recording is skipped (fail-soft).
 
 ---
 
