@@ -501,6 +501,7 @@ $ git log --all --full-history -- .env
 - ✅ **Streaming Oracle MVP** - Profile/discovery provider preferences, provider-aware recommendation filtering, and watch-now deep-link surfacing.
 - ✅ **Oracle Provider Metrics** - Analytics payload now tracks provider selection/filter outcomes for reliability tuning.
 - ✅ **UI Foundation Pass** - App shell header ownership unified and global page-shell/token normalization applied.
+- ✅ **Supabase Keep-Alive** - Shipped on production. Vercel Cron reads `upc_cache` three times at 01:00, 09:00, and 17:00 UTC. The route requires `CRON_SECRET`, which is set in Vercel Production.
 
 ---
 
@@ -1026,7 +1027,7 @@ User Query → Groq LPU (llama-3.3-70b-versatile) → Genre IDs (300-600ms)
 
 ## Phase 7.9: Supabase Free-Plan Keep-Alive (v1.13.0) 🫀
 
-**Status**: ✅ **Complete**
+**Status**: ✅ **Shipped** (production on `filmgraph.app`)
 **Priority**: 🔥 **Critical (Availability)**
 
 **Goal**: Stop the Free plan project from auto-pausing after ~7 days of low database activity, which takes the entire app offline until someone restores it by hand.
@@ -1043,17 +1044,17 @@ User Query → Groq LPU (llama-3.3-70b-versatile) → Genre IDs (300-600ms)
 
 ### Success Criteria
 
-- [x] Several real queries reach Postgres each day without any manual action, once `CRON_SECRET` is set on the host that invokes the route.
+- [x] Several real queries reach Postgres each day from Vercel Cron without any manual action. `CRON_SECRET` is set in Vercel Production, and the route requires `Authorization: Bearer $CRON_SECRET`.
 - [x] The Vercel trigger reuses existing `VITE_SUPABASE_*` / `SUPABASE_*` variables and additionally requires `CRON_SECRET`.
-- [x] Verified live before this correction: `/api/supabase-keepalive` could read `upc_cache` (the heartbeat table is not migrated). That single open route was not enough activity, and it was unauthenticated.
+- [x] Verified live on production: authenticated `GET /api/supabase-keepalive` returned `ok: true`, `table: upc_cache`, `reads: 3`. `keepalive_heartbeat` is not in the schema. An unauthenticated request returned 401.
 - [x] A ping that cannot reach the database fails loudly, including absent credentials.
 - [x] `PGRST205` responses are never counted as success, since they never touch Postgres.
 
 ### Known Limitations
 
 - Pausing is only guaranteed to stop on the Pro plan; paid projects are never auto-paused. Supabase does not publish the exact request threshold, only that a few database requests each day is typically enough.
-- The route stays closed until `CRON_SECRET` is set in Vercel and the project is redeployed. Until then the new code will not ping.
-- Applying the heartbeat migration remains a manual step. Until then the ping reads `upc_cache`, and heartbeat recording is skipped (fail-soft).
+- GitHub Actions (`05:15`, `13:15`, `21:15` UTC) fails closed until repository secrets `SUPABASE_URL` and `SUPABASE_ANON_KEY` (or `CRON_SECRET`) are set. Vercel Cron is the scheduler that is live.
+- Applying the heartbeat migration remains a manual step. Production reads `upc_cache` because `keepalive_heartbeat` is not in the schema, and heartbeat recording is skipped (fail-soft).
 
 ---
 

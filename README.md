@@ -221,18 +221,21 @@ the database, and a PostgREST `PGRST205` (missing table) is answered from the sc
 the same way. The ping is a real table read. It tries `keepalive_heartbeat`, then
 `upc_cache`, then `profiles`, and repeats the first table that answers.
 
-**Set `CRON_SECRET` in Vercel before this route is deployed.** Vercel sends it as
-`Authorization: Bearer ...` on cron invocations. The route returns 503 and does not query
-the database when the secret is missing, and 401 for any other caller. Redeploy after
-adding or changing the variable so the function picks it up. The database URL and anon key
-are the existing `SUPABASE_URL` / `VITE_SUPABASE_URL` and `SUPABASE_ANON_KEY` /
-`VITE_SUPABASE_ANON_KEY` values.
+`CRON_SECRET` is set in Vercel Production. Vercel Cron sends it as
+`Authorization: Bearer ...`. Any other caller gets 401 and the route does not query the
+database. Redeploy after changing the variable so the function picks it up. The database
+URL and anon key are the existing `SUPABASE_URL` / `VITE_SUPABASE_URL` and
+`SUPABASE_ANON_KEY` / `VITE_SUPABASE_ANON_KEY` values.
+
+Verified on production: an authenticated call returned `ok: true` with 3 reads of
+`upc_cache`. `keepalive_heartbeat` is not in the schema, so the ping uses `upc_cache`.
 
 The GitHub Actions job prefers its own `SUPABASE_URL` and `SUPABASE_ANON_KEY` repository
 secrets and queries PostgREST directly. If those are unset but `CRON_SECRET` is set to the
 same value as Vercel, the job calls `https://filmgraph.app/api/supabase-keepalive` instead.
-If neither pair is set, the job **fails**. A green run that never touched Postgres is how
-the previous daily schedule missed the pause warning.
+Those GitHub secrets are still unset, so that job **fails closed** and does not query
+Postgres. Vercel Cron is the scheduler that is live. A green run that never touched
+Postgres is how the previous daily schedule missed the pause warning.
 
 Optionally set `SUPABASE_SERVICE_ROLE_KEY` to also record each ping's timestamp once the
 `keepalive_heartbeat` migration is applied. That write is bookkeeping; the reads are what
