@@ -105,6 +105,12 @@
   z-index: 4;
 }
 
+/* focus-within (4) sits under the next card's .backdrop-quick-actions (5), so
+   those + buttons paint on top of an open menu. Raise only the open card. */
+.backdrop-card:has(.add-to-list-open) {
+  z-index: 6;
+}
+
 .backdrop-card:hover {
   transform: scale(1.03);
 }

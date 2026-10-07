@@ -94,7 +94,10 @@ function AddToListButton({ movie, className = '', variant = 'default' }) {
 
   return (
     <>
-      <div className={`add-to-list-container ${className}`} ref={dropdownRef}>
+      <div
+        className={`add-to-list-container${isOpen ? ' add-to-list-open' : ''} ${className}`}
+        ref={dropdownRef}
+      >
         {variant === 'icon' ? (
           <button
             className="add-to-list-button-icon"

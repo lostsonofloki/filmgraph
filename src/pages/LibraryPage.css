@@ -1437,6 +1437,12 @@
   position: relative;
 }
 
+/* Poster + buttons and the share control are positioned above the card.
+   While a menu is open, this cell has to sit above the next cell's buttons. */
+.library-poster-cell:has(.add-to-list-open) {
+  z-index: 21;
+}
+
 .library-share-movie-btn {
   display: inline-flex;
   align-items: center;

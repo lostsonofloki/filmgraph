@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🐛 Fixed
 
+- **The next card's + buttons no longer sit on an open add-to-list menu**
+  - On a phone, a later trending card painted its quick actions (z-index 5) over the open menu. The card with the menu open now stacks above neighboring cards. Search cards and library poster cells use the same open-card rule.
+
 - **Trending cards no longer cover their own title on a phone**
   - Opening the + menu on a trending or search card hung the list to the left of the button. The card clipped that menu, so a dark sliver of “movies” sat on the poster and cut off the start of the title. The menu now opens across the card, and the poster still clips to its rounded corners.
 

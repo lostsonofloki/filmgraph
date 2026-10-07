@@ -43,6 +43,12 @@
   z-index: 3;
 }
 
+/* Same stacking bug as trending: a later card's quick actions paint over an
+   open menu. Raise only the card whose menu is open. */
+.movie-card-wrapper:has(.add-to-list-open) {
+  z-index: 6;
+}
+
 .movie-card-wrapper:hover {
   transform: scale(1.05);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
