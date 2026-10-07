@@ -34,8 +34,13 @@
 }
 
 .movie-card-wrapper {
+  position: relative;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.movie-card-wrapper:focus-within {
+  z-index: 3;
 }
 
 .movie-card-wrapper:hover {
@@ -46,7 +51,9 @@
 .movie-card {
   background: #121212;
   border-radius: 12px;
-  overflow: hidden;
+  /* Keep the menu from being clipped to the poster. Corners are rounded on the
+     image and the footer instead. */
+  overflow: visible;
   transition: transform 0.2s ease;
   display: flex;
   flex-direction: column;
@@ -73,6 +80,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 12px 12px 0 0;
 }
 
 .movie-card-content {
@@ -80,6 +88,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  border-radius: 0 0 12px 12px;
 }
 
 .movie-card-title {

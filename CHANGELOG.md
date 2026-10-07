@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Fixed
+
+- **Trending cards no longer cover their own title on a phone**
+  - Opening the + menu on a trending or search card hung the list to the left of the button. The card clipped that menu, so a dark sliver of “movies” sat on the poster and cut off the start of the title. The menu now opens across the card, and the poster still clips to its rounded corners.
+
 ### 🔧 Operations
 
 - **Supabase keep-alive is deployed and reaching Postgres**

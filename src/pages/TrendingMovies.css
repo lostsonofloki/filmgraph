@@ -92,10 +92,17 @@
 }
 
 .backdrop-card {
+  position: relative;
   cursor: pointer;
   border-radius: 8px;
-  overflow: hidden;
+  /* The poster clips inside .backdrop-media. The card itself stays visible so the
+     add-to-list menu can extend past the 16:9 frame instead of being sliced into it. */
+  overflow: visible;
   transition: transform 0.2s ease;
+}
+
+.backdrop-card:focus-within {
+  z-index: 4;
 }
 
 .backdrop-card:hover {
@@ -106,6 +113,14 @@
   position: relative;
   padding-top: 56.25%;
   background: #1a1a1a;
+  border-radius: 8px;
+  overflow: visible;
+}
+
+.backdrop-media {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
   overflow: hidden;
 }
 
@@ -154,6 +169,7 @@
   position: absolute;
   top: 12px;
   left: 12px;
+  z-index: 5;
 }
 
 .backdrop-content {

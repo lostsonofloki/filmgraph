@@ -340,3 +340,12 @@
     width: 280px;
   }
 }
+
+/* Icon buttons on trending and search sit on the left of the art.
+   right: 0 (and the mobile right: -16px rule) hang the 280px menu off the
+   left edge, where the card clips it into a sliver over the title. */
+.quick-movie-actions .add-to-list-dropdown {
+  left: 0;
+  right: auto;
+  width: min(280px, calc(100vw - 72px));
+}
